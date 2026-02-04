@@ -1,9 +1,24 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 export const metadata: Metadata = {
-    title: "Izakaya Zen - Menú Digital",
-    description: "Disfruta de la mejor comida japonesa con nuestro menú digital interactivo.",
+    title: "FastEat - Ordena comida rápido",
+    description: "Ordena comida de tus restaurantes favoritos cerca de ti.",
+    manifest: "/manifest.json",
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: "default",
+        title: "FastEat",
+    },
+};
+
+export const viewport: Viewport = {
+    themeColor: "#ff6b35",
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
 };
 
 export default function RootLayout({
@@ -14,10 +29,12 @@ export default function RootLayout({
     return (
         <html lang="es">
             <head>
-                <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+                <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
             </head>
             <body>
                 {children}
+                <ServiceWorkerRegistration />
             </body>
         </html>
     );

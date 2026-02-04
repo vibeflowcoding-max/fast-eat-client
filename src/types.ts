@@ -84,3 +84,49 @@ export interface MCPOrderPayload {
     address?: string;
   };
 }
+
+export interface RestaurantCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  icon: string;
+}
+
+export interface Branch {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  is_active: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  image_url: string | null;
+  city: string | null;
+  country: string;
+  human_addres: string | null;
+  delivery_radius_km: number | null;
+  is_accepting_orders: boolean;
+  code: string | null;
+}
+
+export interface Restaurant {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  description: string | null;
+  is_active: boolean;
+}
+
+export interface RestaurantWithBranches extends Restaurant {
+  branches: Branch[];
+  categories: RestaurantCategory[];
+  distance?: number;
+}
+
+export interface UserLocation {
+  lat: number;
+  lng: number;
+}
+

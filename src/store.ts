@@ -1,19 +1,20 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem } from './types';
+import { CartItem, UserLocation } from './types';
 
 import { OrderUpdate } from './hooks/useOrderTracking';
 
 interface CartState {
   items: CartItem[];
-  expirationTime: number | null; 
+  expirationTime: number | null;
   branchId: string;
   fromNumber: string;
   customerName: string;
   isTestMode: boolean; // Estado para manejar el entorno de n8n
   restaurantInfo: import('./types').RestaurantInfo | null;
   activeOrders: Record<string, OrderUpdate>;
+  userLocation: UserLocation | null;
+  isOnboarded: boolean;
   setItems: (items: CartItem[]) => void;
   updateItem: (item: CartItem) => void;
   removeItem: (itemId: string) => void;
@@ -28,6 +29,8 @@ interface CartState {
   updateActiveOrder: (orderId: string, updates: Partial<OrderUpdate>) => void;
   clearActiveOrders: () => void;
   resetSession: () => void;
+  setUserLocation: (location: UserLocation | null) => void;
+  setOnboarded: (value: boolean) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -41,6 +44,8 @@ export const useCartStore = create<CartState>()(
       isTestMode: false,
       restaurantInfo: null,
       activeOrders: {},
+      userLocation: null,
+      isOnboarded: false,
       setItems: (items) => set({ items }),
       updateItem: (newItem) => set((state) => {
         const existingIndex = state.items.findIndex((i) => i.id === newItem.id);
@@ -63,13 +68,13 @@ export const useCartStore = create<CartState>()(
       setRestaurantInfo: (info) => set({ restaurantInfo: info }),
       addActiveOrder: (order) => set((state) => {
         // Find if we already have this order by ID or by human-readable Order Number
-        const existingKey = Object.keys(state.activeOrders).find(key => 
-          key === order.orderId || 
+        const existingKey = Object.keys(state.activeOrders).find(key =>
+          key === order.orderId ||
           (order.orderNumber !== 'PENDING' && state.activeOrders[key].orderNumber === order.orderNumber)
         );
 
         const newActiveOrders = { ...state.activeOrders };
-        
+
         // If it existed with a different key, remove the old one to avoid duplicates
         if (existingKey && existingKey !== order.orderId) {
           delete newActiveOrders[existingKey];
@@ -96,23 +101,27 @@ export const useCartStore = create<CartState>()(
         };
       }),
       clearActiveOrders: () => set({ activeOrders: {} }),
-      resetSession: () => set({ 
-        items: [], 
-        expirationTime: null, 
-        fromNumber: '', 
-        customerName: '', 
-        activeOrders: {} 
-      })
+      resetSession: () => set({
+        items: [],
+        expirationTime: null,
+        fromNumber: '',
+        customerName: '',
+        activeOrders: {}
+      }),
+      setUserLocation: (location) => set({ userLocation: location }),
+      setOnboarded: (value) => set({ isOnboarded: value })
     }),
     {
-      name: 'virtual-menu-storage',
+      name: 'fasteat-storage',
       partialize: (state) => ({
         fromNumber: state.fromNumber,
         customerName: state.customerName,
         activeOrders: state.activeOrders,
         items: state.items,
         expirationTime: state.expirationTime,
-        branchId: state.branchId
+        branchId: state.branchId,
+        userLocation: state.userLocation,
+        isOnboarded: state.isOnboarded
       }),
     }
   )

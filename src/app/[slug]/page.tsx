@@ -3,6 +3,9 @@ import { supabase } from '@/lib/supabase';
 import MainApp from '@/components/MainApp';
 import LoadingScreen from '@/components/LoadingScreen';
 
+// Force dynamic rendering to avoid build-time Supabase calls
+export const dynamic = 'force-dynamic';
+
 // This is a Server Component
 export default async function BranchPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
