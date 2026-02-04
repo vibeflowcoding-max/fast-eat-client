@@ -1,0 +1,8 @@
+{
+  "name": "Izakaya Zen - Menu Visual Japonés",
+  "description": "Una aplicación de menú interactivo para un restaurante japonés con carrito de compras, detalles personalizados por platillo y un asistente virtual integrado.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

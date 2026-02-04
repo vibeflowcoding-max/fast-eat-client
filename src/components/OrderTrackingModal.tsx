@@ -1,0 +1,126 @@
+import React, { useState } from 'react';
+import { useOrderTracking } from '../hooks/useOrderTracking';
+
+interface OrderTrackingModalProps {
+    isOpen: boolean;
+    branchId: string;
+    phone: string;
+    onClose: () => void;
+}
+
+const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchId, phone, onClose }) => {
+    const { orders, isConnected } = useOrderTracking(branchId, phone);
+    const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fadeIn">
+            <div className="bg-[#fdfcf0] w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh] relative animate-popIn border-2 border-red-600">
+
+                {/* Header */}
+                <div className="p-5 md:p-8 bg-white border-b-4 border-gray-100 flex justify-between items-center">
+                    <div>
+                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter">Rastreo de Pedidos</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                                {isConnected ? 'Conectado en vivo' : 'Desconectado'}
+                            </span>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-black font-black hover:bg-black hover:text-white transition-all">✕</button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-grow overflow-y-auto p-5 md:p-8 space-y-4 bg-gray-50/50">
+                    {orders.length === 0 ? (
+                        <div className="flex flex-col items-center py-20 text-center">
+                            <span className="text-6xl mb-4 grayscale opacity-50">🛵</span>
+                            <p className="text-gray-400 font-black uppercase tracking-widest text-xs">No hay actualizaciones recientes</p>
+                            <p className="text-gray-300 text-[10px] mt-2 max-w-xs">Los pedidos activos aparecerán aquí automáticamente.</p>
+                        </div>
+                    ) : (
+                        orders.map((order) => {
+                            const isExpanded = expandedOrderId === order.orderId;
+                            return (
+                                <div
+                                    key={order.orderId}
+                                    onClick={() => setExpandedOrderId(isExpanded ? null : order.orderId)}
+                                    className={`bg-white rounded-2xl shadow-sm border border-gray-100 transition-all cursor-pointer hover:shadow-md overflow-hidden ${isExpanded ? 'ring-2 ring-red-500/20' : ''}`}
+                                >
+                                    <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Orden #{order.orderNumber || order.orderId.slice(0, 8)}</span>
+                                                {order.total !== undefined && (
+                                                    <span className="bg-green-100 text-green-700 text-[9px] font-black px-1.5 py-0.5 rounded-md">
+                                                        ₡{order.total.toLocaleString()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className="text-lg font-black text-gray-900">{order.newStatus?.label || order.newStatus?.code || "Actualizado"}</span>
+                                            <span className="text-[10px] text-gray-500 font-medium">
+                                                Actualizado: {new Date(order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-4">
+                                            <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
+                                                <span className="text-2xl">
+                                                    {order.newStatus?.code === 'Cocinando' ? '👨‍🍳' :
+                                                        order.newStatus?.code === 'En camino' ? '🛵' :
+                                                            order.newStatus?.code === 'Entregado' ? '✅' : '🕓'}
+                                                </span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-[7px] font-black uppercase tracking-widest text-gray-400">Estado</span>
+                                                    <span className="text-xs font-bold text-gray-800">{order.newStatus?.label || order.newStatus?.code}</span>
+                                                </div>
+                                            </div>
+                                            <div className="text-gray-300 transform transition-transform duration-300">
+                                                {isExpanded ? '▲' : '▼'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Detailed View */}
+                                    {isExpanded && order.items && (
+                                        <div className="bg-gray-50/50 p-5 border-t border-gray-100 animate-fadeIn">
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Detalle del Pedido</h4>
+                                            <div className="space-y-3">
+                                                {order.items.map((item, idx) => (
+                                                    <div key={idx} className="flex justify-between items-start text-xs border-b border-gray-100 pb-2 last:border-0">
+                                                        <div className="flex gap-2">
+                                                            <span className="font-bold text-red-600 bg-red-50 px-1.5 rounded">{item.quantity}x</span>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-bold text-gray-800">{item.name}</span>
+                                                                {item.notes && <span className="text-[10px] text-gray-500 italic">"{item.notes}"</span>}
+                                                            </div>
+                                                        </div>
+                                                        <span className="font-bold text-gray-900">₡{(item.price * item.quantity).toLocaleString()}</span>
+                                                    </div>
+                                                ))}
+                                                {order.total !== undefined && (
+                                                    <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-200">
+                                                        <span className="font-black text-gray-900 uppercase text-[10px] tracking-widest">Total a Pagar</span>
+                                                        <span className="font-black text-lg text-gray-900">₡{order.total.toLocaleString()}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 bg-white border-t border-gray-100 text-center">
+                    <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest">Actualizaciones en tiempo real via SSE</span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default OrderTrackingModal;
