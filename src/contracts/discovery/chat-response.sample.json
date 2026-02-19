@@ -1,0 +1,15 @@
+{
+  "answer": "Encontré opciones para tu búsqueda.",
+  "recommendations": [
+    {
+      "kind": "restaurant",
+      "id": "rec-1",
+      "restaurantId": "restaurant-1",
+      "title": "Sushi House",
+      "score": 0.82,
+      "reasons": ["Buen precio final"]
+    }
+  ],
+  "followUps": ["¿Quieres comparar opciones?"],
+  "traceId": "trace-sample-1"
+}

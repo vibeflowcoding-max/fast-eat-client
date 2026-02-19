@@ -1,0 +1,211 @@
+import React from 'react';
+import { Bell, MapPin, Search } from 'lucide-react';
+import { HOME_VISUAL_TOKENS } from './homeVisualTokens';
+
+export interface HomeSearchSuggestionItem {
+    id: string;
+    label: string;
+    kind: 'restaurant' | 'category';
+}
+
+export interface HomeSearchRecoveryAction {
+    id: string;
+    label: string;
+}
+
+export interface HomeSearchRecoveryRestaurant {
+    id: string;
+    label: string;
+}
+
+interface HomeHeroSearchProps {
+    hasActiveLocation: boolean;
+    searchQuery: string;
+    onSearchQueryChange: (value: string) => void;
+    suggestions?: HomeSearchSuggestionItem[];
+    suggestionsLoading?: boolean;
+    showSuggestions?: boolean;
+    onSuggestionSelect?: (suggestion: HomeSearchSuggestionItem) => void;
+    showRecovery?: boolean;
+    recoveryAlternatives?: HomeSearchRecoveryRestaurant[];
+    recoveryCategories?: HomeSearchRecoveryAction[];
+    onRecoveryAlternativeSelect?: (alternativeId: string) => void;
+    onRecoveryCategorySelect?: (categoryLabel: string) => void;
+    onClearSearch?: () => void;
+    profilePrompt?: React.ReactNode;
+    visualHierarchyV2?: boolean;
+}
+
+export default function HomeHeroSearch({
+    hasActiveLocation,
+    searchQuery,
+    onSearchQueryChange,
+    suggestions = [],
+    suggestionsLoading = false,
+    showSuggestions = false,
+    onSuggestionSelect,
+    showRecovery = false,
+    recoveryAlternatives = [],
+    recoveryCategories = [],
+    onRecoveryAlternativeSelect,
+    onRecoveryCategorySelect,
+    onClearSearch,
+    profilePrompt,
+    visualHierarchyV2 = false
+}: HomeHeroSearchProps) {
+    const searchInputId = 'home-search-input';
+    const [notificationStatus, setNotificationStatus] = React.useState<'unsupported' | NotificationPermission>('default');
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined' || !('Notification' in window)) {
+            setNotificationStatus('unsupported');
+            return;
+        }
+
+        setNotificationStatus(Notification.permission);
+    }, []);
+
+    const handleNotificationsClick = React.useCallback(async () => {
+        if (typeof window === 'undefined' || !('Notification' in window)) {
+            setNotificationStatus('unsupported');
+            return;
+        }
+
+        if (Notification.permission === 'granted') {
+            setNotificationStatus('granted');
+            return;
+        }
+
+        const result = await Notification.requestPermission();
+        setNotificationStatus(result);
+    }, []);
+
+    const notificationsLabel = notificationStatus === 'granted'
+        ? 'Notificaciones activas'
+        : notificationStatus === 'denied'
+            ? 'Notificaciones bloqueadas'
+            : 'Activar notificaciones';
+
+    return (
+        <div className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.heroContainer : 'px-4 py-4'}>
+            <div className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.heroHeader : 'mb-4 flex items-center justify-end'}>
+                <button
+                    type="button"
+                    onClick={handleNotificationsClick}
+                    className="mr-2 inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600"
+                >
+                    <Bell size={12} />
+                    <span>{notificationsLabel}</span>
+                </button>
+                {hasActiveLocation && (
+                    <div
+                        className={visualHierarchyV2
+                            ? HOME_VISUAL_TOKENS.locationChipStyle
+                            : 'flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-xs text-green-600'}
+                    >
+                        <MapPin size={12} />
+                        <span>Ubicación activa</span>
+                    </div>
+                )}
+            </div>
+
+            {profilePrompt}
+
+            <div className="relative">
+                <label htmlFor={searchInputId} className="sr-only">Buscar restaurantes o comida</label>
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                    id={searchInputId}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(event) => onSearchQueryChange(event.target.value)}
+                    placeholder="Buscar restaurantes o comida..."
+                    className={visualHierarchyV2
+                        ? HOME_VISUAL_TOKENS.searchInputStyle
+                        : 'w-full rounded-xl bg-gray-100 py-3 pl-10 pr-4 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-orange-500'}
+                />
+
+                {showSuggestions && (
+                    <div className="absolute z-50 mt-2 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
+                        {suggestionsLoading && (
+                            <p className="px-2 py-1.5 text-sm text-gray-500">Buscando sugerencias...</p>
+                        )}
+
+                        {!suggestionsLoading && suggestions.length === 0 && (
+                            <p className="px-2 py-1.5 text-sm text-gray-500">No hay sugerencias disponibles.</p>
+                        )}
+
+                        {!suggestionsLoading && suggestions.length > 0 && (
+                            <ul className="flex flex-col gap-1" aria-label="Sugerencias de búsqueda">
+                                {suggestions.map((suggestion) => (
+                                    <li key={suggestion.id}>
+                                        <button
+                                            type="button"
+                                            onClick={() => onSuggestionSelect?.(suggestion)}
+                                            className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                                        >
+                                            <span>{suggestion.label}</span>
+                                            <span className="text-xs text-gray-400">
+                                                {suggestion.kind === 'restaurant' ? 'Restaurante' : 'Categoría'}
+                                            </span>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {showRecovery && (
+                <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
+                    <p className="text-sm font-medium text-gray-800">No encontramos resultados para esa búsqueda.</p>
+
+                    {recoveryAlternatives.length > 0 && (
+                        <div className="mt-2">
+                            <p className="text-xs text-gray-500">Restaurantes cercanos</p>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                                {recoveryAlternatives.map((alternative) => (
+                                    <button
+                                        key={alternative.id}
+                                        type="button"
+                                        onClick={() => onRecoveryAlternativeSelect?.(alternative.id)}
+                                        className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-700"
+                                    >
+                                        {alternative.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {recoveryCategories.length > 0 && (
+                        <div className="mt-3">
+                            <p className="text-xs text-gray-500">Categorías populares</p>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                                {recoveryCategories.map((category) => (
+                                    <button
+                                        key={category.id}
+                                        type="button"
+                                        onClick={() => onRecoveryCategorySelect?.(category.label)}
+                                        className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs text-orange-700"
+                                    >
+                                        {category.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={onClearSearch}
+                        className="mt-3 text-sm font-medium text-orange-600"
+                    >
+                        Limpiar búsqueda
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}

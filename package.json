@@ -7,9 +7,24 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:a11y": "vitest run src/features/home-discovery/components/HomeHeroSearch.a11y.test.tsx src/features/home-discovery/components/HomeDiscoveryWidget.a11y.test.tsx",
+    "contracts:check": "node scripts/validate-discovery-contracts.mjs",
+    "analyze:home-exp": "node scripts/analyze-home-experiment.mjs",
+    "alerts:discovery": "node scripts/check-discovery-alerts.mjs",
+    "exp:run": "node scripts/run-home-experiment.mjs",
+    "monitor:rollout-72h": "node scripts/monitor-rollout-72h.mjs",
+    "rollout:decision": "node scripts/generate-rollout-decision.mjs",
+    "perf:budget": "node scripts/check-bundle-budget.mjs",
+    "perf:home": "node scripts/measure-home-route-timings.mjs",
+    "qa:responsive": "node scripts/responsive-home-qa.mjs",
+    "smoke:discovery": "node scripts/smoke-discovery-endpoints.mjs"
   },
   "dependencies": {
+    "@googlemaps/js-api-loader": "^1.16.10",
     "@supabase/supabase-js": "^2.93.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.563.0",
@@ -21,11 +36,24 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.14.0",
     "@types/react": "19.2.10",
+    "@typescript-eslint/eslint-plugin": "^8.24.0",
+    "@typescript-eslint/parser": "^8.24.0",
     "autoprefixer": "^10.4.23",
+    "axe-core": "^4.10.2",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^16.1.5",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "jest-axe": "^10.0.0",
+    "jsdom": "^26.0.0",
+    "playwright": "^1.50.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
-    "typescript": "~5.8.2"
+    "typescript": "~5.8.2",
+    "vitest": "^3.2.4"
   }
 }

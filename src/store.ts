@@ -15,6 +15,18 @@ interface CartState {
   activeOrders: Record<string, OrderUpdate>;
   userLocation: UserLocation | null;
   isOnboarded: boolean;
+  customerAddress: {
+    customerId?: string;
+    urlAddress: string;
+    buildingType: 'Apartment' | 'Residential Building' | 'Hotel' | 'Office Building' | 'Other';
+    unitDetails?: string;
+    deliveryNotes: string;
+    lat?: number;
+    lng?: number;
+    formattedAddress?: string;
+    placeId?: string;
+  } | null;
+  profilePromptDismissedAt: number | null;
   setItems: (items: CartItem[]) => void;
   updateItem: (item: CartItem) => void;
   removeItem: (itemId: string) => void;
@@ -31,6 +43,8 @@ interface CartState {
   resetSession: () => void;
   setUserLocation: (location: UserLocation | null) => void;
   setOnboarded: (value: boolean) => void;
+  setCustomerAddress: (address: CartState['customerAddress']) => void;
+  setProfilePromptDismissedAt: (value: number | null) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -46,6 +60,8 @@ export const useCartStore = create<CartState>()(
       activeOrders: {},
       userLocation: null,
       isOnboarded: false,
+      customerAddress: null,
+      profilePromptDismissedAt: null,
       setItems: (items) => set({ items }),
       updateItem: (newItem) => set((state) => {
         const existingIndex = state.items.findIndex((i) => i.id === newItem.id);
@@ -109,7 +125,9 @@ export const useCartStore = create<CartState>()(
         activeOrders: {}
       }),
       setUserLocation: (location) => set({ userLocation: location }),
-      setOnboarded: (value) => set({ isOnboarded: value })
+      setOnboarded: (value) => set({ isOnboarded: value }),
+      setCustomerAddress: (address) => set({ customerAddress: address }),
+      setProfilePromptDismissedAt: (value) => set({ profilePromptDismissedAt: value })
     }),
     {
       name: 'fasteat-storage',
@@ -121,7 +139,9 @@ export const useCartStore = create<CartState>()(
         expirationTime: state.expirationTime,
         branchId: state.branchId,
         userLocation: state.userLocation,
-        isOnboarded: state.isOnboarded
+        isOnboarded: state.isOnboarded,
+        customerAddress: state.customerAddress,
+        profilePromptDismissedAt: state.profilePromptDismissedAt
       }),
     }
   )

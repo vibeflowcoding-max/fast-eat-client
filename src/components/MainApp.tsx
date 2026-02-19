@@ -138,27 +138,29 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             const currentStoreBranch = useCartStore.getState().branchId;
             // Detección de cambio de sucursal:
             if (currentStoreBranch && currentStoreBranch !== bId && currentStoreBranch !== ':branchId') {
-                console.log("🔄 Cambiando de sucursal - Limpiando sesión anterior...");
-                resetSession();
-                // Limpieza profunda de LocalStorage
-                localStorage.removeItem('izakaya_chat_history');
-                localStorage.removeItem('izakaya_metadata');
-                localStorage.removeItem('izakaya_active_orders');
-                localStorage.removeItem('izakaya_user_name');
+                console.log("🔄 Cambiando de sucursal - Limpiando carrito anterior...");
+                // Keep user session (Name/Phone) but clear cart and active orders for the new branch context
+                useCartStore.getState().clearCart();
+                useCartStore.getState().clearActiveOrders();
 
-                // Reset local states
-                setOrderMetadata({
-                    customerName: '',
-                    customerPhone: '',
+                // Clear specific branch data but KEEP metadata and user info
+                localStorage.removeItem('izakaya_chat_history');
+                // localStorage.removeItem('izakaya_metadata'); // KEEP THIS
+                // localStorage.removeItem('izakaya_active_orders'); // Maybe keep this if we want global history? For now clear to avoid confusion.
+                // localStorage.removeItem('izakaya_user_name'); // KEEP THIS
+
+                // Reset local states but keep customer info
+                setOrderMetadata(prev => ({
+                    ...prev,
                     paymentMethod: '',
                     orderType: '',
                     address: '',
                     gpsLocation: ''
-                });
-                setInitialCustomerName('');
+                    // customerName and customerPhone are PRESERVED from prev
+                }));
+                // setInitialCustomerName(''); // KEEP THIS
                 setPhoneBody('');
-                // Force show phone prompt for new session
-                setShowPhonePrompt(true);
+                // setShowPhonePrompt(true); // DO NOT FORCE PROMPT if we have data
 
                 // Clear restaurant info to prevent stale data "flash"
                 // This triggers the LoadingScreen because if (!restaurantInfo && loading) it shows loader

@@ -1,0 +1,16 @@
+{
+  "rails": [
+    {
+      "railId": "popular-now",
+      "title": "Popular ahora",
+      "items": [
+        {
+          "id": "restaurant-1",
+          "name": "Sushi House"
+        }
+      ]
+    }
+  ],
+  "generatedAt": "2026-02-13T00:00:00.000Z",
+  "strategyVersion": "discovery-v1"
+}

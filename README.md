@@ -8,6 +8,10 @@ This contains everything you need to run your app locally.
 
 View your app in AI Studio: https://ai.studio/apps/drive/1NGB2Jfd47cqXVQHqls4XejaCuH9nn1gu
 
+## Documentation
+
+- Full docs index: [docs/README.md](./docs/README.md)
+
 ## Run Locally
 
 **Prerequisites:**  Node.js
@@ -18,6 +22,7 @@ View your app in AI Studio: https://ai.studio/apps/drive/1NGB2Jfd47cqXVQHqls4Xej
 2. Configure environment variables in [.env.local](.env.local):
    - Copy [.env.example](.env.example) to `.env.local`
    - Update the values as needed for your environment
+   - For full local functionality, set Supabase vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 
 3. Run the app:
    `npm run dev`

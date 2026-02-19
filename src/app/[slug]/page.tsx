@@ -12,11 +12,7 @@ export default async function BranchPage({ params }: { params: Promise<{ slug: s
     let initialBranchId = undefined;
 
     try {
-        // Fetch all active branches to find a match
-        // Note: For valid slugs, we expect a match.
-        // We fetch all because we need to implement the detailed matching logic
-        // (lowercase, replace spaces, etc) which is safer on a small dataset than complex SQL regex.
-        // If dataset grows large, we should add a 'slug' column to the DB.
+        // 1. Try to find a branch directly (Best for specific branch URLs)
         const { data: branches } = await supabase
             .from('branches')
             .select('id, name')
@@ -31,6 +27,30 @@ export default async function BranchPage({ params }: { params: Promise<{ slug: s
 
             if (matched) {
                 initialBranchId = matched.id;
+            }
+        }
+
+        // 2. Fallback: Try to find a restaurant by slug (For main restaurant URLs)
+        if (!initialBranchId) {
+            const { data: restaurant } = await supabase
+                .from('restaurants')
+                .select(`
+                    id,
+                    branches (
+                        id,
+                        is_active
+                    )
+                `)
+                .eq('slug', slug)
+                .eq('is_active', true)
+                .single();
+
+            if (restaurant && restaurant.branches && restaurant.branches.length > 0) {
+                // Find method finds the first one that satisfies the condition
+                const activeBranch = restaurant.branches.find((b: any) => b.is_active);
+                if (activeBranch) {
+                    initialBranchId = activeBranch.id;
+                }
             }
         }
     } catch (error) {

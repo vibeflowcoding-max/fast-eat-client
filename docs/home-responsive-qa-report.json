@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-02-17T03:45:55.864Z",
+  "baseUrl": "http://localhost:3000",
+  "summary": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0
+  },
+  "results": [
+    {
+      "viewport": "mobile-375x812",
+      "width": 375,
+      "height": 812,
+      "passed": true,
+      "horizontalOverflow": false,
+      "screenshot": "E:\\Ivan (IMPORTANTE)\\Ivan\\Disco D\\Ideas de negocio\\VibeFlowCoding\\fast-eat-client\\docs\\qa-screenshots\\mobile-375x812.png",
+      "error": null
+    },
+    {
+      "viewport": "tablet-768x1024",
+      "width": 768,
+      "height": 1024,
+      "passed": true,
+      "horizontalOverflow": false,
+      "screenshot": "E:\\Ivan (IMPORTANTE)\\Ivan\\Disco D\\Ideas de negocio\\VibeFlowCoding\\fast-eat-client\\docs\\qa-screenshots\\tablet-768x1024.png",
+      "error": null
+    },
+    {
+      "viewport": "desktop-1440x900",
+      "width": 1440,
+      "height": 900,
+      "passed": true,
+      "horizontalOverflow": false,
+      "screenshot": "E:\\Ivan (IMPORTANTE)\\Ivan\\Disco D\\Ideas de negocio\\VibeFlowCoding\\fast-eat-client\\docs\\qa-screenshots\\desktop-1440x900.png",
+      "error": null
+    }
+  ]
+}

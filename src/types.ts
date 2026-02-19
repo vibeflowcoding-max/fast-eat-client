@@ -117,6 +117,12 @@ export interface Restaurant {
   logo_url: string | null;
   description: string | null;
   is_active: boolean;
+  rating?: number | null;
+  review_count?: number | null;
+  estimated_delivery_fee?: number | null;
+  promo_text?: string | null;
+  eta_min?: number | null;
+  avg_price_estimate?: number | null;
 }
 
 export interface RestaurantWithBranches extends Restaurant {
