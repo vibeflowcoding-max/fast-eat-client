@@ -28,14 +28,6 @@ function getMetricErrors(restaurant: RestaurantWithBranches) {
         errors.push('Total estimado no disponible');
     }
 
-    if (typeof restaurant.rating !== 'number' || Number.isNaN(restaurant.rating) || restaurant.rating <= 0) {
-        errors.push('Rating no disponible');
-    }
-
-    if (typeof restaurant.review_count !== 'number' || Number.isNaN(restaurant.review_count) || restaurant.review_count < 0) {
-        errors.push('Conteo de reseñas no disponible');
-    }
-
     return errors;
 }
 
@@ -55,6 +47,7 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
     const hasPromo = Boolean(restaurant.promo_text);
     const deliveryFeeHint = restaurant.estimated_delivery_fee;
     const reviewConfidence = reviewConfidenceLabel(reviewCount);
+    const hasRating = typeof rating === 'number' && !Number.isNaN(rating) && rating > 0;
 
     const handleClick = () => {
         onOpen?.(restaurant);
@@ -154,8 +147,8 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
                     <div className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-gray-50 px-2 py-1.5 text-gray-700">
                         <Star size={12} aria-hidden="true" />
                         <span className="truncate">
-                            {rating!.toFixed(1)}
-                            <span className="text-gray-500"> ({reviewCount ?? 0} reseñas)</span>
+                            {hasRating ? rating.toFixed(1) : 'Nuevo'}
+                            <span className="text-gray-500"> ({reviewCount ? `${reviewCount} reseñas` : 'Sin reseñas aún'})</span>
                         </span>
                     </div>
                     <div className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-gray-50 px-2 py-1.5 text-gray-700">

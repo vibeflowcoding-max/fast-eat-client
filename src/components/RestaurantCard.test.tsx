@@ -79,14 +79,15 @@ describe('RestaurantCard', () => {
     expect(image.dataset.fallbackApplied).toBe('true');
   });
 
-  it('shows metric error when review count is missing', () => {
+  it('shows new-restaurant fallback when rating data is missing', () => {
     render(
       <RestaurantCard
-        restaurant={{ ...baseRestaurant, review_count: undefined }}
+        restaurant={{ ...baseRestaurant, rating: null, review_count: 0 }}
       />
     );
 
-    expect(screen.getByText('Error de datos de restaurante')).toBeInTheDocument();
-    expect(screen.getByText(/Conteo de reseñas no disponible/)).toBeInTheDocument();
+    expect(screen.queryByText('Error de datos de restaurante')).not.toBeInTheDocument();
+    expect(screen.getByText(/Nuevo/)).toBeInTheDocument();
+    expect(screen.getByText(/Sin reseñas aún/)).toBeInTheDocument();
   });
 });
