@@ -216,7 +216,7 @@ export function useOrderTracking(_branchId: string, phone: string) {
           } else {
             addActiveOrder({
               orderId,
-              orderNumber: String(envelope.orderNumber || data.orderNumber || 'PENDING'),
+              orderNumber: String(envelope.data?.orderNumber || data.orderNumber || 'PENDING'),
               previousStatus: { code: 'UNKNOWN', label: 'Desconocido' },
               newStatus: { code: status.code, label: status.label },
               updatedAt,
