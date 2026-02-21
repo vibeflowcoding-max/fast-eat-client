@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     const { customerId } = await ensureCustomerByPhone({ phone });
 
-    const { data, error } = await supabaseServer
+    const { data, error } = await (supabaseServer as any)
       .from('customer_address')
       .select('*')
       .eq('customer_id', customerId)
@@ -145,14 +145,14 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    let upsertResult = await supabaseServer
+    let upsertResult = await (supabaseServer as any)
       .from('customer_address')
       .upsert(extendedPayload, { onConflict: 'customer_id' })
       .select('*')
       .single();
 
     if (upsertResult.error && isUnknownColumnError(upsertResult.error)) {
-      upsertResult = await supabaseServer
+      upsertResult = await (supabaseServer as any)
         .from('customer_address')
         .upsert(baseUpsertPayload, { onConflict: 'customer_id' })
         .select('*')

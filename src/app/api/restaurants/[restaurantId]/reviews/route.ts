@@ -33,7 +33,7 @@ export async function POST(
       return NextResponse.json({ error: 'rating must be an integer between 1 and 5' }, { status: 400 });
     }
 
-    const { data: order, error: orderError } = await supabaseServer
+    const { data: order, error: orderError } = await (supabaseServer as any)
       .from('orders')
       .select('id, restaurant_id, customer_id, completed_at, status_id')
       .eq('id', body.orderId)
@@ -44,7 +44,7 @@ export async function POST(
       return NextResponse.json({ error: 'Order not found for this restaurant' }, { status: 404 });
     }
 
-    const { data: statusRecord } = await supabaseServer
+    const { data: statusRecord } = await (supabaseServer as any)
       .from('order_statuses')
       .select('code')
       .eq('id', order.status_id)
@@ -67,7 +67,7 @@ export async function POST(
       comment: body.comment?.trim() || null
     };
 
-    const { data: review, error: reviewError } = await supabaseServer
+    const { data: review, error: reviewError } = await (supabaseServer as any)
       .from('restaurant_reviews')
       .upsert(payload, { onConflict: 'order_id' })
       .select('id, restaurant_id, order_id, customer_id, rating, comment, created_at, updated_at')
