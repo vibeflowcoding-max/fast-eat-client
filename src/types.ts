@@ -30,8 +30,11 @@ export interface OrderMetadata {
   customerPhone: string;
   paymentMethod: 'cash' | 'card' | 'sinpe' | string;
   orderType: 'pickup' | 'delivery' | 'dine_in' | string;
+  source?: 'client' | 'virtualMenu' | 'consumer_app' | string;
   address?: string;
   gpsLocation?: string;
+  customerLatitude?: number;
+  customerLongitude?: number;
   tableNumber?: string;
 }
 
@@ -81,8 +84,38 @@ export interface MCPOrderPayload {
     customerPhone: string;
     paymentMethod: string;
     orderType: string;
+    source?: 'client' | 'virtualMenu' | 'consumer_app' | string;
     address?: string;
+    customerLatitude?: number;
+    customerLongitude?: number;
   };
+}
+
+export interface DeliveryBid {
+  id: string;
+  bidAmount: number;
+  driverRating: number;
+  estimatedTimeMinutes: number | null;
+  driverNotes: string | null;
+  basePrice: number;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface BidNotification {
+  id: string;
+  orderId: string;
+  bid: DeliveryBid;
+  receivedAt: string;
+  read: boolean;
+}
+
+export interface AuctionState {
+  isActive: boolean;
+  driverAssigned: boolean;
+  deliveryId?: string;
+  deliveryFinalPrice?: number;
 }
 
 export interface RestaurantCategory {

@@ -9,12 +9,10 @@ export const useAppData = () => {
     branchId,
     fromNumber,
     isTestMode,
-    restaurantInfo,
     setRestaurantInfo,
     setItems,
     expirationTime,
     setExpirationTime,
-    clearCart
   } = useCartStore();
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);

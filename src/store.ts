@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, UserLocation } from './types';
+import { AuctionState, BidNotification, CartItem, DeliveryBid, UserLocation } from './types';
 
 import { OrderUpdate } from './hooks/useOrderTracking';
 
@@ -13,6 +13,10 @@ interface CartState {
   isTestMode: boolean; // Estado para manejar el entorno de n8n
   restaurantInfo: import('./types').RestaurantInfo | null;
   activeOrders: Record<string, OrderUpdate>;
+  bidsByOrderId: Record<string, DeliveryBid[]>;
+  bidNotifications: BidNotification[];
+  deepLinkTarget: { orderId: string; bidId: string } | null;
+  auctionStateByOrderId: Record<string, AuctionState>;
   userLocation: UserLocation | null;
   isOnboarded: boolean;
   customerAddress: {
@@ -39,6 +43,13 @@ interface CartState {
   setRestaurantInfo: (info: import('./types').RestaurantInfo) => void;
   addActiveOrder: (order: OrderUpdate) => void;
   updateActiveOrder: (orderId: string, updates: Partial<OrderUpdate>) => void;
+  setOrderBids: (orderId: string, bids: DeliveryBid[]) => void;
+  addBid: (orderId: string, bid: DeliveryBid) => void;
+  updateBid: (orderId: string, bidId: string, update: Partial<DeliveryBid>) => void;
+  addBidNotification: (notification: BidNotification) => void;
+  markBidNotificationRead: (bidId: string) => void;
+  setDeepLinkTarget: (target: { orderId: string; bidId: string } | null) => void;
+  setAuctionState: (orderId: string, state: AuctionState) => void;
   clearActiveOrders: () => void;
   resetSession: () => void;
   setUserLocation: (location: UserLocation | null) => void;
@@ -58,6 +69,10 @@ export const useCartStore = create<CartState>()(
       isTestMode: false,
       restaurantInfo: null,
       activeOrders: {},
+      bidsByOrderId: {},
+      bidNotifications: [],
+      deepLinkTarget: null,
+      auctionStateByOrderId: {},
       userLocation: null,
       isOnboarded: false,
       customerAddress: null,
@@ -77,7 +92,29 @@ export const useCartStore = create<CartState>()(
       })),
       clearCart: () => set({ items: [], expirationTime: null }),
       setExpirationTime: (time) => set({ expirationTime: time }),
-      setBranchId: (branchId) => set({ branchId }),
+      setBranchId: (branchId) => set((state) => {
+        const normalizedNextBranchId = String(branchId || '').trim();
+        const normalizedCurrentBranchId = String(state.branchId || '').trim();
+
+        if (
+          normalizedCurrentBranchId &&
+          normalizedNextBranchId &&
+          normalizedCurrentBranchId !== normalizedNextBranchId
+        ) {
+          return {
+            branchId: normalizedNextBranchId,
+            items: [],
+            expirationTime: null,
+            activeOrders: {},
+            bidsByOrderId: {},
+            bidNotifications: [],
+            deepLinkTarget: null,
+            auctionStateByOrderId: {},
+          };
+        }
+
+        return { branchId: normalizedNextBranchId };
+      }),
       setFromNumber: (fromNumber) => set({ fromNumber }),
       setCustomerName: (name) => set({ customerName: name }),
       toggleTestMode: () => set((state) => ({ isTestMode: !state.isTestMode })),
@@ -116,13 +153,82 @@ export const useCartStore = create<CartState>()(
           }
         };
       }),
-      clearActiveOrders: () => set({ activeOrders: {} }),
+      setOrderBids: (orderId, bids) => set((state) => ({
+        bidsByOrderId: {
+          ...state.bidsByOrderId,
+          [orderId]: bids
+        }
+      })),
+      addBid: (orderId, bid) => set((state) => {
+        const existing = state.bidsByOrderId[orderId] || [];
+        const alreadyExists = existing.some((entry) => entry.id === bid.id);
+
+        if (alreadyExists) {
+          return {
+            bidsByOrderId: {
+              ...state.bidsByOrderId,
+              [orderId]: existing.map((entry) => entry.id === bid.id ? bid : entry)
+            }
+          };
+        }
+
+        return {
+          bidsByOrderId: {
+            ...state.bidsByOrderId,
+            [orderId]: [bid, ...existing]
+          }
+        };
+      }),
+      updateBid: (orderId, bidId, update) => set((state) => {
+        const existing = state.bidsByOrderId[orderId] || [];
+        return {
+          bidsByOrderId: {
+            ...state.bidsByOrderId,
+            [orderId]: existing.map((entry) => entry.id === bidId ? { ...entry, ...update } : entry)
+          }
+        };
+      }),
+      addBidNotification: (notification) => set((state) => {
+        const exists = state.bidNotifications.some((entry) => entry.id === notification.id);
+        if (exists) return {};
+
+        return {
+          bidNotifications: [notification, ...state.bidNotifications].slice(0, 50)
+        };
+      }),
+      markBidNotificationRead: (bidId) => set((state) => ({
+        bidNotifications: state.bidNotifications.map((notification) =>
+          notification.id === bidId ? { ...notification, read: true } : notification
+        )
+      })),
+      setDeepLinkTarget: (target) => set({ deepLinkTarget: target }),
+      setAuctionState: (orderId, stateUpdate) => set((state) => ({
+        auctionStateByOrderId: {
+          ...state.auctionStateByOrderId,
+          [orderId]: {
+            ...state.auctionStateByOrderId[orderId],
+            ...stateUpdate
+          }
+        }
+      })),
+      clearActiveOrders: () => set({
+        activeOrders: {},
+        bidsByOrderId: {},
+        bidNotifications: [],
+        deepLinkTarget: null,
+        auctionStateByOrderId: {}
+      }),
       resetSession: () => set({
         items: [],
         expirationTime: null,
+        branchId: '',
         fromNumber: '',
         customerName: '',
-        activeOrders: {}
+        activeOrders: {},
+        bidsByOrderId: {},
+        bidNotifications: [],
+        deepLinkTarget: null,
+        auctionStateByOrderId: {}
       }),
       setUserLocation: (location) => set({ userLocation: location }),
       setOnboarded: (value) => set({ isOnboarded: value }),
@@ -135,6 +241,10 @@ export const useCartStore = create<CartState>()(
         fromNumber: state.fromNumber,
         customerName: state.customerName,
         activeOrders: state.activeOrders,
+        bidsByOrderId: state.bidsByOrderId,
+        bidNotifications: state.bidNotifications,
+        deepLinkTarget: state.deepLinkTarget,
+        auctionStateByOrderId: state.auctionStateByOrderId,
         items: state.items,
         expirationTime: state.expirationTime,
         branchId: state.branchId,

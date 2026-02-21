@@ -86,7 +86,6 @@ export default function HomePage() {
         setFromNumber,
         setCustomerAddress,
         setOnboarded,
-        setUserLocation,
         setProfilePromptDismissedAt
     } = useCartStore();
     const router = useRouter();

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 import LoadingScreen from '@/components/LoadingScreen';
 import HomePage from '@/components/HomePage';
 

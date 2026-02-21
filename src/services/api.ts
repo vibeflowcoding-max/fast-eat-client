@@ -1,4 +1,4 @@
-import { CartItem, MCPOrderPayload, MenuItem, OrderMetadata } from '../types';
+import { CartItem, DeliveryBid, MCPOrderPayload, MenuItem, OrderMetadata } from '../types';
 import { APP_CONSTANTS } from '../constants';
 
 export type InteractionType = 'chat' | 'carrito' | 'generar_orden' | 'get_carrito' | 'delete_cart';
@@ -56,6 +56,18 @@ const extractDataFromN8N = (data: any) => {
   
   return { message, action, item_id, item_ids, confirmation, order_id, order_number };
 };
+
+const mapBidFromApi = (bid: any): DeliveryBid => ({
+  id: String(bid?.id || ''),
+  bidAmount: Number(bid?.bidAmount ?? bid?.driver_offer ?? bid?.base_price ?? 0),
+  driverRating: Number(bid?.driverRating ?? bid?.driver_rating_snapshot ?? 0),
+  estimatedTimeMinutes: bid?.estimatedTimeMinutes ?? bid?.estimated_time_minutes ?? null,
+  driverNotes: bid?.driverNotes ?? bid?.driver_notes ?? null,
+  basePrice: Number(bid?.basePrice ?? bid?.base_price ?? 0),
+  status: String(bid?.status ?? 'ACTIVE'),
+  expiresAt: String(bid?.expiresAt ?? bid?.expires_at ?? new Date().toISOString()),
+  createdAt: String(bid?.createdAt ?? bid?.created_at ?? new Date().toISOString())
+});
 
 export const fetchMenuFromAPI = async (branchId: string): Promise<{ items: MenuItem[], categories: string[] }> => {
   try {
@@ -208,7 +220,10 @@ export const submitOrderToMCP = async (cart: CartItem[], orderMetadata: OrderMet
       customerPhone: orderMetadata.customerPhone,
       paymentMethod: orderMetadata.paymentMethod,
       orderType: orderMetadata.orderType,
+      source: 'client',
       address: orderMetadata.address,
+      customerLatitude: orderMetadata.customerLatitude,
+      customerLongitude: orderMetadata.customerLongitude,
       ...(orderMetadata.tableNumber ? { tableNumber: orderMetadata.tableNumber } : {}),
       items: cart.map(item => ({
         productId: item.id,
@@ -280,9 +295,12 @@ export const sendOrderToN8N = async (message: string, cart: CartItem[], branchId
       metadata: {
         ...orderMetadata,
         customerPhone: fromNumber,
+        source: 'client',
         orderType: orderMetadata.orderType,
         address: orderMetadata.address || '',
         gpsLocation: orderMetadata.gpsLocation || '',
+        customerLatitude: orderMetadata.customerLatitude,
+        customerLongitude: orderMetadata.customerLongitude,
         items: cart.map(i => ({
           item_id: i.id,
           nombre: i.name,
@@ -319,4 +337,76 @@ export const sendOrderToN8N = async (message: string, cart: CartItem[], branchId
       order_id: extracted.order_id,
       order_number: extracted.order_number
     };
+};
+
+export const listOrderBids = async (orderId: string): Promise<{ orderId: string; bids: DeliveryBid[] }> => {
+  const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/bids`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    cache: 'no-store'
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.message || `Error HTTP: ${response.status}`);
+  }
+
+  const payload = data?.data || data;
+
+  const bids = Array.isArray(payload?.bids) ? payload.bids : [];
+  return {
+    orderId: payload?.orderId || orderId,
+    bids: bids.map(mapBidFromApi)
+  };
+};
+
+export const acceptBid = async (
+  orderId: string,
+  bidId: string
+): Promise<{ orderId: string; status: string; label: string | null; deliveryFinalPrice: number }> => {
+  const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/bids/${encodeURIComponent(bidId)}/accept`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.message || `Error HTTP: ${response.status}`);
+  }
+
+  const payload = data?.data || data;
+
+  return {
+    orderId: payload?.orderId || orderId,
+    status: payload?.status || 'DRIVER_ASSIGNED',
+    label: typeof payload?.label === 'string'
+      ? payload.label
+      : (typeof payload?.statusLabel === 'string' ? payload.statusLabel : null),
+    deliveryFinalPrice: Number(payload?.deliveryFinalPrice ?? 0)
+  };
+};
+
+export const confirmDelivery = async (
+  orderId: string
+): Promise<{ orderId: string; acceptedByUser: boolean; status: string; label: string | null }> => {
+  const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/confirm-delivery`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.message || `Error HTTP: ${response.status}`);
+  }
+
+  const payload = data?.data || data;
+
+  return {
+    orderId: payload?.orderId || orderId,
+    acceptedByUser: Boolean(payload?.acceptedByUser),
+    status: payload?.status || 'COMPLETED',
+    label: typeof payload?.label === 'string'
+      ? payload.label
+      : (typeof payload?.statusLabel === 'string' ? payload.statusLabel : null),
+  };
 };

@@ -66,7 +66,18 @@ const OrderForm: React.FC<OrderFormProps> = ({
                         <select
                             className="w-full px-5 py-4 bg-gray-50/50 border-2 border-gray-100 rounded-xl text-sm font-black text-gray-900 focus:outline-none focus:border-black appearance-none cursor-pointer disabled:bg-gray-100 disabled:text-gray-400"
                             value={orderMetadata.orderType}
-                            onChange={e => setOrderMetadata({ ...orderMetadata, orderType: e.target.value as any, tableNumber: undefined })}
+                            onChange={e => setOrderMetadata({
+                                ...orderMetadata,
+                                orderType: e.target.value as any,
+                                tableNumber: undefined,
+                                ...(e.target.value !== 'delivery'
+                                    ? {
+                                        gpsLocation: '',
+                                        customerLatitude: undefined,
+                                        customerLongitude: undefined,
+                                    }
+                                    : {}),
+                            })}
                             disabled={serviceOptions.length === 0}
                         >
                             <option value="" disabled>
@@ -126,7 +137,12 @@ const OrderForm: React.FC<OrderFormProps> = ({
                                     />
                                     <button
                                         type="button"
-                                        onClick={() => setOrderMetadata({ ...orderMetadata, gpsLocation: undefined })}
+                                        onClick={() => setOrderMetadata({
+                                            ...orderMetadata,
+                                            gpsLocation: undefined,
+                                            customerLatitude: undefined,
+                                            customerLongitude: undefined,
+                                        })}
                                         className="text-green-400 hover:text-red-500 font-bold px-1 py-1"
                                     >✕</button>
                                 </div>
@@ -150,6 +166,11 @@ const OrderForm: React.FC<OrderFormProps> = ({
                                 </>
                             )}
                         </button>
+                        {(!Number.isFinite(orderMetadata.customerLatitude) || !Number.isFinite(orderMetadata.customerLongitude)) && (
+                            <p className="text-[10px] font-bold text-amber-700">
+                                Debes compartir tu ubicación GPS para confirmar pedidos a domicilio.
+                            </p>
+                        )}
                     </div>
                 </div>
             )}

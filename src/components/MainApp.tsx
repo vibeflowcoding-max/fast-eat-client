@@ -2,12 +2,12 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { MenuItem, CartItem, OrderMetadata } from '@/types';
+import { MenuItem, OrderMetadata } from '@/types';
 import MenuItemCard from '@/components/MenuItemCard';
 import ChatWidget from '@/components/ChatWidget';
 import OrderTrackingModal from '@/components/OrderTrackingModal';
 import { useCartStore } from '@/store';
-import { fetchRestaurantInfo, CartAction } from '@/services/api';
+import { CartAction } from '@/services/api';
 
 // Components
 import LoadingScreen from '@/components/LoadingScreen';
@@ -42,8 +42,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         setBranchId,
         setFromNumber,
         toggleTestMode,
-        setRestaurantInfo,
-        setItems,
         resetSession,
         customerName
     } = useCartStore();
@@ -73,7 +71,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     } = useCartActions();
 
     // Local UI State
-    const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
+    const [highlightedItemId] = useState<string | null>(null);
     const [paymentOptions, setPaymentOptions] = useState<{ id: string, label: string }[]>([]);
     const [serviceOptions, setServiceOptions] = useState<{ id: string, label: string }[]>([]);
     const [showPhonePrompt, setShowPhonePrompt] = useState(false);
@@ -84,7 +82,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     const [modalQuantity, setModalQuantity] = useState(1);
     const [modalNotes, setModalNotes] = useState('');
     const [isModalSyncing, setIsModalSyncing] = useState(false);
-    const [showScrollArrow, setShowScrollArrow] = useState(false);
+    const [, setShowScrollArrow] = useState(false);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
     const [timeLeftStr, setTimeLeftStr] = useState<string>('');
@@ -109,6 +107,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         customerPhone: '',
         paymentMethod: '',
         orderType: '',
+        source: 'client',
         address: '',
         gpsLocation: ''
     });
@@ -399,8 +398,9 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     }, [cart]);
 
     const isOrderFormValid = useMemo(() => {
-        const { customerName, customerPhone, orderType, address, gpsLocation } = orderMetadata;
-        const isDeliveryDetailsValid = orderType !== 'delivery' || (address?.trim() || gpsLocation);
+        const { customerName, customerPhone, orderType, address, gpsLocation, customerLatitude, customerLongitude } = orderMetadata;
+        const hasCoordinates = Number.isFinite(customerLatitude) && Number.isFinite(customerLongitude);
+        const isDeliveryDetailsValid = orderType !== 'delivery' || ((address?.trim() || gpsLocation) && hasCoordinates);
         return !!(customerName.trim() && customerPhone.trim() && isDeliveryDetailsValid);
     }, [orderMetadata]);
 
@@ -409,7 +409,16 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         const success = await handlePlaceOrder(orderMetadata, cartTotal);
         if (success) {
             setIsConfirming(false);
-            setOrderMetadata(prev => ({ ...prev, paymentMethod: 'cash', orderType: 'pickup', address: '' }));
+            setOrderMetadata(prev => ({
+                ...prev,
+                paymentMethod: 'cash',
+                orderType: 'pickup',
+                address: '',
+                gpsLocation: '',
+                customerLatitude: undefined,
+                customerLongitude: undefined,
+                source: 'client'
+            }));
         }
     };
 
@@ -421,7 +430,13 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         setIsLocating(true);
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                setOrderMetadata(prev => ({ ...prev, gpsLocation: `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}` }));
+                setOrderMetadata(prev => ({
+                    ...prev,
+                    gpsLocation: `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`,
+                    customerLatitude: pos.coords.latitude,
+                    customerLongitude: pos.coords.longitude,
+                    source: 'client'
+                }));
                 setIsLocating(false);
             },
             () => {
@@ -448,6 +463,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             customerPhone: '',
             paymentMethod: '',
             orderType: '',
+            source: 'client',
             address: '',
             gpsLocation: ''
         });

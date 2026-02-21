@@ -39,8 +39,9 @@ const CartModal: React.FC<CartModalProps> = ({
     tableQuantity = 0
 }) => {
     const isOrderFormValid = () => {
-        const { customerName, customerPhone, orderType, address, gpsLocation, tableNumber } = orderMetadata;
-        const isDeliveryDetailsValid = orderType !== 'delivery' || (address?.trim() || gpsLocation);
+        const { customerName, customerPhone, orderType, address, gpsLocation, customerLatitude, customerLongitude, tableNumber } = orderMetadata;
+        const hasCoordinates = Number.isFinite(customerLatitude) && Number.isFinite(customerLongitude);
+        const isDeliveryDetailsValid = orderType !== 'delivery' || ((address?.trim() || gpsLocation) && hasCoordinates);
         const isTableValid = !(orderType === 'comer_aca' || orderType === 'comer_aqui' || orderType === 'dine_in') || tableNumber;
         return !!(customerName.trim() && customerPhone.trim() && isDeliveryDetailsValid && isTableValid);
     };

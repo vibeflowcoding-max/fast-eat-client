@@ -1,8 +1,10 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { RestaurantInfo } from '../types';
 import SearchBar from './SearchBar';
+import OrderNotificationsTray from './OrderNotificationsTray';
+import { useCartStore } from '@/store';
 
 interface NavbarProps {
     restaurantInfo: RestaurantInfo | null;
@@ -48,6 +50,13 @@ const Navbar: React.FC<NavbarProps> = ({
     searchQuery,
     setSearchQuery,
 }) => {
+    const [isTrayOpen, setIsTrayOpen] = useState(false);
+    const bidNotifications = useCartStore((state) => state.bidNotifications);
+    const unreadCount = useMemo(
+        () => bidNotifications.filter((notification) => !notification.read).length,
+        [bidNotifications]
+    );
+
     return (
         <div className="sticky top-0 bg-white shadow-2xl z-50 border-b border-gray-100">
             <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col">
@@ -78,6 +87,32 @@ const Navbar: React.FC<NavbarProps> = ({
                                 {customerName || 'Usuario'}
                             </span>
                         </button>
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setIsTrayOpen((current) => !current)}
+                                className="relative flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl border-2 border-gray-200 bg-white hover:border-red-600 hover:bg-red-50 transition-all shadow-sm hover:shadow-md"
+                                aria-label="Abrir notificaciones de ofertas"
+                            >
+                                <span className="text-base md:text-lg">🔔</span>
+                                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-gray-700">Ofertas</span>
+                                {unreadCount > 0 && (
+                                    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[8px] min-w-5 h-5 px-1 rounded-full flex items-center justify-center border-2 border-white">
+                                        {unreadCount}
+                                    </span>
+                                )}
+                            </button>
+                            {isTrayOpen && (
+                                <div className="absolute top-full mt-2 left-0 z-[120]">
+                                    <OrderNotificationsTray
+                                        onOpenTracking={() => {
+                                            onShowHistory();
+                                            setIsTrayOpen(false);
+                                        }}
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className="hidden md:flex flex-grow justify-center px-8">

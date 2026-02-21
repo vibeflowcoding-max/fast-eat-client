@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useCartStore } from '../store';
-import { sendChatToN8N, sendOrderToN8N, CartAction } from '../services/api';
+import { sendChatToN8N, submitOrderToMCP, CartAction } from '../services/api';
 import { CartItem, OrderMetadata } from '../types';
 
 export const useCartActions = () => {
@@ -21,23 +21,19 @@ export const useCartActions = () => {
   const [isOrdering, setIsOrdering] = useState(false);
   const [chefNotification, setChefNotification] = useState<{ content: string; item_ids?: any[] } | null>(null);
 
-  // Debounce management
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
   const syncCartAction = async (item: CartItem, action: CartAction, newQuantity: number, orderMetadata: OrderMetadata) => {
-    // 1. Optimistic Update (Immediate UI response)
     if (action === 'remove' || newQuantity <= 0) {
       removeItem(item.id);
     } else {
       updateItem({ ...item, quantity: newQuantity });
     }
 
-    // 2. Clear existing debounce timer for this item
     if (debounceTimers.current[item.id]) {
       clearTimeout(debounceTimers.current[item.id]);
     }
 
-    // 3. Set new debounce timer (500ms)
     debounceTimers.current[item.id] = setTimeout(async () => {
       setIsSyncing(true);
       try {
@@ -45,7 +41,6 @@ export const useCartActions = () => {
           ? `Remover ${item.name}`
           : `Actualizar ${item.name} a ${newQuantity} unidades`;
 
-        // We use the latest cart state from the store inside the timer
         const currentCart = useCartStore.getState().items;
         const response = await sendChatToN8N(message, currentCart, branchId, fromNumber, 'carrito', action, { ...item, quantity: newQuantity }, orderMetadata, isTestMode);
 
@@ -61,15 +56,12 @@ export const useCartActions = () => {
         setIsSyncing(false);
         delete debounceTimers.current[item.id];
       }
-    }, 600); // 600ms debounce to bundle rapid clicks
+    }, 600);
 
     return true; 
   };
 
   const addToCart = async (newItem: CartItem, orderMetadata: OrderMetadata): Promise<boolean> => {
-    // For direct "Add" from Modal, we still want instant feedback but it's usually a single action
-    // However, we apply the same optimistic approach
-    
     let action: CartAction = 'add';
     let message = '';
     const existing = cart.find(i => i.id === newItem.id);
@@ -77,27 +69,26 @@ export const useCartActions = () => {
     if (!existing) {
       action = 'add';
       message = `Añadir ${newItem.quantity} de ${newItem.name} al carrito`;
-      updateItem(newItem); // Optimistic
+      updateItem(newItem);
     } else {
       if (newItem.quantity === 0) { 
         action = 'remove'; 
         message = `Remover ${newItem.name}`; 
-        removeItem(newItem.id); // Optimistic
+        removeItem(newItem.id);
       }
       else if (newItem.quantity !== existing.quantity) { 
         action = 'increment'; 
         message = `Actualizar ${newItem.name} a ${newItem.quantity}`; 
-        updateItem(newItem); // Optimistic
+        updateItem(newItem);
       }
       else if (newItem.notes !== existing.notes) { 
         action = 'details'; 
         message = `Notas para ${newItem.name}: ${newItem.notes}`; 
-        updateItem(newItem); // Optimistic
+        updateItem(newItem);
       }
       else return true;
     }
 
-    // Modal adding usually doesn't need heavy debouncing, but we sync it
     setIsSyncing(true);
     try {
       const res = await sendChatToN8N(message, useCartStore.getState().items, branchId, fromNumber, 'carrito', action, newItem, orderMetadata, isTestMode);
@@ -148,28 +139,34 @@ export const useCartActions = () => {
           : orderMetadata.address
       };
 
-      const n8nResult = await sendOrderToN8N("Quiero generar la orden", cart, branchId, fromNumber, 'generar_orden', 'none', undefined, finalMetadata, isTestMode);
+      const orderResult = await submitOrderToMCP(cart, finalMetadata, branchId);
+      const orderId = orderResult?.order_id || orderResult?.orderId || orderResult?.data?.order_id || orderResult?.data?.orderId;
+      const orderNumber =
+        orderResult?.order_number ||
+        orderResult?.orderNumber ||
+        orderResult?.data?.order_number ||
+        orderResult?.data?.orderNumber ||
+        `ORD-${Date.now().toString().slice(-4)}`;
 
-      if (n8nResult.confirmation) {
-        if (n8nResult.order_id) {
+      if (orderId) {
           addActiveOrder({
-            orderId: n8nResult.order_id,
-            orderNumber: n8nResult.order_number || `ORD-${Date.now().toString().slice(-4)}`,
+            orderId,
+            orderNumber,
             previousStatus: { code: 'PENDING', label: 'Procesando' },
             newStatus: { code: 'PENDING', label: 'Enviado a Cocina' },
             updatedAt: new Date().toISOString(),
             items: [...cart],
             total: cartTotal
           });
-        }
-        setChefNotification({ content: n8nResult.output || "¡Tu pedido ha sido creado con éxito! 🍣✨", item_ids: n8nResult.item_ids });
+
+        setChefNotification({ content: "¡Tu pedido ha sido creado con éxito! 🍣✨" });
         clearCart();
         return true;
-      } else {
-        const errorMsg = n8nResult.message || n8nResult.output || "No se pudo procesar la orden. 🏮";
-        setChefNotification({ content: errorMsg });
-        return false;
       }
+
+      const errorMsg = orderResult?.message || "No se pudo procesar la orden. 🏮";
+      setChefNotification({ content: errorMsg });
+      return false;
     } catch (error: any) {
       console.error("Order error:", error);
       if (error.message?.includes('504')) {
