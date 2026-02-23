@@ -27,9 +27,23 @@ import { useHomeRails } from '@/features/home-discovery/hooks/useHomeRails';
 import { emitHomeEvent } from '@/features/home-discovery/analytics';
 import { buildPreferenceHints, getViewedRestaurantsHistory, trackViewedRestaurant } from '@/features/home-discovery/utils/discoveryStorage';
 import dynamic from 'next/dynamic';
+import ActivityFeed from '@/features/social/components/ActivityFeed';
+import LoyaltyWidget from '@/features/gamification/components/LoyaltyWidget';
+import StoryMenuFeed from '@/features/content/components/StoryMenuFeed';
+import DynamicPromoBanner from '@/features/home-discovery/components/DynamicPromoBanner';
 
 const HomeDiscoveryWidget = dynamic(
     () => import('@/features/home-discovery/components/HomeDiscoveryWidget'),
+    { ssr: false }
+);
+
+const SurpriseMeWidget = dynamic(
+    () => import('@/features/home-discovery/components/SurpriseMeWidget'),
+    { ssr: false }
+);
+
+const PredictivePrompt = dynamic(
+    () => import('@/features/home-discovery/components/PredictivePrompt'),
     { ssr: false }
 );
 
@@ -95,6 +109,8 @@ export default function HomePage() {
     const isVisualHierarchyV2Enabled = true;
     const isStatePolishV1Enabled = true;
     const isSearchSuggestionsV1Enabled = process.env.NEXT_PUBLIC_HOME_SEARCH_SUGGESTIONS_V1?.toLowerCase() !== 'false';
+    const isSurpriseMeEnabled = process.env.NEXT_PUBLIC_HOME_SURPRISE_ME?.toLowerCase() !== 'false';
+    const isPredictiveReorderEnabled = process.env.NEXT_PUBLIC_HOME_PREDICTIVE_REORDER?.toLowerCase() !== 'false';
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
     const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
@@ -749,6 +765,7 @@ export default function HomePage() {
                     onRecoveryAlternativeSelect={handleRecoveryAlternativeSelect}
                     onRecoveryCategorySelect={handleRecoveryCategorySelect}
                     onClearSearch={handleRecoveryClearSearch}
+                    loyaltyWidget={<LoyaltyWidget />}
                     profilePrompt={(
                         <ProfileCompletionPrompt
                             visible={shouldShowProfilePrompt}
@@ -794,11 +811,10 @@ export default function HomePage() {
                                     key={`${chip.key}-${String(chip.value)}`}
                                     type="button"
                                     onClick={() => toggleFilterChip(chip.key, chip.value)}
-                                    className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-1 ${
-                                        isActive
-                                            ? 'border-orange-500 bg-orange-50 text-orange-700'
-                                            : 'border-gray-200 bg-white text-gray-700 hover:border-orange-300'
-                                    }`}
+                                    className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-1 ${isActive
+                                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                        : 'border-gray-200 bg-white text-gray-700 hover:border-orange-300'
+                                        }`}
                                     aria-pressed={isActive}
                                 >
                                     {chip.label}
@@ -811,6 +827,34 @@ export default function HomePage() {
 
             {/* Main Content */}
             <main className="px-4 py-6">
+                <DynamicPromoBanner />
+
+                {isPredictiveReorderEnabled && (
+                    <PredictivePrompt
+                        onReorderClick={(restaurantId) => {
+                            const selectedRestaurant = restaurants.find((restaurant) => restaurant.id === restaurantId);
+                            if (selectedRestaurant?.slug) {
+                                router.push(`/${selectedRestaurant.slug}`);
+                            }
+                        }}
+                    />
+                )}
+
+                <StoryMenuFeed />
+
+                <ActivityFeed />
+
+                {isSurpriseMeEnabled && (
+                    <SurpriseMeWidget
+                        onRecommendationClick={(restaurantId) => {
+                            const selectedRestaurant = restaurants.find((restaurant) => restaurant.id === restaurantId);
+                            if (selectedRestaurant?.slug) {
+                                router.push(`/${selectedRestaurant.slug}`);
+                            }
+                        }}
+                    />
+                )}
+
                 {visibleRails.map((rail) => (
                     <RestaurantRail
                         key={rail.railId}
@@ -851,11 +895,11 @@ export default function HomePage() {
                 locationRequestLoading={locationRequestLoading}
                 locationPermissionError={locationPermissionError}
                 onRequestLocation={handleRequestLocationFromProfile}
-                        onEnterAddressManually={({ name, phone }) => {
-                            setCustomerName(name);
-                            setFromNumber(phone);
-                            setLocationPermissionError(null);
-                            setIsProfileModalOpen(false);
+                onEnterAddressManually={({ name, phone }) => {
+                    setCustomerName(name);
+                    setFromNumber(phone);
+                    setLocationPermissionError(null);
+                    setIsProfileModalOpen(false);
                     setIsAddressModalOpen(true);
                 }}
                 onContinue={handleProfileContinue}

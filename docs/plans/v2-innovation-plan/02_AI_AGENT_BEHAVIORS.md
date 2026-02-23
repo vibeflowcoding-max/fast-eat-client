@@ -79,3 +79,40 @@ stateDiagram-v2
 *   **System Prompts:** Must be concise, define the persona ("You are an expert food concierge for FastEat"), and strictly enforce JSON output formats.
 *   **Temperature:** Use low temperature (e.g., 0.1 - 0.3) for analytical tasks (Dietary Guardian) and medium temperature (e.g., 0.6 - 0.7) for creative tasks (Surprise Me).
 *   **Context Window Management:** Only send relevant order history or menu items to the LLM to minimize token usage and latency.
+
+## 4. Full-Stack Implementation Requirements
+
+To fully realize these AI features beyond client-side mocks, the following backend infrastructure is required:
+
+### 4.1. Supabase Database Updates
+- [x] **`user_dietary_profiles` Table**
+  - **Purpose:** Store long-term dietary restrictions for the Dietary Guardian.
+  - **Schema:** `id` (uuid, PK), `user_id` (uuid, FK to users), `allergies` (text[]), `preferences` (text[]), `strictness` (varchar), `created_at` (timestamp), `updated_at` (timestamp).
+    - **Implemented in:** `fast-eat-api-nestjs/migrations/035_v2_innovation_backend_features.sql`
+- [x] **`user_mood_logs` Table**
+  - **Purpose:** Track inputs and recommendations for the Matchmaker to improve future suggestions.
+  - **Schema:** `id` (uuid, PK), `user_id` (uuid, FK), `mood` (varchar), `budget` (numeric), `recommended_items` (jsonb), `created_at` (timestamp).
+    - **Implemented in:** `fast-eat-api-nestjs/migrations/035_v2_innovation_backend_features.sql`
+
+### 4.2. NestJS Backend (`fast-eat-api-nestjs`)
+- [x] **New Module:** `personalization` or enhance the existing `consumer` module.
+    - **Implemented in:** `src/modules/personalization/personalization.module.ts`
+- [x] **API Endpoints:**
+  - `GET /consumer/:id/dietary-profile` - Fetch the dietary profile securely.
+  - `PUT /consumer/:id/dietary-profile` - Update allergies/preferences.
+  - `POST /consumer/:id/mood-recommendations` - Moves the Gemini LLM logic to the backend to protect API keys and track analytics properly.
+  - `GET /consumer/:id/predictive-reorder` - A server-side algorithm that queries the `orders` table to detect patterns and returns a suggested cart payload for the 1-Click Order prompt.
+    - **Implemented in:** `src/modules/personalization/personalization.controller.ts`, `src/modules/personalization/personalization.service.ts`
+- [x] **Ownership Enforcement (JWT):** Personalization endpoints now enforce `req.user.id === :id` to prevent cross-user profile reads/writes.
+        - **Implemented in:** `src/modules/personalization/personalization.controller.ts`
+
+### 4.3. Client React UI Implementation (`fast-eat-client`)
+> **[FRONTEND IMPLEMENTED - BACKEND HANDOFF REQUIRED]**
+> All UI files below have been implemented using local state and simulated API delays. 
+> **To the Backend Team:** Please locate these files and replace the mocked `setTimeout`/local storage logic with the actual TanStack React Query calls to the endpoints generated in step 4.2.
+
+- [x] `src/features/home-discovery/hooks/useDietaryGuardian.ts` - UI created with mock `setTimeout`. Replace `checkItem()` logic with a real API call.
+- [x] `src/components/MenuItemCard.tsx` - Badge UI integrated and reading from the `useDietaryGuardian` hook.
+- [x] `src/features/home-discovery/components/SurpriseMeWidget.tsx` - UI and mock state complete.
+- [x] `src/features/home-discovery/hooks/useMatchmaker.ts` - Replace `setTimeout` mock inside `getRecommendation()` with `POST /consumer/:id/mood-recommendations`.
+- [x] `src/components/CheckoutModal.tsx / OrderForm.tsx` - Predictive Reorder prompt UI ready. Hook up to `GET /consumer/:id/predictive-reorder`.

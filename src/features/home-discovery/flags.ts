@@ -17,6 +17,9 @@ export function getHomeFeatureFlags(): HomeFeatureFlags {
         home_state_polish_v1: parseFlag(process.env.NEXT_PUBLIC_HOME_STATE_POLISH_V1, false),
         home_filters_sort_v1: parseFlag(process.env.NEXT_PUBLIC_HOME_FILTERS_SORT_V1, false),
         home_personalized_rails_v1: parseFlag(process.env.NEXT_PUBLIC_HOME_PERSONALIZED_RAILS_V1, false),
-        home_search_suggestions_v1: parseFlag(process.env.NEXT_PUBLIC_HOME_SEARCH_SUGGESTIONS_V1, true)
+        home_search_suggestions_v1: parseFlag(process.env.NEXT_PUBLIC_HOME_SEARCH_SUGGESTIONS_V1, true),
+        home_surprise_me: parseFlag(process.env.NEXT_PUBLIC_HOME_SURPRISE_ME, false),
+        home_dietary_guardian: parseFlag(process.env.NEXT_PUBLIC_HOME_DIETARY_GUARDIAN, false),
+        home_predictive_reorder: parseFlag(process.env.NEXT_PUBLIC_HOME_PREDICTIVE_REORDER, false)
     };
 }

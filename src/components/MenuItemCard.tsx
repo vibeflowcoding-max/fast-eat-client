@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { MenuItem, CartItem } from '../types';
 import { useCartStore } from '../store';
+import { useDietaryGuardian } from '../features/home-discovery/hooks/useDietaryGuardian';
+import { ShieldCheck, ShieldAlert, Loader2, Camera } from 'lucide-react';
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -16,6 +18,15 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
   const [isAdding, setIsAdding] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+
+  const { isActive, checkItem, loadingMap, resultsMap } = useDietaryGuardian();
+  const isDietaryGuardianEnabled = process.env.NEXT_PUBLIC_HOME_DIETARY_GUARDIAN?.toLowerCase() === 'true';
+
+  useEffect(() => {
+    if (isDietaryGuardianEnabled && isActive && !resultsMap[item.id] && !loadingMap[item.id]) {
+      checkItem(item);
+    }
+  }, [isDietaryGuardianEnabled, isActive, item, checkItem, resultsMap, loadingMap]);
 
   useEffect(() => {
     if (!isAdding && currentQuantity > 0) {
@@ -49,8 +60,11 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
     setIsSyncing(false);
   };
 
+  // Gamification: Simulate some items having community uploaded photos
+  const hasCommunityPhotos = (item.name.length % 3 === 0);
+
   return (
-    <div 
+    <div
       id={`item-${item.id}`}
       className={`
         bg-white rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.04)] transition-all duration-500 
@@ -58,25 +72,25 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
         ${isHighlighted ? 'border-red-600 ring-4 ring-red-600/20 scale-105 z-10' : 'border-gray-100'}
       `}
     >
-      
+
       {currentQuantity > 0 && !isAdding && (
-        <div className="absolute top-3 left-3 md:top-4 md:left-4 z-20 bg-black text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl md:rounded-2xl shadow-2xl animate-bounce flex items-center gap-1.5 md:gap-2 border border-white/20">
-          <span className="text-[8px] md:text-[10px] font-black tracking-widest uppercase">Orden:</span>
-          <span className="text-xs md:text-sm font-black text-red-500">{currentQuantity}</span>
+        <div className="absolute top-3 left-3 md:top-4 md:left-4 z-20 bg-red-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl md:rounded-2xl shadow-xl animate-bounce flex items-center gap-1.5 md:gap-2 border border-white/20">
+          <span className="text-[8px] md:text-[10px] font-black tracking-widest uppercase opacity-70">En Carrito:</span>
+          <span className="text-xs md:text-sm font-black">{currentQuantity}</span>
         </div>
       )}
 
       {isHighlighted && (
-        <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20 bg-red-600 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest animate-pulse">
-          ✨ ¡Recomendado!
+        <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20 bg-gradient-to-r from-orange-400 to-rose-500 text-white px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest animate-pulse shadow-lg shadow-orange-500/20">
+          ✨ ¡Sugerencia IA!
         </div>
       )}
 
       <div className="relative h-44 md:h-72 overflow-hidden">
-        <img 
-          src={item.image} 
-          alt={item.name} 
-          className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-1000" 
+        <img
+          src={item.image}
+          alt={item.name}
+          className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-1000"
           onError={(e) => {
             (e.target as HTMLImageElement).src = `https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&q=80&w=800`;
           }}
@@ -89,24 +103,56 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
         <div className="absolute bottom-3 left-3 md:bottom-6 md:left-6 bg-white/95 backdrop-blur-md px-4 py-1.5 md:px-6 md:py-2 rounded-xl md:rounded-2xl shadow-xl border border-white/50">
           <span className="text-black font-black text-sm md:text-lg tracking-tighter">₡{item.price.toLocaleString()}</span>
         </div>
+        {hasCommunityPhotos && (
+          <div className="absolute bottom-3 right-3 md:bottom-4 md:right-4 bg-white/20 backdrop-blur-xl text-white px-2.5 py-1.5 md:px-3 md:py-2 rounded-full flex items-center gap-2 border border-white/30 shadow-2xl cursor-help transition-all hover:scale-105 hover:bg-white/30" title="Este plato tiene fotos reales subidas por la comunidad">
+            <Camera className="w-3 h-3 md:w-3.5 md:h-3.5 drop-shadow-md" />
+            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-tighter">Fotos Reales</span>
+          </div>
+        )}
       </div>
-      
+
       <div className="p-5 md:p-10 flex-grow flex flex-col">
         <h3 className="text-xl md:text-3xl font-black mb-1.5 md:mb-3 text-gray-900 tracking-tighter leading-none uppercase group-hover:text-red-600 transition-colors duration-300 line-clamp-1">
           {item.name}
         </h3>
+
+        {/* Dietary Guardian Badge */}
+        {isDietaryGuardianEnabled && isActive && (
+          <div className="mb-4">
+            {loadingMap[item.id] ? (
+              <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 bg-slate-50 w-fit px-3 py-1.5 rounded-full border border-slate-100 italic">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span>Analizando ingredientes...</span>
+              </div>
+            ) : resultsMap[item.id] ? (
+              <div
+                className={`flex items-start gap-2.5 text-[10px] md:text-xs font-bold max-w-full px-3.5 py-2.5 rounded-2xl border-2 shadow-sm ${resultsMap[item.id].is_safe
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-100/50 shadow-emerald-500/5'
+                  : 'bg-rose-50 text-rose-800 border-rose-100/50 shadow-rose-500/5'
+                  }`}
+              >
+                {resultsMap[item.id].is_safe ? (
+                  <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-500 mt-0.5" />
+                ) : (
+                  <ShieldAlert className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
+                )}
+                <span className="leading-relaxed break-words flex-1 italic">"{resultsMap[item.id].reason}"</span>
+              </div>
+            ) : null}
+          </div>
+        )}
+
         <p className="text-gray-400 text-[11px] md:text-sm mb-4 md:mb-8 leading-relaxed flex-grow font-medium line-clamp-2 md:line-clamp-3">
           {item.description}
         </p>
-        
+
         {!isAdding ? (
-          <button 
+          <button
             onClick={() => setIsAdding(true)}
-            className={`w-full py-3.5 md:py-5 rounded-xl md:rounded-[2rem] transition-all duration-300 uppercase text-[9px] md:text-[11px] font-black tracking-[0.2em] md:tracking-[0.3em] shadow-lg active:scale-95 ${
-              currentQuantity > 0 
-              ? 'bg-red-50 text-red-600 border-2 border-red-600 hover:bg-red-600 hover:text-white' 
+            className={`w-full py-3.5 md:py-5 rounded-xl md:rounded-[2rem] transition-all duration-300 uppercase text-[9px] md:text-[11px] font-black tracking-[0.2em] md:tracking-[0.3em] shadow-lg active:scale-95 ${currentQuantity > 0
+              ? 'bg-red-50 text-red-600 border-2 border-red-600 hover:bg-red-600 hover:text-white'
               : 'bg-gray-900 text-white hover:bg-red-600'
-            }`}
+              }`}
           >
             {currentQuantity > 0 ? 'Editar' : 'Añadir'}
           </button>
@@ -114,10 +160,10 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
           <div className="space-y-4 md:space-y-6 animate-fadeIn relative">
             {isSyncing && (
               <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center backdrop-blur-[2px] rounded-xl">
-                 <div className="w-8 h-8 border-4 border-black border-t-red-600 rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-4 border-black border-t-red-600 rounded-full animate-spin"></div>
               </div>
             )}
-            
+
             <div className="flex items-center justify-between gap-2 md:gap-4 bg-gray-50/50 p-1.5 md:p-2 rounded-xl md:rounded-[2rem] border border-gray-100">
               <span className="text-[8px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-3 md:pl-5 hidden sm:block">Cant.</span>
               <div className="flex items-center bg-white rounded-lg md:rounded-[1.5rem] shadow-sm border border-gray-200 overflow-hidden flex-grow sm:flex-grow-0">
@@ -127,13 +173,13 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
               </div>
             </div>
             <div className="relative">
-              <textarea 
+              <textarea
                 disabled={isSyncing}
-                placeholder="Notas (ej. sin cebolla)..." 
-                value={notes} 
-                onChange={(e) => setNotes(e.target.value)} 
-                rows={1} 
-                className="w-full px-4 py-3 md:p-6 text-[11px] md:text-sm border border-gray-100 rounded-xl md:rounded-[2rem] focus:outline-none focus:border-red-500/30 font-bold transition-all bg-gray-50/50 text-gray-900 placeholder:text-gray-400 resize-none shadow-inner disabled:opacity-50" 
+                placeholder="Notas (ej. sin cebolla)..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={1}
+                className="w-full px-4 py-3 md:p-6 text-[11px] md:text-sm border border-gray-100 rounded-xl md:rounded-[2rem] focus:outline-none focus:border-red-500/30 font-bold transition-all bg-gray-50/50 text-gray-900 placeholder:text-gray-400 resize-none shadow-inner disabled:opacity-50"
               />
             </div>
 

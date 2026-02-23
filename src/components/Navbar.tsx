@@ -5,6 +5,7 @@ import { RestaurantInfo } from '../types';
 import SearchBar from './SearchBar';
 import OrderNotificationsTray from './OrderNotificationsTray';
 import { useCartStore } from '@/store';
+import { Package, User, ShoppingCart, Zap } from 'lucide-react';
 
 interface NavbarProps {
     restaurantInfo: RestaurantInfo | null;
@@ -61,43 +62,32 @@ const Navbar: React.FC<NavbarProps> = ({
         <div className="sticky top-0 bg-white shadow-2xl z-50 border-b border-gray-100">
             <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col">
                 <div className="flex items-center justify-between py-3 md:py-4">
-                    <div className="flex items-center gap-2 md:gap-4">
-                        <span className="text-red-600 text-lg md:text-2xl">🏮</span>
-                        <button
-                            onClick={toggleTestMode}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 transition-all ${isTestMode ? 'border-orange-500 bg-orange-50 text-orange-600' : 'border-emerald-500 bg-emerald-50 text-emerald-600'}`}
-                        >
-                            <div className={`w-2 h-2 rounded-full ${isTestMode ? 'bg-orange-500' : 'bg-emerald-500'} animate-pulse`}></div>
-                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">{isTestMode ? 'TEST' : 'PROD'}</span>
-                        </button>
+                    <div className="flex items-center gap-3 md:gap-4 overflow-visible no-scrollbar scroll-smooth flex-nowrap pr-4 -mr-4 md:pr-0 md:mr-0">
                         <button
                             onClick={onShowHistory}
-                            className="flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl border-2 border-gray-200 bg-white hover:border-red-600 hover:bg-red-50 transition-all shadow-sm hover:shadow-md"
+                            className="flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all shrink-0 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
+                            aria-label="Rastreo de pedidos"
                         >
-                            <span className="text-base md:text-lg">📦</span>
-                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-gray-700">Rastreo</span>
+                            <Package className="w-5 h-5" strokeWidth={2.5} />
                         </button>
                         <button
                             type="button"
                             onClick={onChangeUser}
-                            className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl border-2 border-blue-200 bg-white hover:border-blue-600 hover:bg-blue-50 transition-all shadow-sm hover:shadow-md active:scale-95 z-10"
+                            className="flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full bg-violet-50 text-violet-600 hover:bg-violet-100 transition-all shrink-0 focus:ring-2 focus:ring-violet-500 focus:outline-none shadow-sm"
+                            aria-label="Cambiar usuario"
                         >
-                            <span className="text-lg md:text-xl">👤</span>
-                            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-blue-800 truncate max-w-[80px] md:max-w-none">
-                                {customerName || 'Usuario'}
-                            </span>
+                            <User className="w-5 h-5" strokeWidth={2.5} fill="currentColor" />
                         </button>
-                        <div className="relative">
+                        <div className="relative shrink-0">
                             <button
                                 type="button"
                                 onClick={() => setIsTrayOpen((current) => !current)}
-                                className="relative flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl border-2 border-gray-200 bg-white hover:border-red-600 hover:bg-red-50 transition-all shadow-sm hover:shadow-md"
+                                className="relative flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full bg-amber-50 text-amber-500 hover:bg-amber-100 transition-all focus:ring-2 focus:ring-amber-500 focus:outline-none shadow-sm"
                                 aria-label="Abrir notificaciones de ofertas"
                             >
-                                <span className="text-base md:text-lg">🔔</span>
-                                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-gray-700">Ofertas</span>
+                                <Zap className="w-5 h-5" strokeWidth={2.5} fill="currentColor" />
                                 {unreadCount > 0 && (
-                                    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[8px] min-w-5 h-5 px-1 rounded-full flex items-center justify-center border-2 border-white">
+                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center border-2 border-white font-bold shadow-sm">
                                         {unreadCount}
                                     </span>
                                 )}
@@ -121,10 +111,15 @@ const Navbar: React.FC<NavbarProps> = ({
 
                     <button
                         onClick={onOpenCart}
-                        className={`relative flex items-center gap-2 px-4 py-2 md:px-5 md:py-3 rounded-xl transition-all border-2 ${cartLength > 0 ? 'bg-black text-white border-black shadow-lg scale-105' : 'bg-gray-50 text-gray-300 border-transparent opacity-60'}`}
+                        className={`relative flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-full transition-all shrink-0 ml-4 md:ml-0 shadow-sm ${cartLength > 0 ? 'bg-emerald-500 text-white shadow-emerald-200 shadow-lg hover:bg-emerald-600 hover:scale-105 active:scale-95' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
+                        aria-label="Mi Pedido"
                     >
-                        🛒 <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">Mi Pedido</span>
-                        {totalItemsCount > 0 && <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[8px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">{totalItemsCount}</span>}
+                        <ShoppingCart className="w-6 h-6" strokeWidth={2.5} fill={cartLength > 0 ? "currentColor" : "none"} />
+                        {totalItemsCount > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[11px] min-w-[22px] h-[22px] rounded-full flex items-center justify-center border-2 border-white shadow-sm font-bold">
+                                {totalItemsCount}
+                            </span>
+                        )}
                     </button>
                 </div>
 

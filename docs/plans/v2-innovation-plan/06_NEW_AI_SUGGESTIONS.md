@@ -46,3 +46,29 @@ Move away from generic, batch-and-blast push notifications ("¡15% de descuento 
 ### 3.3. Technical Considerations
 *   **Cost Control:** Generating unique copy for thousands of users can be expensive. Group users into micro-segments (e.g., "Rainy day soup lovers in San José") and generate one message per segment.
 *   **A/B Testing:** Continuously A/B test AI-generated copy against human-written copy to measure effectiveness and optimize the prompts.
+
+---
+
+## 4. Full-Stack Implementation Requirements
+
+To bring these experimental AI features into production, the following files and modules must be created:
+
+### 4.1. Client React UI Implementation (`fast-eat-client` & `restaurant-partner-p`)
+> **[FRONTEND IMPLEMENTED - BACKEND HANDOFF REQUIRED]**
+> All UI files below have been implemented using local state and simulated API delays. 
+> **To the Backend Team:** Please connect these visual components to the STT/LLM microservices.
+
+- [x] `fast-eat-client/src/features/home-discovery/components/VoiceSearchButton.tsx` - Microphone UI created.
+- [x] `fast-eat-client/src/features/home-discovery/hooks/useVoiceOrdering.ts` - Uses `setTimeout`. Replace with Audio Blob recording and transmission to the backend STT service.
+- [x] `fast-eat-client/src/features/home-discovery/components/DynamicPromoBanner.tsx` - Uses a mock time-of-day switch statement. Replace with the API response from the `promotions.service.ts` cron job.
+- [x] `restaurant-partner-p/src/components/MenuImageUploader.tsx` - Simulates a 2.5s AI enhancement loading screen. Hook this file upload input up to the `image-enhancer.service.ts`.
+
+### 4.2. NestJS Backend (`fast-eat-api-nestjs`)
+- [x] `src/modules/ai/voice-ordering.service.ts` - Handles integration with Whisper/Deepgram STT API and Gemini LLM for intent parsing.
+	- **Endpoints:** `POST /api/ai/voice-ordering/parse` (`src/modules/ai/ai.controller.ts`)
+- [x] `src/modules/ai/image-enhancer.service.ts` - Handles integration with Stable Diffusion or designated image enhancement APIs.
+	- **Endpoints:** `POST /api/ai/image-enhancer/enhance` (`src/modules/ai/ai.controller.ts`)
+- [x] `src/modules/marketing/dynamic-promos.service.ts` - Cron jobs and LLM prompt generation for segment-based push notifications.
+	- **Endpoints:** `GET /api/marketing/dynamic-promos/:userId` (`src/modules/marketing/marketing.controller.ts`)
+- [x] **Ownership Enforcement (JWT):** Dynamic promos endpoint now requires JWT and enforces `req.user.id === :userId`.
+	- **Implemented in:** `src/modules/marketing/marketing.controller.ts`

@@ -389,13 +389,23 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         return items;
     }, [activeCategory, menuItems, searchQuery]);
 
-    const cartTotal = useMemo(() => cart.reduce((sum, item) => sum + (item.price * item.quantity), 0), [cart]);
-    const totalItemsCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
+    const groupSessionId = useCartStore(state => state.groupSessionId);
+    const groupParticipants = useCartStore(state => state.groupParticipants);
+
+    const effectiveCart = useMemo(() => {
+        if (groupSessionId && groupParticipants.length > 0) {
+            return groupParticipants.flatMap(p => p.items);
+        }
+        return cart;
+    }, [cart, groupSessionId, groupParticipants]);
+
+    const cartTotal = useMemo(() => effectiveCart.reduce((sum, item) => sum + (item.price * item.quantity), 0), [effectiveCart]);
+    const totalItemsCount = useMemo(() => effectiveCart.reduce((sum, item) => sum + item.quantity, 0), [effectiveCart]);
     const itemQuantities = useMemo(() => {
         const mapping: Record<string, number> = {};
-        cart.forEach(item => mapping[item.id] = (mapping[item.id] || 0) + item.quantity);
+        effectiveCart.forEach(item => mapping[item.id] = (mapping[item.id] || 0) + item.quantity);
         return mapping;
-    }, [cart]);
+    }, [effectiveCart]);
 
     const isOrderFormValid = useMemo(() => {
         const { customerName, customerPhone, orderType, address, gpsLocation, customerLatitude, customerLongitude } = orderMetadata;
@@ -405,8 +415,8 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     }, [orderMetadata]);
 
     const onHandlePlaceOrder = async () => {
-        if (cart.length === 0 || !isOrderFormValid) return;
-        const success = await handlePlaceOrder(orderMetadata, cartTotal);
+        if (effectiveCart.length === 0 || !isOrderFormValid) return;
+        const success = await handlePlaceOrder(effectiveCart, orderMetadata, cartTotal);
         if (success) {
             setIsConfirming(false);
             setOrderMetadata(prev => ({
@@ -619,7 +629,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
 
             {isConfirming && (
                 <CartModal
-                    cart={cart}
+                    cart={cart} // We pass the local cart for the local view, CartModal reads groupParticipants internally
                     orderMetadata={orderMetadata}
                     setOrderMetadata={setOrderMetadata}
                     onClose={() => setIsConfirming(false)}

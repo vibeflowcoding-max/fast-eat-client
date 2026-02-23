@@ -139,6 +139,9 @@ export interface HomeFeatureFlags {
     home_filters_sort_v1: boolean;
     home_personalized_rails_v1: boolean;
     home_search_suggestions_v1: boolean;
+    home_surprise_me: boolean;
+    home_dietary_guardian: boolean;
+    home_predictive_reorder: boolean;
 }
 
 export interface HomeAnalyticsDimensions {

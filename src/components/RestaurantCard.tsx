@@ -4,7 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { RestaurantWithBranches } from '@/types';
 import { formatDistance } from '@/utils/geoUtils';
-import { MapPin, Star } from 'lucide-react';
+import { MapPin, Star, Clock, Truck, ShieldCheck } from 'lucide-react';
 
 interface RestaurantCardProps {
     restaurant: RestaurantWithBranches;
@@ -116,24 +116,31 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
                     <p className="mt-1">Faltan métricas obligatorias: {metricErrors.join(', ')}.</p>
                 </div>
             ) : (
-                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-600">
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[10px] md:text-xs text-gray-500 font-medium">
                     {typeof etaMinutes === 'number' && etaMinutes > 0 && (
-                        <>
-                            <span className="font-medium">{etaMinutes}-{etaMinutes + 10} min</span>
-                            <span className="text-gray-300">•</span>
-                        </>
+                        <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
+                            <Clock size={10} className="text-gray-400" />
+                            <span className="text-gray-900 font-bold">{etaMinutes}-{etaMinutes + 10} min</span>
+                        </div>
                     )}
-                    <span>
-                        {typeof deliveryFeeHint === 'number' && deliveryFeeHint > 0
-                            ? `₡${deliveryFeeHint.toLocaleString()} envío`
-                            : 'Envío a confirmar'}
-                    </span>
+                    <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
+                        <Truck size={10} className="text-gray-400" />
+                        <span>
+                            {typeof deliveryFeeHint === 'number' && deliveryFeeHint > 0
+                                ? `₡${deliveryFeeHint.toLocaleString()}`
+                                : 'Gratis'}
+                        </span>
+                    </div>
                     {reviewCount && reviewCount > 0 && (
-                        <>
-                            <span className="text-gray-300">•</span>
-                            <span>{reviewCount}+ reseñas</span>
-                        </>
+                        <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
+                            <Star size={10} className="text-amber-400 fill-amber-400" />
+                            <span>{reviewCount}+</span>
+                        </div>
                     )}
+                    <div className="flex items-center gap-1 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-md text-emerald-700">
+                        <ShieldCheck size={10} className="text-emerald-500" />
+                        <span className="font-bold uppercase tracking-tighter text-[8px]">Seguro</span>
+                    </div>
                 </div>
             )}
         </div>

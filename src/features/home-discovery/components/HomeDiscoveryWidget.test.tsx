@@ -56,7 +56,6 @@ describe('HomeDiscoveryWidget integration', () => {
       <HomeDiscoveryWidget
         enabled
         onRecommendationClick={onRecommendationClick}
-        onCompareRequest={onCompareRequest}
       />
     );
 

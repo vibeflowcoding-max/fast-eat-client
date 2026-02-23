@@ -31,6 +31,22 @@ interface CartState {
     placeId?: string;
   } | null;
   profilePromptDismissedAt: number | null;
+  dietaryProfile: import('./types').DietaryProfile | null;
+
+  // Group Cart State
+  groupSessionId: string | null;
+  isHost: boolean;
+  participantId: string | null;
+  participantName: string | null;
+  groupParticipants: import('./types').GroupCartParticipant[];
+  setGroupSession: (sessionId: string, isHost: boolean, participantId: string, participantName: string) => void;
+  updateGroupParticipants: (participants: import('./types').GroupCartParticipant[]) => void;
+  leaveGroupSession: () => void;
+
+  // Social Settings
+  shareActivity: boolean;
+  toggleShareActivity: (share: boolean) => void;
+
   setItems: (items: CartItem[]) => void;
   updateItem: (item: CartItem) => void;
   removeItem: (itemId: string) => void;
@@ -56,6 +72,7 @@ interface CartState {
   setOnboarded: (value: boolean) => void;
   setCustomerAddress: (address: CartState['customerAddress']) => void;
   setProfilePromptDismissedAt: (value: number | null) => void;
+  setDietaryProfile: (profile: import('./types').DietaryProfile | null) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -77,6 +94,19 @@ export const useCartStore = create<CartState>()(
       isOnboarded: false,
       customerAddress: null,
       profilePromptDismissedAt: null,
+      dietaryProfile: null,
+
+      // Group Cart Initial State
+      groupSessionId: null,
+      isHost: false,
+      participantId: null,
+      participantName: null,
+      groupParticipants: [],
+
+      // Social Settings Initial State
+      shareActivity: false,
+      toggleShareActivity: (share) => set({ shareActivity: share }),
+
       setItems: (items) => set({ items }),
       updateItem: (newItem) => set((state) => {
         const existingIndex = state.items.findIndex((i) => i.id === newItem.id);
@@ -90,6 +120,31 @@ export const useCartStore = create<CartState>()(
       removeItem: (itemId) => set((state) => ({
         items: state.items.filter((i) => i.id !== itemId)
       })),
+
+      // Group Cart Actions
+      setGroupSession: (sessionId, isHost, participantId, participantName) => set({
+        groupSessionId: sessionId,
+        isHost,
+        participantId,
+        participantName,
+        groupParticipants: [{
+          id: participantId,
+          name: participantName,
+          isHost,
+          items: [],
+          joinedAt: Date.now()
+        }]
+      }),
+      updateGroupParticipants: (participants) => set({ groupParticipants: participants }),
+      leaveGroupSession: () => set({
+        groupSessionId: null,
+        isHost: false,
+        participantId: null,
+        participantName: null,
+        groupParticipants: [],
+        items: []
+      }),
+
       clearCart: () => set({ items: [], expirationTime: null }),
       setExpirationTime: (time) => set({ expirationTime: time }),
       setBranchId: (branchId) => set((state) => {
@@ -233,7 +288,8 @@ export const useCartStore = create<CartState>()(
       setUserLocation: (location) => set({ userLocation: location }),
       setOnboarded: (value) => set({ isOnboarded: value }),
       setCustomerAddress: (address) => set({ customerAddress: address }),
-      setProfilePromptDismissedAt: (value) => set({ profilePromptDismissedAt: value })
+      setProfilePromptDismissedAt: (value) => set({ profilePromptDismissedAt: value }),
+      setDietaryProfile: (profile) => set({ dietaryProfile: profile })
     }),
     {
       name: 'fasteat-storage',

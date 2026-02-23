@@ -87,3 +87,55 @@ A small, non-intrusive feed on the home screen showing recent activity from frie
 ### 3.3. Implementation
 *   **Data Fetching:** Fetch the activity feed asynchronously after the main home screen content loads to prevent blocking the critical rendering path.
 *   **Caching:** Cache the feed aggressively (e.g., 5-10 minutes) using React Query, as real-time updates are not strictly necessary for this feature.
+
+## 4. Full-Stack Implementation Requirements
+
+To fully realize these Social & Collaborative Ordering features beyond client-side mocks, the following backend infrastructure is required:
+
+### 4.1. Supabase Database Updates
+- [x] **`group_carts` Table**
+  - **Schema:** `id` (uuid, PK), `host_id` (uuid, FK), `branch_id` (uuid, FK), `status` (active, converted_to_order, cancelled), `created_at` (timestamp).
+  - **Implemented in:** `fast-eat-api-nestjs/migrations/035_v2_innovation_backend_features.sql`
+- [x] **`group_cart_participants` Table**
+  - **Schema:** `id` (uuid, PK), `cart_id` (uuid, FK), `user_id` (uuid, FK), `name` (varchar), `is_host` (boolean), `joined_at` (timestamp).
+  - **Implemented in:** `fast-eat-api-nestjs/migrations/035_v2_innovation_backend_features.sql`
+- [x] **`group_cart_items` Table**
+  - **Schema:** `id` (uuid, PK), `cart_id` (uuid, FK), `participant_id` (uuid, FK), `item_id` (uuid, FK), `quantity` (int), `price` (numeric), `notes` (text).
+  - *Must be configured for Supabase Realtime replication.*
+  - **Implemented in:** `fast-eat-api-nestjs/migrations/035_v2_innovation_backend_features.sql`
+- [x] **`order_splits` Table**
+  - **Schema:** `id` (uuid, PK), `order_id` (uuid, FK), `strategy` (equal, itemized, custom), `split_data` (jsonb), `created_at` (timestamp).
+  - **Implemented in:** `fast-eat-api-nestjs/migrations/035_v2_innovation_backend_features.sql`
+- [x] **`social_activities` Table**
+  - **Schema:** `id` (uuid, PK), `user_id` (uuid, FK), `activity_type` (varchar), `details` (jsonb), `created_at` (timestamp).
+  - **Implemented in:** `fast-eat-api-nestjs/migrations/035_v2_innovation_backend_features.sql`
+
+### 4.2. NestJS Backend (`fast-eat-api-nestjs`)
+- [x] **New Module:** `group-orders` and `social`.
+  - **Implemented in:** `src/modules/group-orders/group-orders.module.ts`, `src/modules/social/social.module.ts`
+- [x] **API Endpoints:**
+  - `POST /group-carts` - Create a new session.
+  - `POST /group-carts/:id/join` - Add a guest.
+  - `POST /group-carts/:id/items` - Add/remove items.
+  - `POST /orders/:id/split` - Save SINPE split calculations.
+  - `GET /social/feed` - Fetch recent friend activities.
+  - **Implemented in:** `src/modules/group-orders/group-orders.controller.ts`, `src/modules/social/social.controller.ts`
+- [x] **Ownership & Anti-Spoofing Hardening:** Group cart host/participant identity is derived from JWT and split persistence validates order ownership.
+  - **Implemented in:** `src/modules/group-orders/group-orders.controller.ts`, `src/modules/group-orders/group-orders.service.ts`, `src/modules/social/social.controller.ts`
+- [x] **Friend Graph + Strict Opt-in Privacy Controls:** Added friend request/accept links, per-user social opt-in settings, and feed filtering so only accepted opted-in friends are visible.
+  - **Implemented in:** `src/modules/social/social.controller.ts`, `src/modules/social/social.service.ts`, `src/modules/social/dto/social.dto.ts`, `migrations/038_v2_social_privacy_and_links.sql`
+- [x] **Granular Activity Visibility:** Users can hide specific social activities, and hidden rows are excluded from feed queries.
+  - **Implemented in:** `src/modules/social/social.controller.ts`, `src/modules/social/social.service.ts`, `migrations/038_v2_social_privacy_and_links.sql`
+- [x] **Host-Abandon Auto-Cancel Flow:** Stale active group carts are auto-cancelled (30+ min), guests are notified via social activity records, and a maintenance cleanup endpoint is available.
+  - **Implemented in:** `src/modules/group-orders/group-orders.controller.ts`, `src/modules/group-orders/group-orders.service.ts`, `src/modules/group-orders/dto/group-orders.dto.ts`
+
+### 4.3. Client React UI Implementation (`fast-eat-client`)
+> **[FRONTEND IMPLEMENTED - BACKEND HANDOFF REQUIRED]**
+> All UI files below have been implemented using local state and simulated API delays. 
+> **To the Backend Team:** Wire these components into the new Supabase Realtime sockets and NestJS endpoints.
+
+- [x] `src/features/social/components/GroupCartModal.tsx` - UI created and reading from mocked `useGroupCart` store.
+- [x] `src/features/social/hooks/useGroupCart.ts` - **CRITICAL:** Currently uses simulated local timeouts. Must be refactored to establish a `@supabase/supabase-js` Realtime socket connection targeting the `group_cart_items` table.
+- [x] `src/features/social/components/BillSplitModal.tsx` - Split calculation UI completed. Needs to trigger the `POST /orders/:id/split` backend endpoint to finalize the records.
+- [x] `src/features/social/components/ActivityFeed.tsx` - UI dummy feed works. Replace the mock data array with a React Query fetch to `GET /social/feed`.
+- [x] `src/components/CheckoutModal.tsx` - UI logic ready to accept finalized split data.

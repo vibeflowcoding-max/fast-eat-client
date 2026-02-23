@@ -1,9 +1,14 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { CartItem, OrderMetadata } from '../types';
 import CartItemRow from './CartItemRow';
 import OrderForm from './OrderForm';
+import GroupCartWidget from '../features/social/components/GroupCartWidget';
+import BillSplitterModal from '../features/payments/components/BillSplitterModal';
+import SinpeRequestUI from '../features/payments/components/SinpeRequestUI';
+import { SplitResult } from '../features/payments/utils/splitStrategies';
+import { useCartStore } from '../store';
 
 interface CartModalProps {
     cart: CartItem[];
@@ -38,6 +43,17 @@ const CartModal: React.FC<CartModalProps> = ({
     fromNumber,
     tableQuantity = 0
 }) => {
+    const groupSessionId = useCartStore(state => state.groupSessionId);
+    const groupParticipants = useCartStore(state => state.groupParticipants);
+    const currentParticipantId = useCartStore(state => state.participantId);
+
+    const [showBillSplitter, setShowBillSplitter] = useState(false);
+    const [sinpeResults, setSinpeResults] = useState<SplitResult[] | null>(null);
+
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const taxesAndFees = 0; // For future implementation if delivery fees exist before order placement
+    const total = subtotal + taxesAndFees;
+
     const isOrderFormValid = () => {
         const { customerName, customerPhone, orderType, address, gpsLocation, customerLatitude, customerLongitude, tableNumber } = orderMetadata;
         const hasCoordinates = Number.isFinite(customerLatitude) && Number.isFinite(customerLongitude);
@@ -59,10 +75,36 @@ const CartModal: React.FC<CartModalProps> = ({
                     <button onClick={onClose} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-black font-black hover:bg-gray-200 transition-colors">✕</button>
                 </div>
                 <div className="flex-grow overflow-y-auto p-5 md:p-8 space-y-4">
-                    {cart.length === 0 ? (
+                    <GroupCartWidget />
+                    {cart.length === 0 && (!groupSessionId || groupParticipants.length === 0) ? (
                         <div className="flex flex-col items-center py-20">
                             <span className="text-6xl mb-4">🍱</span>
                             <p className="text-gray-400 font-black uppercase tracking-widest text-xs">Tu pedido está vacío</p>
+                        </div>
+                    ) : groupSessionId && groupParticipants.length > 0 ? (
+                        <div className="space-y-6">
+                            {groupParticipants.map(participant => (
+                                <div key={participant.id} className="space-y-2">
+                                    <h4 className="font-bold text-sm text-gray-500 uppercase tracking-wider border-b pb-1">
+                                        {participant.name} {participant.isHost ? '(Organizador)' : ''}
+                                    </h4>
+                                    {participant.items.map((item, idx) => (
+                                        <CartItemRow
+                                            key={`${participant.id}-${item.id}-${idx}`}
+                                            item={item}
+                                            isSyncing={isSyncing}
+                                            onSyncCartAction={(item, action, qt) => {
+                                                if (participant.id === currentParticipantId) {
+                                                    onSyncCartAction(item, action, qt);
+                                                } else {
+                                                    alert("Solo puedes modificar tus propios productos.");
+                                                }
+                                            }}
+                                        />
+                                    ))}
+                                    {participant.items.length === 0 && <p className="text-xs text-gray-400 italic">No ha agregado productos</p>}
+                                </div>
+                            ))}
                         </div>
                     ) : (
                         <div className="space-y-4">
@@ -90,7 +132,16 @@ const CartModal: React.FC<CartModalProps> = ({
                         />
                     )}
                 </div>
-                <div className="p-5 md:p-8 bg-white border-t-4 border-gray-100">
+                <div className="p-5 md:p-8 bg-white border-t-4 border-gray-100 space-y-3">
+                    {groupSessionId && groupParticipants.length > 1 && (
+                        <button
+                            onClick={() => setShowBillSplitter(true)}
+                            disabled={cart.length === 0}
+                            className={`w-full py-4 rounded-2xl font-bold uppercase tracking-wider text-xs border-2 transition-all active:scale-95 ${cart.length > 0 ? 'border-gray-900 text-gray-900 hover:bg-gray-50' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}
+                        >
+                            Dividir Cuenta 🧮
+                        </button>
+                    )}
                     <button
                         onClick={onPlaceOrder}
                         disabled={cart.length === 0 || !isOrderFormValid() || isOrdering}
@@ -100,6 +151,33 @@ const CartModal: React.FC<CartModalProps> = ({
                     </button>
                 </div>
             </div>
+
+            {showBillSplitter && (
+                <BillSplitterModal
+                    participants={groupParticipants}
+                    subtotal={subtotal}
+                    taxesAndFees={taxesAndFees}
+                    total={total}
+                    onClose={() => setShowBillSplitter(false)}
+                    onConfirmSplit={(results) => {
+                        setSinpeResults(results);
+                        setShowBillSplitter(false);
+                    }}
+                />
+            )}
+
+            {sinpeResults && (
+                <SinpeRequestUI
+                    splitResults={sinpeResults}
+                    hostPhone={fromNumber || ''}
+                    hostName={useCartStore.getState().customerName || 'Organizador'}
+                    onBack={() => {
+                        setSinpeResults(null);
+                        setShowBillSplitter(true);
+                    }}
+                    onClose={() => setSinpeResults(null)}
+                />
+            )}
         </div>
     );
 };

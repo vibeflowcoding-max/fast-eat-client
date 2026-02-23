@@ -23,6 +23,7 @@ To transform FastEat from a standard food delivery app into a highly personalize
 ### Phase 4: Convenience & Utility
 *   **Features:** Scheduled Deliveries, Live Activities (iOS Dynamic Island), Eco-Friendly/Surplus Options.
 *   **Goal:** Provide unmatched utility and cater to niche, high-value user segments (office workers, eco-conscious consumers).
+*   **Documentation:** `07_CONVENIENCE_AND_UTILITY.md`
 
 ## Index of Documentation
 1.  [Architecture & Patterns](01_ARCHITECTURE_AND_PATTERNS.md) - SOLID principles, design patterns, state machines, error handling, logging, metrics.
@@ -31,3 +32,9 @@ To transform FastEat from a standard food delivery app into a highly personalize
 4.  [Gamification & Content](04_GAMIFICATION_AND_CONTENT.md) - Video streaming architecture, loyalty points state machine.
 5.  [Testing & QA Strategy](05_TESTING_AND_QA_STRATEGY.md) - Unit, integration, automated, manual testing guidelines.
 6.  [New AI Suggestions](06_NEW_AI_SUGGESTIONS.md) - Additional AI features to stay ahead of the competition.
+7.  [Convenience & Utility](07_CONVENIENCE_AND_UTILITY.md) - Scheduled deliveries and tracking widget architecture.
+
+## Full-Stack Architecture Note
+*   As of the latest revision, all phases have been updated to include **Full-Stack Implementation Requirements**. 
+*   This explicitly bridges the client-side UI features with real database schemas in **Supabase** and backend API endpoints in the **NestJS Backend (`fast-eat-api-nestjs`)**.
+*   Refer to the bottom section of documents 02, 03, and 04 for specific SQL table configurations and API routes needed.
