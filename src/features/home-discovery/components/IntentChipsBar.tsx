@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { DiscoveryIntent } from '../types';
 
 interface IntentChipsBarProps {
@@ -9,6 +9,7 @@ interface IntentChipsBarProps {
     disabled?: boolean;
     showAllOption?: boolean;
     allLabel?: string;
+    children?: React.ReactNode;
 }
 
 export default function IntentChipsBar({
@@ -17,8 +18,10 @@ export default function IntentChipsBar({
     onIntentChange,
     disabled,
     showAllOption = false,
-    allLabel = 'Todos'
-}: IntentChipsBarProps) {
+    allLabel = 'Todos',
+    children,
+    onOpenFilters
+}: IntentChipsBarProps & { onOpenFilters?: () => void }) {
     const scrollRef = React.useRef<HTMLDivElement | null>(null);
 
     const scrollChips = React.useCallback((direction: 'left' | 'right') => {
@@ -83,6 +86,13 @@ export default function IntentChipsBar({
                                 </button>
                             );
                         })}
+                        
+                        {children && (
+                            <>
+                                <div className="w-px h-6 bg-gray-300 mx-1" />
+                                {children}
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -94,6 +104,20 @@ export default function IntentChipsBar({
                 >
                     <ChevronRight size={16} />
                 </button>
+
+                {onOpenFilters && (
+                    <>
+                        <div className="w-px h-6 bg-gray-200 mx-1" />
+                        <button
+                            type="button"
+                            onClick={onOpenFilters}
+                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                            aria-label="Filtros y orden"
+                        >
+                            <SlidersHorizontal size={16} />
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     );

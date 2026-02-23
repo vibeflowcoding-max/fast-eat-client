@@ -4,7 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { RestaurantWithBranches } from '@/types';
 import { formatDistance } from '@/utils/geoUtils';
-import { MapPin, Clock, Star, ShieldCheck, Receipt, Truck } from 'lucide-react';
+import { MapPin, Star } from 'lucide-react';
 
 interface RestaurantCardProps {
     restaurant: RestaurantWithBranches;
@@ -78,20 +78,9 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
             />
 
             <div className="absolute left-3 right-3 top-3 flex items-center justify-between gap-2">
-                {hasPromo ? (
-                    <span className="inline-flex min-h-6 items-center rounded-full bg-orange-500 px-2.5 text-[11px] font-semibold text-white">
-                        Promo activa
-                    </span>
-                ) : (
-                    <span className="inline-flex min-h-6 items-center rounded-full bg-gray-900/70 px-2.5 text-[11px] font-semibold text-white">
-                        Sin promo
-                    </span>
-                )}
-
-                {typeof etaMinutes === 'number' && etaMinutes > 0 && (
-                    <span className="inline-flex min-h-6 items-center gap-1 rounded-full bg-white/95 px-2.5 text-[11px] font-semibold text-gray-800">
-                        <Clock size={12} aria-hidden="true" />
-                        ETA {etaMinutes} min
+                {hasPromo && (
+                    <span className="inline-flex min-h-5 items-center rounded-md bg-orange-500 px-2 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+                        Promo
                     </span>
                 )}
             </div>
@@ -108,65 +97,45 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
     );
 
     const renderMeta = () => (
-        <div className="space-y-3 p-4">
-            <div>
-                <h3 className="truncate text-lg font-semibold text-gray-900">{restaurant.name}</h3>
-                <p className="truncate text-sm text-gray-500">{categoryNames}</p>
+        <div className="space-y-1 p-3">
+            <div className="flex items-start justify-between gap-2">
+                <h3 className="truncate text-lg font-bold text-gray-900">{restaurant.name}</h3>
+                {hasRating && (
+                    <div className="flex shrink-0 items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-800">
+                        <Star size={12} className="fill-gray-800 text-gray-800" aria-hidden="true" />
+                        <span>{rating.toFixed(1)}</span>
+                    </div>
+                )}
             </div>
 
-            {primaryBranch && (
-                <p className="truncate text-xs text-gray-400">
-                    {primaryBranch.human_addres || primaryBranch.city || 'Ver ubicación'}
-                </p>
-            )}
+            <p className="truncate text-sm text-gray-500">{categoryNames}</p>
 
             {hasMetricErrors ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-2 py-2 text-xs text-red-700">
+                <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-2 py-2 text-xs text-red-700">
                     <p className="font-semibold">Error de datos de restaurante</p>
                     <p className="mt-1">Faltan métricas obligatorias: {metricErrors.join(', ')}.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-gray-50 px-2 py-1.5 text-gray-700">
-                        <Receipt size={12} aria-hidden="true" />
-                        <span className="truncate">
-                            Total est.: <span className="font-semibold">₡{finalPriceEstimate!.toLocaleString()}</span>
-                        </span>
-                    </div>
-                    <div className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-gray-50 px-2 py-1.5 text-gray-700">
-                        <Truck size={12} aria-hidden="true" />
-                        <span className="truncate">
-                            Envío:{' '}
-                            <span className="font-semibold">
-                                {typeof deliveryFeeHint === 'number' && deliveryFeeHint > 0
-                                    ? `desde ₡${deliveryFeeHint.toLocaleString()}`
-                                    : 'a confirmar'}
-                            </span>
-                        </span>
-                    </div>
-                    <div className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-gray-50 px-2 py-1.5 text-gray-700">
-                        <Star size={12} aria-hidden="true" />
-                        <span className="truncate">
-                            {hasRating ? rating.toFixed(1) : 'Nuevo'}
-                            <span className="text-gray-500"> ({reviewCount ? `${reviewCount} reseñas` : 'Sin reseñas aún'})</span>
-                        </span>
-                    </div>
-                    <div className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-gray-50 px-2 py-1.5 text-gray-700">
-                        <ShieldCheck size={12} aria-hidden="true" />
-                        <span className="truncate">
-                            Confianza: <span className="font-semibold">{reviewConfidence}</span>
-                        </span>
-                    </div>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-600">
+                    {typeof etaMinutes === 'number' && etaMinutes > 0 && (
+                        <>
+                            <span className="font-medium">{etaMinutes}-{etaMinutes + 10} min</span>
+                            <span className="text-gray-300">•</span>
+                        </>
+                    )}
+                    <span>
+                        {typeof deliveryFeeHint === 'number' && deliveryFeeHint > 0
+                            ? `₡${deliveryFeeHint.toLocaleString()} envío`
+                            : 'Envío a confirmar'}
+                    </span>
+                    {reviewCount && reviewCount > 0 && (
+                        <>
+                            <span className="text-gray-300">•</span>
+                            <span>{reviewCount}+ reseñas</span>
+                        </>
+                    )}
                 </div>
             )}
-        </div>
-    );
-
-    const renderActions = () => (
-        <div className="border-t border-gray-100 px-4 py-3">
-            <span className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-colors duration-200 motion-reduce:transition-none group-hover:bg-orange-600 group-active:bg-orange-700">
-                Ver menú
-            </span>
         </div>
     );
 
@@ -179,7 +148,6 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
         >
             {renderMedia()}
             {renderMeta()}
-            {renderActions()}
         </button>
     );
 }

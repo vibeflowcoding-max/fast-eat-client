@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, MapPin, Search } from 'lucide-react';
+import { MapPin, Search } from 'lucide-react';
 import { HOME_VISUAL_TOKENS } from './homeVisualTokens';
 
 export interface HomeSearchSuggestionItem {
@@ -54,49 +54,10 @@ export default function HomeHeroSearch({
     visualHierarchyV2 = false
 }: HomeHeroSearchProps) {
     const searchInputId = 'home-search-input';
-    const [notificationStatus, setNotificationStatus] = React.useState<'unsupported' | NotificationPermission>('default');
-
-    React.useEffect(() => {
-        if (typeof window === 'undefined' || !('Notification' in window)) {
-            setNotificationStatus('unsupported');
-            return;
-        }
-
-        setNotificationStatus(Notification.permission);
-    }, []);
-
-    const handleNotificationsClick = React.useCallback(async () => {
-        if (typeof window === 'undefined' || !('Notification' in window)) {
-            setNotificationStatus('unsupported');
-            return;
-        }
-
-        if (Notification.permission === 'granted') {
-            setNotificationStatus('granted');
-            return;
-        }
-
-        const result = await Notification.requestPermission();
-        setNotificationStatus(result);
-    }, []);
-
-    const notificationsLabel = notificationStatus === 'granted'
-        ? 'Notificaciones activas'
-        : notificationStatus === 'denied'
-            ? 'Notificaciones bloqueadas'
-            : 'Activar notificaciones';
 
     return (
         <div className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.heroContainer : 'px-4 py-4'}>
             <div className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.heroHeader : 'mb-4 flex items-center justify-end'}>
-                <button
-                    type="button"
-                    onClick={handleNotificationsClick}
-                    className="mr-2 inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600"
-                >
-                    <Bell size={12} />
-                    <span>{notificationsLabel}</span>
-                </button>
                 {hasActiveLocation && (
                     <div
                         className={visualHierarchyV2

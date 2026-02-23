@@ -179,7 +179,7 @@ export default function HomeDiscoveryWidget({
             <button
                 type="button"
                 onClick={openChat}
-                className="fixed z-40 bottom-4 right-4 px-4 py-3 rounded-full shadow-lg bg-orange-500 text-white flex items-center gap-2"
+                className="fixed z-40 bottom-20 right-4 px-4 py-3 rounded-full shadow-lg bg-orange-500 text-white flex items-center gap-2"
                 aria-label="Abrir asistente de descubrimiento"
             >
                 <Sparkles size={16} />

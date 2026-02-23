@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { SlidersHorizontal, X } from 'lucide-react';
 import { useCartStore } from '@/store';
 import { useCategories } from '@/hooks/useCategories';
 import { useRestaurants } from '@/hooks/useRestaurants';
@@ -10,6 +11,7 @@ import ProfileCompletionPrompt from '@/components/ProfileCompletionPrompt';
 import ProfileCompletionModal from '@/components/ProfileCompletionModal';
 import AddressDetailsModal, { BuildingType } from '@/components/AddressDetailsModal';
 import LoadingScreen from '@/components/LoadingScreen';
+import BottomNav from '@/components/BottomNav';
 import HomeHeroSearch from '@/features/home-discovery/components/HomeHeroSearch';
 import { HomeSearchSuggestionItem } from '@/features/home-discovery/components/HomeHeroSearch';
 import IntentChipsBar from '@/features/home-discovery/components/IntentChipsBar';
@@ -95,6 +97,7 @@ export default function HomePage() {
     const isSearchSuggestionsV1Enabled = process.env.NEXT_PUBLIC_HOME_SEARCH_SUGGESTIONS_V1?.toLowerCase() !== 'false';
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+    const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
     const [locationRequestLoading, setLocationRequestLoading] = useState(false);
     const [locationPermissionError, setLocationPermissionError] = useState<string | null>(null);
     const [addressInitialPosition, setAddressInitialPosition] = useState<{ lat: number; lng: number } | null>(userLocation ?? null);
@@ -759,6 +762,15 @@ export default function HomePage() {
 
             {/* Header */}
             <header className="bg-white">
+                {/* Category Bar */}
+                <CategoryBar
+                    categories={categories}
+                    selectedCategoryId={selectedCategoryId}
+                    onSelectCategory={(categoryId) => {
+                        setSelectedCategoryId(categoryId);
+                        emitHomeEvent({ name: 'category_filter_click', category_id: categoryId });
+                    }}
+                />
 
                 {!isLegacyListLayout && (
                     <IntentChipsBar
@@ -772,67 +784,29 @@ export default function HomePage() {
                                 emitHomeEvent({ name: 'intent_chip_click', chip: intent });
                             }
                         }}
-                    />
+                        onOpenFilters={() => setIsFiltersModalOpen(true)}
+                    >
+                        {FILTER_CHIPS.map((chip) => {
+                            const isActive = filters[chip.key] === chip.value;
+
+                            return (
+                                <button
+                                    key={`${chip.key}-${String(chip.value)}`}
+                                    type="button"
+                                    onClick={() => toggleFilterChip(chip.key, chip.value)}
+                                    className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-1 ${
+                                        isActive
+                                            ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                            : 'border-gray-200 bg-white text-gray-700 hover:border-orange-300'
+                                    }`}
+                                    aria-pressed={isActive}
+                                >
+                                    {chip.label}
+                                </button>
+                            );
+                        })}
+                    </IntentChipsBar>
                 )}
-
-                {/* Category Bar */}
-                <CategoryBar
-                    categories={categories}
-                    selectedCategoryId={selectedCategoryId}
-                    onSelectCategory={(categoryId) => {
-                        setSelectedCategoryId(categoryId);
-                        emitHomeEvent({ name: 'category_filter_click', category_id: categoryId });
-                    }}
-                />
-
-                <div className="border-t border-gray-100 bg-white px-4 py-2">
-                        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                            {FILTER_CHIPS.map((chip) => {
-                                const isActive = filters[chip.key] === chip.value;
-
-                                return (
-                                    <button
-                                        key={`${chip.key}-${String(chip.value)}`}
-                                        type="button"
-                                        onClick={() => toggleFilterChip(chip.key, chip.value)}
-                                        className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-1 ${
-                                            isActive
-                                                ? 'border-orange-500 bg-orange-50 text-orange-700'
-                                                : 'border-gray-200 bg-white text-gray-700'
-                                        }`}
-                                        aria-pressed={isActive}
-                                    >
-                                        {chip.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <div className="mt-2 flex items-center gap-2">
-                            <label htmlFor="home-sort-control" className="text-xs text-gray-500">
-                                Ordenar
-                            </label>
-                            <select
-                                id="home-sort-control"
-                                value={sortBy}
-                                onChange={(event) => handleSortChange(event.target.value as HomeSortOption)}
-                                className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
-                            >
-                                {SORT_OPTIONS.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                            <button
-                                type="button"
-                                onClick={handleClearAllFilters}
-                                className="ml-auto rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
-                            >
-                                Limpiar todo
-                            </button>
-                        </div>
-                    </div>
             </header>
 
             {/* Main Content */}
@@ -905,6 +879,58 @@ export default function HomePage() {
                 onPermissionGranted={() => emitHomeEvent({ name: 'location_permission_granted' })}
                 onPermissionDenied={() => emitHomeEvent({ name: 'location_permission_denied' })}
             />
+
+            <BottomNav />
+
+            {isFiltersModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
+                    <div className="w-full max-w-md rounded-t-2xl bg-white p-4 sm:rounded-2xl">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h2 className="text-lg font-semibold text-gray-900">Filtros y Orden</h2>
+                            <button
+                                type="button"
+                                onClick={() => setIsFiltersModalOpen(false)}
+                                className="rounded-full p-1 text-gray-500 hover:bg-gray-100"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label htmlFor="home-sort-control-modal" className="mb-2 block text-sm font-medium text-gray-700">
+                                    Ordenar por
+                                </label>
+                                <select
+                                    id="home-sort-control-modal"
+                                    value={sortBy}
+                                    onChange={(event) => handleSortChange(event.target.value as HomeSortOption)}
+                                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+                                >
+                                    {SORT_OPTIONS.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="pt-4 border-t border-gray-100">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        handleClearAllFilters();
+                                        setIsFiltersModalOpen(false);
+                                    }}
+                                    className="w-full rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                >
+                                    Limpiar todos los filtros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
