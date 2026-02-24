@@ -26,16 +26,16 @@ const cleanJsonResponse = (text: string): any => {
 
 const extractDataFromN8N = (data: any) => {
   if (!data) return { message: "", action: "none", confirmation: false };
-  
+
   let source = Array.isArray(data) ? data[0] : data;
   const original = { ...source };
 
   if (source?.output && typeof source.output === 'object') {
     source = source.output;
   }
-  
+
   let message = source?.message || source?.reply_message || source?.text || original?.message || "";
-  
+
   if (typeof message === 'string' && (message.includes("Workflow execution failed") || message.includes("Error: "))) {
     message = APP_CONSTANTS.MESSAGES.TECHNICAL_ERROR;
   }
@@ -43,17 +43,17 @@ const extractDataFromN8N = (data: any) => {
   const action = source?.action || original?.action || "none";
   const item_id = source?.item_id || source?.productId || original?.item_id || null;
   const item_ids = source?.item_ids || source?.items || source?.cart?.items || original?.item_ids || null;
-  
+
   const order_id = source?.order_id || source?.orderId || null;
   const order_number = source?.order_number || source?.orderNumber || null;
 
-  const confirmation = 
-    source?.confirmation === true || 
-    source?.confirmation === 'true' || 
+  const confirmation =
+    source?.confirmation === true ||
+    source?.confirmation === 'true' ||
     source?.confirmation === 'success' ||
     original?.confirmation === true ||
     original?.output?.confirmation === true;
-  
+
   return { message, action, item_id, item_ids, confirmation, order_id, order_number };
 };
 
@@ -64,6 +64,7 @@ const mapBidFromApi = (bid: any): DeliveryBid => ({
   estimatedTimeMinutes: bid?.estimatedTimeMinutes ?? bid?.estimated_time_minutes ?? null,
   driverNotes: bid?.driverNotes ?? bid?.driver_notes ?? null,
   basePrice: Number(bid?.basePrice ?? bid?.base_price ?? 0),
+  customerCounterOffer: bid?.customerCounterOffer ?? bid?.customer_counter_offer ?? null,
   status: String(bid?.status ?? 'ACTIVE'),
   expiresAt: String(bid?.expiresAt ?? bid?.expires_at ?? new Date().toISOString()),
   createdAt: String(bid?.createdAt ?? bid?.created_at ?? new Date().toISOString())
@@ -72,13 +73,13 @@ const mapBidFromApi = (bid: any): DeliveryBid => ({
 export const fetchMenuFromAPI = async (branchId: string): Promise<{ items: MenuItem[], categories: string[] }> => {
   try {
     // Use placeholder to hide real ID, but keep correct structure for Fast Eat API
-    const path = `/mcp/public/branches/:branchId/menu`; 
+    const path = `/mcp/public/branches/:branchId/menu`;
     const response = await fetch(`${PROXY_URL}?target=fast-eat&path=${encodeURIComponent(path)}`);
     if (!response.ok) throw new Error('Error al cargar el menú');
     const data = await response.json();
     const rawItems = Array.isArray(data) ? data : (data.menu || []);
     const items: MenuItem[] = rawItems.map((item: any) => ({
-      id: String(item.id || item.productId || item.name), 
+      id: String(item.id || item.productId || item.name),
       name: item.name || 'Platillo',
       description: item.description || 'Delicioso platillo tradicional.',
       price: parseFloat(item.branch_price || item.base_price || 0),
@@ -131,8 +132,8 @@ export const fetchBranches = async (): Promise<any[]> => {
 };
 
 export const sendChatToN8N = async (
-  message: string, 
-  cart: CartItem[], 
+  message: string,
+  cart: CartItem[],
   branchId: string,
   fromNumber: string,
   interaction: InteractionType = 'chat',
@@ -170,7 +171,7 @@ export const sendChatToN8N = async (
           precio: i.price
         }))
       } : undefined,
-      ...( (interaction === 'carrito' || interaction === 'generar_orden') && itemDetails ? {
+      ...((interaction === 'carrito' || interaction === 'generar_orden') && itemDetails ? {
         item_id: itemDetails.id,
         nombre: itemDetails.name,
         cantidad: itemDetails.quantity,
@@ -188,11 +189,11 @@ export const sendChatToN8N = async (
         body: payload
       }),
     });
-    
+
     const data = await response.json();
     const extracted = extractDataFromN8N(data);
-    return { 
-      output: extracted.message, 
+    return {
+      output: extracted.message,
       action: extracted.action as CartAction,
       item_id: extracted.item_id,
       item_ids: extracted.item_ids as any[],
@@ -201,10 +202,10 @@ export const sendChatToN8N = async (
       order_number: extracted.order_number
     };
   } catch (error) {
-    return { 
-      output: APP_CONSTANTS.MESSAGES.CONNECTION_ERROR, 
+    return {
+      output: APP_CONSTANTS.MESSAGES.CONNECTION_ERROR,
       action: "none" as CartAction,
-      confirmation: false 
+      confirmation: false
     };
   }
 };
@@ -234,7 +235,7 @@ export const submitOrderToMCP = async (cart: CartItem[], orderMetadata: OrderMet
       }))
     }
   };
-  
+
   const response = await fetch('/api/orders', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -276,67 +277,67 @@ export const getCartFromN8N = async (branchId: string, fromNumber: string, isTes
 };
 
 export const sendOrderToN8N = async (message: string, cart: CartItem[], branchId: string, fromNumber: string, interaction: string, action: string, item: any, orderMetadata: OrderMetadata, isTest: boolean = false): Promise<any> => {
-    const n8nOrderTypeMap: Record<string, string> = {
-      'comer_aca': 'comer_ahi',
-      'comer_aqui': 'comer_ahi',
-      'dine_in': 'comer_ahi',
-      'domicilio': 'domicilio',
-      'delivery': 'domicilio',
-      'recoger': 'recoger',
-      'pickup': 'recoger'
-    };
+  const n8nOrderTypeMap: Record<string, string> = {
+    'comer_aca': 'comer_ahi',
+    'comer_aqui': 'comer_ahi',
+    'dine_in': 'comer_ahi',
+    'domicilio': 'domicilio',
+    'delivery': 'domicilio',
+    'recoger': 'recoger',
+    'pickup': 'recoger'
+  };
 
-    const payload = {
-      message,
-      fromNumber,
-      branch_id: branchId,
-      intencion: interaction,
-      action: action,
-      metadata: {
-        ...orderMetadata,
-        customerPhone: fromNumber,
-        source: 'client',
-        orderType: orderMetadata.orderType,
-        address: orderMetadata.address || '',
-        gpsLocation: orderMetadata.gpsLocation || '',
-        customerLatitude: orderMetadata.customerLatitude,
-        customerLongitude: orderMetadata.customerLongitude,
-        items: cart.map(i => ({
-          item_id: i.id,
-          nombre: i.name,
-          cantidad: i.quantity,
-          detalles: i.notes || "",
-          precio: i.price
-        }))
-      }
-    };
-
-    const response = await fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        target: 'n8n',
-        isTest,
-        body: payload
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Order API Error: ${response.status}`);
+  const payload = {
+    message,
+    fromNumber,
+    branch_id: branchId,
+    intencion: interaction,
+    action: action,
+    metadata: {
+      ...orderMetadata,
+      customerPhone: fromNumber,
+      source: 'client',
+      orderType: orderMetadata.orderType,
+      address: orderMetadata.address || '',
+      gpsLocation: orderMetadata.gpsLocation || '',
+      customerLatitude: orderMetadata.customerLatitude,
+      customerLongitude: orderMetadata.customerLongitude,
+      items: cart.map(i => ({
+        item_id: i.id,
+        nombre: i.name,
+        cantidad: i.quantity,
+        detalles: i.notes || "",
+        precio: i.price
+      }))
     }
+  };
 
-    const responseData = await response.json();
-    const extracted = extractDataFromN8N(responseData);
-    
-    return {
-      output: extracted.message,
-      action: extracted.action,
-      item_id: extracted.item_id,
-      item_ids: extracted.item_ids,
-      confirmation: extracted.confirmation,
-      order_id: extracted.order_id,
-      order_number: extracted.order_number
-    };
+  const response = await fetch('/api/orders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      target: 'n8n',
+      isTest,
+      body: payload
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Order API Error: ${response.status}`);
+  }
+
+  const responseData = await response.json();
+  const extracted = extractDataFromN8N(responseData);
+
+  return {
+    output: extracted.message,
+    action: extracted.action,
+    item_id: extracted.item_id,
+    item_ids: extracted.item_ids,
+    confirmation: extracted.confirmation,
+    order_id: extracted.order_id,
+    order_number: extracted.order_number
+  };
 };
 
 export const listOrderBids = async (orderId: string): Promise<{ orderId: string; bids: DeliveryBid[] }> => {
@@ -405,6 +406,32 @@ export const confirmDelivery = async (
     orderId: payload?.orderId || orderId,
     acceptedByUser: Boolean(payload?.acceptedByUser),
     status: payload?.status || 'COMPLETED',
+    label: typeof payload?.label === 'string'
+      ? payload.label
+      : (typeof payload?.statusLabel === 'string' ? payload.statusLabel : null),
+  };
+};
+export const counterOffer = async (
+  orderId: string,
+  bidId: string,
+  customerCounterOffer: number
+): Promise<{ orderId: string; status: string; label: string | null }> => {
+  const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/bids/${encodeURIComponent(bidId)}/counter`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ customerCounterOffer })
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.message || `Error HTTP: ${response.status}`);
+  }
+
+  const payload = data?.data || data;
+
+  return {
+    orderId: payload?.orderId || orderId,
+    status: payload?.status || 'AUCTION_ACTIVE',
     label: typeof payload?.label === 'string'
       ? payload.label
       : (typeof payload?.statusLabel === 'string' ? payload.statusLabel : null),

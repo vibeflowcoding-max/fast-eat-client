@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useOrderTracking } from '../hooks/useOrderTracking';
 import { useCartStore } from '@/store';
 import BidRow from './BidRow';
-import { acceptBid, confirmDelivery, listOrderBids } from '@/services/api';
+import { acceptBid, confirmDelivery, counterOffer, listOrderBids } from '@/services/api';
 
 interface OrderTrackingModalProps {
     isOpen: boolean;
@@ -146,6 +146,20 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
             }));
         } finally {
             setAcceptingBidId(null);
+        }
+    };
+    const handleCounterOffer = async (orderId: string, bidId: string, amount: number) => {
+        setOrderErrors((previous) => ({ ...previous, [orderId]: '' }));
+        try {
+            const response = await counterOffer(orderId, bidId, amount);
+            // After countering, we refresh bids to show the "countered" status
+            const bidsResponse = await listOrderBids(orderId);
+            setOrderBids(bidsResponse.orderId, bidsResponse.bids);
+        } catch (error: any) {
+            setOrderErrors((previous) => ({
+                ...previous,
+                [orderId]: error?.message || 'Unable to send counter-offer'
+            }));
         }
     };
 
@@ -331,6 +345,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                                                                 isLoading={acceptingBidId === bid.id}
                                                                 isHighlighted={deepLinkTarget?.bidId === bid.id}
                                                                 onAccept={handleAcceptBid}
+                                                                onCounterOffer={handleCounterOffer}
                                                             />
                                                         ))}
                                                     </div>
