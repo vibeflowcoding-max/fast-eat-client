@@ -3,6 +3,62 @@ import { getSupabaseServer } from '@/lib/supabase-server';
 const CUSTOMER_PHONE_COLUMNS = ['phone', 'phone_number', 'from_number', 'customer_phone'] as const;
 const CUSTOMER_NAME_COLUMNS = ['full_name', 'name', 'customer_name'] as const;
 
+function normalizePhoneRaw(value: string): string {
+  return value.trim();
+}
+
+function normalizePhoneDigits(value: string): string {
+  return value.replace(/\D/g, '');
+}
+
+function buildPhoneCandidates(phone: string): Set<string> {
+  const raw = normalizePhoneRaw(phone);
+  const digits = normalizePhoneDigits(raw);
+  const candidates = new Set<string>();
+
+  if (raw) {
+    candidates.add(raw);
+  }
+
+  if (digits) {
+    candidates.add(digits);
+  }
+
+  if (digits.length > 8) {
+    candidates.add(digits.slice(-8));
+  }
+
+  if (digits.startsWith('506') && digits.length > 3) {
+    candidates.add(digits.slice(3));
+  }
+
+  return candidates;
+}
+
+function phoneMatches(inputPhone: string, storedPhone: unknown): boolean {
+  if (typeof storedPhone !== 'string' || !storedPhone.trim()) {
+    return false;
+  }
+
+  const inputCandidates = buildPhoneCandidates(inputPhone);
+  const storedRaw = normalizePhoneRaw(storedPhone);
+  const storedDigits = normalizePhoneDigits(storedRaw);
+
+  if (inputCandidates.has(storedRaw) || inputCandidates.has(storedDigits)) {
+    return true;
+  }
+
+  if (storedDigits.length > 8 && inputCandidates.has(storedDigits.slice(-8))) {
+    return true;
+  }
+
+  if (storedDigits.startsWith('506') && storedDigits.length > 3 && inputCandidates.has(storedDigits.slice(3))) {
+    return true;
+  }
+
+  return false;
+}
+
 function hasId(value: unknown): value is { id: string | number } {
   return Boolean(
     value &&
@@ -13,19 +69,44 @@ function hasId(value: unknown): value is { id: string | number } {
   );
 }
 
-async function findCustomerIdByPhone(phone: string): Promise<string | null> {
+export async function findCustomerIdByPhone(phone: string): Promise<string | null> {
   const supabaseServer = getSupabaseServer();
 
   for (const column of CUSTOMER_PHONE_COLUMNS) {
     const { data, error } = await (supabaseServer as any)
       .from('customers')
-      .select('id')
-      .eq(column, phone)
-      .limit(1)
-      .maybeSingle();
+      .select(`id,${column}`)
+      .limit(2000);
 
-    if (!error && hasId(data)) {
-      return String(data.id);
+    if (error || !Array.isArray(data)) {
+      continue;
+    }
+
+    const found = data.find((row) => hasId(row) && phoneMatches(phone, (row as Record<string, unknown>)[column]));
+    if (found && hasId(found)) {
+      return String(found.id);
+    }
+  }
+
+  return null;
+}
+
+export async function findCustomerByPhone(phone: string): Promise<Record<string, unknown> | null> {
+  const supabaseServer = getSupabaseServer();
+
+  for (const column of CUSTOMER_PHONE_COLUMNS) {
+    const { data, error } = await (supabaseServer as any)
+      .from('customers')
+      .select('*')
+      .limit(2000);
+
+    if (error || !Array.isArray(data)) {
+      continue;
+    }
+
+    const found = data.find((row) => phoneMatches(phone, (row as Record<string, unknown>)[column]));
+    if (found && typeof found === 'object') {
+      return found as Record<string, unknown>;
     }
   }
 

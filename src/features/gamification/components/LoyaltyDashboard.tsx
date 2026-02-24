@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLoyaltyStore } from '../store/useLoyaltyStore';
 import { Trophy, Star, TrendingUp, Presentation, Hexagon, X, Zap } from 'lucide-react';
 
@@ -10,10 +11,16 @@ interface LoyaltyDashboardProps {
 
 export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
     const { points, currentStreak, longestStreak, badges, resetStreakIfExpired } = useLoyaltyStore();
+    const [isMounted, setIsMounted] = React.useState(false);
 
     useEffect(() => {
         resetStreakIfExpired();
     }, [resetStreakIfExpired]);
+
+    useEffect(() => {
+        setIsMounted(true);
+        return () => setIsMounted(false);
+    }, []);
 
     const POINTS_PER_TIER = 2000;
     const currentTierProgress = (points % POINTS_PER_TIER) / POINTS_PER_TIER;
@@ -24,14 +31,59 @@ export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
     const nextTierName = tierNames[Math.min(currentTier + 1, tierNames.length - 1)];
     const pointsToNextTier = POINTS_PER_TIER - (points % POINTS_PER_TIER);
 
-    return (
-        <div className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 backdrop-blur-md">
-            <div className="bg-white w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh] relative">
+    const handleClose = React.useCallback(() => {
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fast-eat:close-loyalty'));
+        }
+        onClose();
+    }, [onClose]);
+
+    const handleCloseInteraction = React.useCallback((event: React.SyntheticEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        handleClose();
+    }, [handleClose]);
+
+    const handleBackdropClick = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+        if (event.target === event.currentTarget) {
+            handleClose();
+        }
+    }, [handleClose]);
+
+    useEffect(() => {
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                handleClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleEscape);
+        return () => window.removeEventListener('keydown', handleEscape);
+    }, [handleClose]);
+
+    if (!isMounted) {
+        return null;
+    }
+
+    return createPortal(
+        <div
+            className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 backdrop-blur-md"
+            onClick={handleBackdropClick}
+        >
+            <div
+                className="bg-white w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh] relative"
+                onClick={(event) => event.stopPropagation()}
+            >
                 <button
-                    onClick={onClose}
-                    className="absolute top-6 right-6 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors z-10"
+                    type="button"
+                    onClick={handleCloseInteraction}
+                    onMouseDown={handleCloseInteraction}
+                    onPointerDown={handleCloseInteraction}
+                    onTouchEnd={handleCloseInteraction}
+                    className="absolute top-6 right-6 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors z-50 cursor-pointer"
+                    aria-label="Cerrar vista de puntos"
                 >
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5 pointer-events-none" />
                 </button>
 
                 <div className="flex-grow overflow-y-auto hide-scrollbar">
@@ -140,5 +192,6 @@ export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
                 </div>
             </div>
         </div>
+    , document.body
     );
 }
