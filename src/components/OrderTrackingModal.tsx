@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useOrderTracking } from '../hooks/useOrderTracking';
 import { useCartStore } from '@/store';
 import BidRow from './BidRow';
