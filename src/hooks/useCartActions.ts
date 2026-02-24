@@ -58,32 +58,32 @@ export const useCartActions = () => {
       }
     }, 600);
 
-    return true; 
+    return true;
   };
 
   const addToCart = async (newItem: CartItem, orderMetadata: OrderMetadata): Promise<boolean> => {
     let action: CartAction = 'add';
     let message = '';
     const existing = cart.find(i => i.id === newItem.id);
-    
+
     if (!existing) {
       action = 'add';
       message = `Añadir ${newItem.quantity} de ${newItem.name} al carrito`;
       updateItem(newItem);
     } else {
-      if (newItem.quantity === 0) { 
-        action = 'remove'; 
-        message = `Remover ${newItem.name}`; 
+      if (newItem.quantity === 0) {
+        action = 'remove';
+        message = `Remover ${newItem.name}`;
         removeItem(newItem.id);
       }
-      else if (newItem.quantity !== existing.quantity) { 
-        action = 'increment'; 
-        message = `Actualizar ${newItem.name} a ${newItem.quantity}`; 
+      else if (newItem.quantity !== existing.quantity) {
+        action = 'increment';
+        message = `Actualizar ${newItem.name} a ${newItem.quantity}`;
         updateItem(newItem);
       }
-      else if (newItem.notes !== existing.notes) { 
-        action = 'details'; 
-        message = `Notas para ${newItem.name}: ${newItem.notes}`; 
+      else if (newItem.notes !== existing.notes) {
+        action = 'details';
+        message = `Notas para ${newItem.name}: ${newItem.notes}`;
         updateItem(newItem);
       }
       else return true;
@@ -128,7 +128,7 @@ export const useCartActions = () => {
     }
   };
 
-  const handlePlaceOrder = async (orderMetadata: OrderMetadata, cartTotal: number): Promise<boolean> => {
+  const handlePlaceOrder = async (effectiveCart: CartItem[], orderMetadata: OrderMetadata, cartTotal: number): Promise<boolean> => {
     if (isOrdering) return false;
     setIsOrdering(true);
     try {
@@ -139,7 +139,7 @@ export const useCartActions = () => {
           : orderMetadata.address
       };
 
-      const orderResult = await submitOrderToMCP(cart, finalMetadata, branchId);
+      const orderResult = await submitOrderToMCP(effectiveCart, finalMetadata, branchId);
       const orderId = orderResult?.order_id || orderResult?.orderId || orderResult?.data?.order_id || orderResult?.data?.orderId;
       const orderNumber =
         orderResult?.order_number ||
@@ -149,15 +149,15 @@ export const useCartActions = () => {
         `ORD-${Date.now().toString().slice(-4)}`;
 
       if (orderId) {
-          addActiveOrder({
-            orderId,
-            orderNumber,
-            previousStatus: { code: 'PENDING', label: 'Procesando' },
-            newStatus: { code: 'PENDING', label: 'Enviado a Cocina' },
-            updatedAt: new Date().toISOString(),
-            items: [...cart],
-            total: cartTotal
-          });
+        addActiveOrder({
+          orderId,
+          orderNumber,
+          previousStatus: { code: 'PENDING', label: 'Procesando' },
+          newStatus: { code: 'PENDING', label: 'Enviado a Cocina' },
+          updatedAt: new Date().toISOString(),
+          items: [...effectiveCart],
+          total: cartTotal
+        });
 
         setChefNotification({ content: "¡Tu pedido ha sido creado con éxito! 🍣✨" });
         clearCart();
@@ -170,8 +170,8 @@ export const useCartActions = () => {
     } catch (error: any) {
       console.error("Order error:", error);
       if (error.message?.includes('504')) {
-        setChefNotification({ 
-          content: "⚠️ El servidor está tardando mucho. Es probable que tu orden se esté procesando. Por favor, espera 1 minuto antes de intentar de nuevo o revisa tus pedidos activos. ⛩️" 
+        setChefNotification({
+          content: "⚠️ El servidor está tardando mucho. Es probable que tu orden se esté procesando. Por favor, espera 1 minuto antes de intentar de nuevo o revisa tus pedidos activos. ⛩️"
         });
       } else {
         setChefNotification({ content: "🏮 Error de red al procesar tu pedido. Por favor, verifica tu conexión e intenta de nuevo." });

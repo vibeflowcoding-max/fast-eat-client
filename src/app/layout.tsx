@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import RouteTransitionIndicator from "@/components/RouteTransitionIndicator";
 
 export const metadata: Metadata = {
     title: "FastEat - Ordena comida rápido",
@@ -33,6 +34,7 @@ export default function RootLayout({
                 <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
             </head>
             <body>
+                <RouteTransitionIndicator />
                 {children}
                 <ServiceWorkerRegistration />
             </body>

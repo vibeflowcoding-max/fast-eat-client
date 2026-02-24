@@ -27,7 +27,10 @@ describe('resolveHomeFeatureFlags', () => {
         home_state_polish_v1: true,
         home_filters_sort_v1: true,
         home_personalized_rails_v1: true,
-        home_search_suggestions_v1: true
+        home_search_suggestions_v1: true,
+        home_surprise_me: false,
+        home_dietary_guardian: false,
+        home_predictive_reorder: false
     };
 
     it.each<{
@@ -43,8 +46,11 @@ describe('resolveHomeFeatureFlags', () => {
                 home_visual_hierarchy_v2: false,
                 home_state_polish_v1: false,
                 home_filters_sort_v1: false,
-                home_personalized_rails_v1: false,
-                home_search_suggestions_v1: false
+                home_personalized_rails_v1: true,
+                home_search_suggestions_v1: true,
+                home_surprise_me: false,
+                home_dietary_guardian: false,
+                home_predictive_reorder: false
             }
         },
         {
@@ -57,7 +63,10 @@ describe('resolveHomeFeatureFlags', () => {
                 home_state_polish_v1: true,
                 home_filters_sort_v1: true,
                 home_personalized_rails_v1: true,
-                home_search_suggestions_v1: true
+                home_search_suggestions_v1: true,
+                home_surprise_me: false,
+                home_dietary_guardian: false,
+                home_predictive_reorder: false
             }
         },
         {
@@ -70,7 +79,10 @@ describe('resolveHomeFeatureFlags', () => {
                 home_state_polish_v1: true,
                 home_filters_sort_v1: true,
                 home_personalized_rails_v1: true,
-                home_search_suggestions_v1: true
+                home_search_suggestions_v1: true,
+                home_surprise_me: false,
+                home_dietary_guardian: false,
+                home_predictive_reorder: false
             }
         },
         {
@@ -83,7 +95,10 @@ describe('resolveHomeFeatureFlags', () => {
                 home_state_polish_v1: true,
                 home_filters_sort_v1: true,
                 home_personalized_rails_v1: true,
-                home_search_suggestions_v1: true
+                home_search_suggestions_v1: true,
+                home_surprise_me: false,
+                home_dietary_guardian: false,
+                home_predictive_reorder: false
             }
         }
     ])('maps variant $variant to expected flags', ({ variant, expected }) => {

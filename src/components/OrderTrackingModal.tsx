@@ -3,6 +3,7 @@ import { useOrderTracking } from '../hooks/useOrderTracking';
 import { useCartStore } from '@/store';
 import BidRow from './BidRow';
 import { acceptBid, confirmDelivery, counterOffer, listOrderBids } from '@/services/api';
+import PhotoReviewModal from '@/features/reviews/components/PhotoReviewModal';
 
 interface OrderTrackingModalProps {
     isOpen: boolean;
@@ -25,6 +26,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
     const [acceptingBidId, setAcceptingBidId] = useState<string | null>(null);
     const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(null);
     const [orderErrors, setOrderErrors] = useState<Record<string, string>>({});
+    const [reviewingOrderShop, setReviewingOrderShop] = useState<string | null>(null);
 
     const parseStatusCode = (status: string | undefined): string => {
         const normalized = String(status || '').trim().toUpperCase().replace(/\s+/g, '_');
@@ -372,6 +374,23 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                                                     </button>
                                                 </div>
                                             )}
+
+                                            {parseStatusCode(order.newStatus?.code || order.newStatus?.label) === 'COMPLETED' && (
+                                                <div className="mt-4 pt-4 border-t border-gray-100">
+                                                    <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center justify-between">
+                                                        <div>
+                                                            <h4 className="font-bold text-orange-800 text-sm">¿Te gustó tu comida?</h4>
+                                                            <p className="text-xs text-orange-600 mt-0.5">Sube una foto y gana <strong className="font-black">+150 pts</strong> de lealtad.</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setReviewingOrderShop('FastEat'); }}
+                                                            className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                                                        >
+                                                            Subir Foto 📸
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -385,6 +404,13 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                     <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest">Actualizaciones en tiempo real via SSE</span>
                 </div>
             </div>
+
+            {reviewingOrderShop && (
+                <PhotoReviewModal
+                    restaurantName={reviewingOrderShop}
+                    onClose={() => setReviewingOrderShop(null)}
+                />
+            )}
         </div>
     );
 };

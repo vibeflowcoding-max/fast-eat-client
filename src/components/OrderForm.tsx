@@ -174,6 +174,64 @@ const OrderForm: React.FC<OrderFormProps> = ({
                     </div>
                 </div>
             )}
+
+            {/* Phase 4: Convenience & Utility Options */}
+            <div className="pt-4 border-t-2 border-gray-100 space-y-5">
+                {/* Eco-Friendly Toggle */}
+                <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative flex items-center justify-center">
+                        <input
+                            type="checkbox"
+                            className="peer sr-only"
+                            checked={!!orderMetadata.optOutCutlery}
+                            onChange={(e) => setOrderMetadata({ ...orderMetadata, optOutCutlery: e.target.checked })}
+                        />
+                        <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-sm font-bold text-gray-900 group-hover:text-emerald-600 transition-colors flex items-center gap-1.5">
+                            🌱 Sin Cubiertos ni Servilletas
+                        </span>
+                        <span className="text-[10px] text-gray-500 font-medium">Opción Eco-Amigable. ¡Ayuda al planeta!</span>
+                    </div>
+                </label>
+
+                {/* Schedule Order */}
+                <div className="space-y-2">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className="relative flex items-center justify-center">
+                            <input
+                                type="checkbox"
+                                className="peer sr-only"
+                                checked={!!orderMetadata.scheduledFor}
+                                onChange={(e) => setOrderMetadata({
+                                    ...orderMetadata,
+                                    scheduledFor: e.target.checked ? new Date(Date.now() + 3600000 - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16) : null
+                                })}
+                            />
+                            <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors flex items-center gap-1.5">
+                                🕒 Programar para más tarde
+                            </span>
+                            <span className="text-[10px] text-gray-500 font-medium">Elige a qué hora quieres recibir tu pedido</span>
+                        </div>
+                    </label>
+
+                    {orderMetadata.scheduledFor && (
+                        <div className="pl-15 pt-2 animate-fadeIn">
+                            <input
+                                type="datetime-local"
+                                className="w-full px-4 py-3 bg-indigo-50/50 border-2 border-indigo-100 rounded-xl text-sm font-black text-indigo-900 focus:outline-none focus:border-indigo-500 transition-all"
+                                value={orderMetadata.scheduledFor}
+                                min={new Date(Date.now() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16)}
+                                onChange={(e) => setOrderMetadata({ ...orderMetadata, scheduledFor: e.target.value })}
+                            />
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };

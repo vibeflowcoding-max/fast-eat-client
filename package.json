@@ -24,14 +24,18 @@
     "smoke:discovery": "node scripts/smoke-discovery-endpoints.mjs"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.30",
+    "@google/genai": "^1.42.0",
     "@googlemaps/js-api-loader": "^1.16.10",
     "@supabase/supabase-js": "^2.93.1",
+    "ai": "^6.0.97",
     "clsx": "^2.1.1",
     "lucide-react": "^0.563.0",
     "next": "^16.1.5",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwind-merge": "^3.4.0",
+    "zod": "^4.3.6",
     "zustand": "5.0.3"
   },
   "devDependencies": {

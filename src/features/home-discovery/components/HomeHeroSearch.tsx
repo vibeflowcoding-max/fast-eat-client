@@ -1,6 +1,7 @@
 import React from 'react';
 import { MapPin, Search } from 'lucide-react';
 import { HOME_VISUAL_TOKENS } from './homeVisualTokens';
+import VoiceSearchButton from './VoiceSearchButton';
 
 export interface HomeSearchSuggestionItem {
     id: string;
@@ -33,6 +34,7 @@ interface HomeHeroSearchProps {
     onRecoveryCategorySelect?: (categoryLabel: string) => void;
     onClearSearch?: () => void;
     profilePrompt?: React.ReactNode;
+    loyaltyWidget?: React.ReactNode;
     visualHierarchyV2?: boolean;
 }
 
@@ -51,13 +53,15 @@ export default function HomeHeroSearch({
     onRecoveryCategorySelect,
     onClearSearch,
     profilePrompt,
+    loyaltyWidget,
     visualHierarchyV2 = false
 }: HomeHeroSearchProps) {
     const searchInputId = 'home-search-input';
 
     return (
         <div className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.heroContainer : 'px-4 py-4'}>
-            <div className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.heroHeader : 'mb-4 flex items-center justify-end'}>
+            <div className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.heroHeader : `mb-4 flex items-center ${loyaltyWidget ? 'justify-between' : 'justify-end'}`}>
+                {loyaltyWidget}
                 {hasActiveLocation && (
                     <div
                         className={visualHierarchyV2
@@ -82,9 +86,12 @@ export default function HomeHeroSearch({
                     onChange={(event) => onSearchQueryChange(event.target.value)}
                     placeholder="Buscar restaurantes o comida..."
                     className={visualHierarchyV2
-                        ? HOME_VISUAL_TOKENS.searchInputStyle
-                        : 'w-full rounded-xl bg-gray-100 py-3 pl-10 pr-4 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-orange-500'}
+                        ? HOME_VISUAL_TOKENS.searchInputStyle + ' pr-14'
+                        : 'w-full rounded-xl bg-gray-100 py-3 pl-10 pr-14 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-orange-500'}
                 />
+                <div className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10">
+                    <VoiceSearchButton />
+                </div>
 
                 {showSuggestions && (
                     <div className="absolute z-50 mt-2 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm">

@@ -2,22 +2,58 @@
 
 import React from 'react';
 import { Home, Search, Receipt, User } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { useAppRouter } from '@/hooks/useAppRouter';
 
 export default function BottomNav() {
     const pathname = usePathname();
-    const router = useRouter();
+    const router = useAppRouter();
+
+    const handleNavigation = (path: string) => {
+        if (typeof window !== 'undefined' && path === '/') {
+            window.dispatchEvent(new CustomEvent('fast-eat:navigate-home'));
+        }
+
+        if (pathname === path) {
+            if (path === '/') {
+                router.replace('/');
+            }
+            return;
+        }
+
+        router.push(path);
+    };
 
     const navItems = [
-        { id: 'home', label: 'Inicio', icon: Home, path: '/' },
-        { id: 'search', label: 'Buscar', icon: Search, path: '/search' },
-        { id: 'orders', label: 'Pedidos', icon: Receipt, path: '/orders' },
-        { id: 'profile', label: 'Perfil', icon: User, path: '/profile' },
+        { 
+            id: 'home', label: 'Inicio', icon: Home, path: '/',
+            activeBg: 'bg-gradient-to-tr from-orange-500 to-red-500',
+            glowColor: 'bg-orange-500',
+            activeText: 'text-orange-600'
+        },
+        { 
+            id: 'search', label: 'Buscar', icon: Search, path: '/search',
+            activeBg: 'bg-gradient-to-tr from-blue-500 to-cyan-500',
+            glowColor: 'bg-blue-500',
+            activeText: 'text-blue-600'
+        },
+        { 
+            id: 'orders', label: 'Pedidos', icon: Receipt, path: '/orders',
+            activeBg: 'bg-gradient-to-tr from-emerald-500 to-teal-400',
+            glowColor: 'bg-emerald-500',
+            activeText: 'text-emerald-600'
+        },
+        { 
+            id: 'profile', label: 'Perfil', icon: User, path: '/profile',
+            activeBg: 'bg-gradient-to-tr from-purple-500 to-pink-500',
+            glowColor: 'bg-purple-500',
+            activeText: 'text-purple-600'
+        },
     ];
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white pb-safe">
-            <div className="flex h-16 items-center justify-around px-2">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md pb-safe">
+            <div className="bg-white/70 backdrop-blur-3xl border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-[2rem] p-2 flex items-center justify-between">
                 {navItems.map((item) => {
                     const isActive = pathname === item.path;
                     const Icon = item.icon;
@@ -26,13 +62,32 @@ export default function BottomNav() {
                         <button
                             key={item.id}
                             type="button"
-                            onClick={() => router.push(item.path)}
-                            className={`flex flex-col items-center justify-center w-16 gap-1 ${
-                                isActive ? 'text-orange-500' : 'text-gray-500 hover:text-gray-900'
-                            }`}
+                            onClick={() => handleNavigation(item.path)}
+                            className="relative flex flex-col items-center justify-center flex-1 h-14 active:scale-90 transition-all duration-300 group"
                         >
-                            <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-                            <span className="text-[10px] font-medium">{item.label}</span>
+                            {isActive && (
+                                <div className={`absolute inset-0 m-auto w-10 h-10 rounded-full blur-xl opacity-50 ${item.glowColor}`} />
+                            )}
+                            
+                            <div className={`relative flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-500 z-10 ${
+                                isActive 
+                                    ? `${item.activeBg} text-white shadow-lg -translate-y-2` 
+                                    : 'bg-transparent text-gray-400 group-hover:text-gray-600'
+                            }`}>
+                                <Icon 
+                                    size={22} 
+                                    strokeWidth={isActive ? 2.5 : 2} 
+                                    className={`transition-transform duration-500 ${isActive ? 'scale-110' : 'scale-100'}`}
+                                />
+                            </div>
+                            
+                            <span className={`absolute bottom-0 text-[10px] font-black tracking-wide transition-all duration-500 ${
+                                isActive 
+                                    ? `opacity-100 translate-y-1 ${item.activeText}` 
+                                    : 'opacity-0 translate-y-4 text-gray-400'
+                            }`}>
+                                {item.label}
+                            </span>
                         </button>
                     );
                 })}

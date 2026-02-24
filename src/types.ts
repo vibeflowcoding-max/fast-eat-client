@@ -36,6 +36,8 @@ export interface OrderMetadata {
   customerLatitude?: number;
   customerLongitude?: number;
   tableNumber?: string;
+  scheduledFor?: string | null;
+  optOutCutlery?: boolean;
 }
 
 export interface OrderHistoryItem {
@@ -168,5 +170,20 @@ export interface RestaurantWithBranches extends Restaurant {
 export interface UserLocation {
   lat: number;
   lng: number;
+}
+
+export interface DietaryProfile {
+  allergies: string[];
+  intolerances: string[];
+  diet: 'none' | 'vegan' | 'vegetarian' | 'pescatarian' | 'keto' | 'paleo';
+  preferences: string[];
+}
+
+export interface GroupCartParticipant {
+  id: string;
+  name: string;
+  isHost: boolean;
+  items: CartItem[];
+  joinedAt: number;
 }
 
