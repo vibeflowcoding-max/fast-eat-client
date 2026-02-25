@@ -6,6 +6,7 @@ import { ArrowLeft, Clock3, Store, MapPin, Wallet, ClipboardList, Gavel, Loader2
 import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
+import { useTranslations } from 'next-intl';
 
 type OrderBid = {
   id: string;
@@ -51,7 +52,7 @@ function normalizeItems(items: unknown[]): Array<{ name: string; quantity: numbe
           ? parsed.name
           : typeof parsed.item_name === 'string'
             ? parsed.item_name
-            : 'Producto';
+            : '';
 
       const quantity =
         typeof parsed.quantity === 'number'
@@ -75,6 +76,7 @@ function normalizeItems(items: unknown[]): Array<{ name: string; quantity: numbe
 }
 
 export default function OrderDetailPage() {
+  const t = useTranslations('orders.orderDetail');
   const params = useParams<{ orderId: string }>();
   const router = useAppRouter();
   const { fromNumber } = useCartStore();
@@ -90,11 +92,11 @@ export default function OrderDetailPage() {
 
       try {
         if (!params?.orderId) {
-          throw new Error('Pedido inválido');
+          throw new Error(t('invalidOrder'));
         }
 
         if (!fromNumber) {
-          throw new Error('No hay teléfono de sesión para validar este pedido');
+          throw new Error(t('missingPhone'));
         }
 
         const response = await fetch(
@@ -103,21 +105,24 @@ export default function OrderDetailPage() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(typeof data.error === 'string' ? data.error : 'No se pudo cargar el detalle del pedido');
+          throw new Error(typeof data.error === 'string' ? data.error : t('loadError'));
         }
 
         setOrder(data.order ?? null);
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : 'No se pudo cargar el detalle del pedido');
+        setError(requestError instanceof Error ? requestError.message : t('loadError'));
       } finally {
         setLoading(false);
       }
     }
 
     fetchDetail();
-  }, [fromNumber, params?.orderId]);
+  }, [fromNumber, params?.orderId, t]);
 
-  const normalizedItems = React.useMemo(() => normalizeItems(order?.items ?? []), [order?.items]);
+  const normalizedItems = React.useMemo(() => normalizeItems(order?.items ?? []).map((item) => ({
+    ...item,
+    name: item.name || t('productFallback'),
+  })), [order?.items, t]);
 
   return (
     <main className="ui-page min-h-screen pb-32">
@@ -129,19 +134,19 @@ export default function OrderDetailPage() {
             className="ui-btn-secondary inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold"
           >
             <ArrowLeft className="w-4 h-4" />
-            Volver a pedidos
+            {t('back')}
           </button>
 
           <div>
-            <h1 className="text-2xl font-black">Detalle del pedido</h1>
-            <p className="ui-text-muted text-sm">Incluye estado, productos y todas las pujas registradas.</p>
+            <h1 className="text-2xl font-black">{t('title')}</h1>
+            <p className="ui-text-muted text-sm">{t('subtitle')}</p>
           </div>
         </header>
 
         {loading && (
           <div className="ui-panel ui-text-muted flex items-center gap-2 rounded-2xl p-5 text-sm">
             <Loader2 className="w-4 h-4 animate-spin" />
-            Cargando detalle...
+            {t('loading')}
           </div>
         )}
 
@@ -149,7 +154,7 @@ export default function OrderDetailPage() {
 
         {!loading && !error && !order && (
           <div className="ui-panel ui-text-muted rounded-2xl p-5 text-sm">
-            No encontramos información para este pedido.
+            {t('notFound')}
           </div>
         )}
 
@@ -159,29 +164,29 @@ export default function OrderDetailPage() {
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-lg font-black">{order.orderNumber ?? order.id.slice(0, 8)}</h2>
                 <span className="ui-chip-brand rounded-full px-3 py-1 text-xs font-bold">
-                  {order.statusLabel ?? order.statusCode ?? 'Sin estado'}
+                  {order.statusLabel ?? order.statusCode ?? t('noStatus')}
                 </span>
               </div>
 
               <div className="ui-text-muted grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                <p className="inline-flex items-center gap-2"><Store className="h-4 w-4" />{order.restaurant?.name ?? 'Restaurante'}</p>
+                <p className="inline-flex items-center gap-2"><Store className="h-4 w-4" />{order.restaurant?.name ?? t('restaurantFallback')}</p>
                 <p className="inline-flex items-center gap-2"><Clock3 className="h-4 w-4" />{new Date(order.createdAt).toLocaleString('es-CR')}</p>
-                <p className="inline-flex items-center gap-2"><Wallet className="h-4 w-4" />{order.paymentMethod ?? 'Método no disponible'}</p>
+                <p className="inline-flex items-center gap-2"><Wallet className="h-4 w-4" />{order.paymentMethod ?? t('paymentUnavailable')}</p>
                 <p className="inline-flex items-center gap-2"><ClipboardList className="h-4 w-4" />₡{Math.round(order.total).toLocaleString()}</p>
               </div>
 
               <p className="ui-text-muted inline-flex items-start gap-2 text-sm">
                 <MapPin className="mt-0.5 h-4 w-4" />
-                {order.deliveryAddress ?? 'Sin dirección registrada'}
+                {order.deliveryAddress ?? t('noAddress')}
               </p>
 
-              {order.notes ? <p className="ui-text-muted text-sm">Notas: {order.notes}</p> : null}
+              {order.notes ? <p className="ui-text-muted text-sm">{t('notes')}: {order.notes}</p> : null}
             </section>
 
             <section className="ui-panel rounded-2xl p-5 space-y-3">
-              <h3 className="text-sm font-black">Productos del pedido</h3>
+              <h3 className="text-sm font-black">{t('products')}</h3>
               {normalizedItems.length === 0 ? (
-                <p className="ui-text-muted text-sm">No hay detalle de productos para este pedido.</p>
+                <p className="ui-text-muted text-sm">{t('productsEmpty')}</p>
               ) : (
                 <div className="space-y-2">
                   {normalizedItems.map((item, index) => (
@@ -201,25 +206,25 @@ export default function OrderDetailPage() {
             <section className="ui-panel rounded-2xl p-5 space-y-3">
               <h3 className="inline-flex items-center gap-2 text-sm font-black">
                 <Gavel className="h-4 w-4 text-[var(--color-brand)]" />
-                Pujas del pedido
+                {t('bidSection')}
               </h3>
 
               {order.bids.length === 0 ? (
-                <p className="ui-text-muted text-sm">No hay pujas registradas para este pedido.</p>
+                <p className="ui-text-muted text-sm">{t('bidSectionEmpty')}</p>
               ) : (
                 <div className="space-y-2">
                   {order.bids.map((bid) => (
                     <article key={bid.id} className="ui-panel-soft rounded-xl p-3 space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-black">Puja {bid.id.slice(0, 8)}</p>
+                        <p className="text-xs font-black">{t('bid')} {bid.id.slice(0, 8)}</p>
                         <span className="ui-chip-brand rounded-full px-2 py-1 text-[10px] font-bold">{bid.status || 'unknown'}</span>
                       </div>
                       <div className="ui-text-muted flex flex-wrap gap-3 text-xs">
-                        <span>Oferta: ₡{Math.round(bid.driverOffer).toLocaleString()}</span>
-                        <span>Base: ₡{Math.round(bid.basePrice).toLocaleString()}</span>
-                        {bid.finalPrice > 0 ? <span>Final: ₡{Math.round(bid.finalPrice).toLocaleString()}</span> : null}
-                        {bid.estimatedTimeMinutes != null ? <span>ETA: {bid.estimatedTimeMinutes} min</span> : null}
-                        {bid.driverRatingSnapshot != null ? <span>Rating: {bid.driverRatingSnapshot.toFixed(1)}</span> : null}
+                        <span>{t('offer')}: ₡{Math.round(bid.driverOffer).toLocaleString()}</span>
+                        <span>{t('base')}: ₡{Math.round(bid.basePrice).toLocaleString()}</span>
+                        {bid.finalPrice > 0 ? <span>{t('final')}: ₡{Math.round(bid.finalPrice).toLocaleString()}</span> : null}
+                        {bid.estimatedTimeMinutes != null ? <span>{t('eta')}: {bid.estimatedTimeMinutes} min</span> : null}
+                        {bid.driverRatingSnapshot != null ? <span>{t('rating')}: {bid.driverRatingSnapshot.toFixed(1)}</span> : null}
                       </div>
                       {bid.driverNotes ? <p className="ui-text-muted text-xs">{bid.driverNotes}</p> : null}
                       <p className="ui-text-muted text-[11px]">{new Date(bid.createdAt).toLocaleString('es-CR')}</p>

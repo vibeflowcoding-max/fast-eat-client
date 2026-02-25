@@ -4,6 +4,7 @@ import { useCartStore } from '@/store';
 import BidRow from './BidRow';
 import { acceptBid, confirmDelivery, counterOffer, listOrderBids } from '@/services/api';
 import PhotoReviewModal from '@/features/reviews/components/PhotoReviewModal';
+import { useTranslations } from 'next-intl';
 
 interface OrderTrackingModalProps {
     isOpen: boolean;
@@ -13,6 +14,7 @@ interface OrderTrackingModalProps {
 }
 
 const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchId, phone, onClose }) => {
+    const t = useTranslations('tracking');
     const { orders, isConnected } = useOrderTracking(branchId, phone);
     const bidsByOrderId = useCartStore((state) => state.bidsByOrderId);
     const deepLinkTarget = useCartStore((state) => state.deepLinkTarget);
@@ -41,20 +43,20 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
 
     const getDisplayStatusLabel = (order: any): string => {
         const label = typeof order?.newStatus?.label === 'string' ? order.newStatus.label.trim() : '';
-        return label || 'Estado actualizado';
+        return label || t('statusUpdated');
     };
 
     const getStatusMessage = (statusCode: string, prepTimeEstimate?: number) => {
-        if (statusCode === 'PENDING') return 'Your order has been sent to the restaurant ⏳';
-        if (statusCode === 'CONFIRMED') return 'The restaurant accepted your order ✅';
-        if (statusCode === 'AUCTION_ACTIVE') return 'Finding a driver for your order 🔍';
-        if (statusCode === 'DRIVER_ASSIGNED') return 'We found a driver for your order! 🎉';
-        if (statusCode === 'PREPARING') return `Your order is being prepared 👨‍🍳 · ~${prepTimeEstimate || 0} min`;
-        if (statusCode === 'READY') return 'Your order is ready and waiting for pickup 🟢';
-        if (statusCode === 'DELIVERING') return 'Your order is on its way! 🛵';
-        if (statusCode === 'COMPLETED') return 'Your order was delivered ✅ Enjoy!';
-        if (statusCode === 'CANCELLED') return 'Your order was cancelled';
-        return 'Order updated';
+        if (statusCode === 'PENDING') return t('statusMessages.pending');
+        if (statusCode === 'CONFIRMED') return t('statusMessages.confirmed');
+        if (statusCode === 'AUCTION_ACTIVE') return t('statusMessages.auctionActive');
+        if (statusCode === 'DRIVER_ASSIGNED') return t('statusMessages.driverAssigned');
+        if (statusCode === 'PREPARING') return t('statusMessages.preparing', { minutes: prepTimeEstimate || 0 });
+        if (statusCode === 'READY') return t('statusMessages.ready');
+        if (statusCode === 'DELIVERING') return t('statusMessages.delivering');
+        if (statusCode === 'COMPLETED') return t('statusMessages.completed');
+        if (statusCode === 'CANCELLED') return t('statusMessages.cancelled');
+        return t('statusMessages.updated');
     };
 
     const expandedOrder = orders.find((order) => order.orderId === expandedOrderId) || null;
@@ -196,11 +198,11 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                 {/* Header */}
                 <div className="p-5 md:p-8 bg-white border-b-4 border-gray-100 flex justify-between items-center">
                     <div>
-                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter">Rastreo de Pedidos</h3>
+                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter">{t('title')}</h3>
                         <div className="flex items-center gap-2 mt-1">
                             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
                             <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">
-                                {isConnected ? 'Conectado en vivo' : 'Desconectado'}
+                                {isConnected ? t('liveConnected') : t('disconnected')}
                             </span>
                         </div>
                     </div>
@@ -212,8 +214,8 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                     {orders.length === 0 ? (
                         <div className="flex flex-col items-center py-20 text-center">
                             <span className="text-6xl mb-4 grayscale opacity-50">🛵</span>
-                            <p className="text-gray-400 font-black uppercase tracking-widest text-xs">No hay actualizaciones recientes</p>
-                            <p className="text-gray-300 text-[10px] mt-2 max-w-xs">Los pedidos activos aparecerán aquí automáticamente.</p>
+                            <p className="text-gray-400 font-black uppercase tracking-widest text-xs">{t('emptyTitle')}</p>
+                            <p className="text-gray-300 text-[10px] mt-2 max-w-xs">{t('emptySubtitle')}</p>
                         </div>
                     ) : (
                         orders.map((order) => {
@@ -239,7 +241,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                                                 {getStatusMessage(parseStatusCode(order.newStatus?.code || order.newStatus?.label), order.prepTimeEstimate)}
                                             </span>
                                             <span className="text-[10px] text-gray-500 font-medium">
-                                                Actualizado: {new Date(order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                {t('updatedAt')}: {new Date(order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-4">
@@ -273,6 +275,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                                             {order.items && (
                                                 <>
                                                     <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Detalle del Pedido</h4>
+                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">{t('orderDetail')}</h4>
                                                     <div className="space-y-3">
                                                         {order.items.map((item, idx) => (
                                                             <div key={idx} className="flex justify-between items-start text-xs border-b border-gray-100 pb-2 last:border-0">
@@ -288,7 +291,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                                                         ))}
                                                         {order.total !== undefined && (
                                                             <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-200">
-                                                                <span className="font-black text-gray-900 uppercase text-[10px] tracking-widest">Total a Pagar</span>
+                                                                <span className="font-black text-gray-900 uppercase text-[10px] tracking-widest">{t('totalToPay')}</span>
                                                                 <span className="font-black text-lg text-gray-900">₡{order.total.toLocaleString()}</span>
                                                             </div>
                                                         )}
@@ -319,16 +322,16 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                                                                     onChange={(event) => setBidSort(event.target.value as 'price_asc' | 'price_desc' | 'rating_desc' | 'rating_asc')}
                                                                     className="px-3 py-2 border border-gray-200 rounded-lg text-xs font-bold bg-white"
                                                                 >
-                                                                    <option value="price_asc">Precio: menor a mayor</option>
-                                                                    <option value="price_desc">Precio: mayor a menor</option>
-                                                                    <option value="rating_desc">Rating: mayor a menor</option>
-                                                                    <option value="rating_asc">Rating: menor a mayor</option>
+                                                                        <option value="price_asc">{t('sort.priceAsc')}</option>
+                                                                        <option value="price_desc">{t('sort.priceDesc')}</option>
+                                                                        <option value="rating_desc">{t('sort.ratingDesc')}</option>
+                                                                        <option value="rating_asc">{t('sort.ratingAsc')}</option>
                                                                 </select>
                                                             </div>
                                                         </div>
 
                                                         {loadingBidsForOrder === order.orderId && (
-                                                            <p className="text-xs font-semibold text-gray-500">Cargando ofertas en vivo...</p>
+                                                                <p className="text-xs font-semibold text-gray-500">{t('loadingOffers')}</p>
                                                         )}
 
                                                         {currentError && (
@@ -336,7 +339,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                                                         )}
 
                                                         {currentBids.length === 0 && !currentError && loadingBidsForOrder !== order.orderId && (
-                                                            <p className="text-xs font-semibold text-gray-500">Aún no hay ofertas disponibles.</p>
+                                                            <p className="text-xs font-semibold text-gray-500">{t('noOffers')}</p>
                                                         )}
 
                                                         {sortedBids.map((bid) => (
@@ -356,9 +359,9 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
 
                                             {parseStatusCode(order.newStatus?.code || order.newStatus?.label) === 'DELIVERING' && order.securityCode && (
                                                 <div className="mt-4 p-4 bg-white border border-green-200 rounded-xl">
-                                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Share this code with your driver</h3>
+                                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t('shareCode')}</h3>
                                                     <p className="text-2xl font-black text-gray-900 mt-2">{order.securityCode}</p>
-                                                    <p className="text-xs text-gray-600 mt-1">The driver will ask for this when they arrive.</p>
+                                                    <p className="text-xs text-gray-600 mt-1">{t('driverCodeHelp')}</p>
                                                 </div>
                                             )}
 
@@ -370,7 +373,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                                                         disabled={confirmingOrderId === order.orderId}
                                                         className="px-4 py-3 rounded-xl bg-black text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-600 disabled:opacity-60"
                                                     >
-                                                        {confirmingOrderId === order.orderId ? 'Confirmando...' : 'Accept Order ✅'}
+                                                        {confirmingOrderId === order.orderId ? t('confirming') : `${t('acceptOrder')} ✅`}
                                                     </button>
                                                 </div>
                                             )}
@@ -379,14 +382,14 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                                                 <div className="mt-4 pt-4 border-t border-gray-100">
                                                     <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center justify-between">
                                                         <div>
-                                                            <h4 className="font-bold text-orange-800 text-sm">¿Te gustó tu comida?</h4>
-                                                            <p className="text-xs text-orange-600 mt-0.5">Sube una foto y gana <strong className="font-black">+150 pts</strong> de lealtad.</p>
+                                                            <h4 className="font-bold text-orange-800 text-sm">{t('reviewTitle')}</h4>
+                                                            <p className="text-xs text-orange-600 mt-0.5">{t('reviewSubtitle')}</p>
                                                         </div>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); setReviewingOrderShop('FastEat'); }}
                                                             className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm"
                                                         >
-                                                            Subir Foto 📸
+                                                            {t('uploadPhoto')} 📸
                                                         </button>
                                                     </div>
                                                 </div>
@@ -401,7 +404,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
 
                 {/* Footer */}
                 <div className="p-4 bg-white border-t border-gray-100 text-center">
-                    <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest">Actualizaciones en tiempo real via SSE</span>
+                    <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest">{t('realtimeFooter')}</span>
                 </div>
             </div>
 

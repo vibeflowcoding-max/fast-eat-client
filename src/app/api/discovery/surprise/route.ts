@@ -16,6 +16,8 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
     const traceId = getTraceId(req.headers.get('x-trace-id'));
+    const requestLocale = (req.headers.get('x-locale') ?? '').trim().toLowerCase();
+    const isEnglish = requestLocale.startsWith('en');
 
     try {
         const body = await req.json();
@@ -46,7 +48,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({
                 restaurantId: match?.id ?? 'mock-id',
                 itemId: 'mock-item-id',
-                justification: `¡Pura vida! Basado en tu mood "${mood}", te recomiendo ${match?.name} que queda súper bien con tu presupuesto.`,
+                justification: isEnglish
+                    ? `Based on your mood "${mood}", ${match?.name} is a great fit for your budget.`
+                    : `¡Pura vida! Basado en tu mood "${mood}", te recomiendo ${match?.name} que queda súper bien con tu presupuesto.`,
                 traceId
             });
         }
@@ -63,7 +67,7 @@ Available restaurants data: ${JSON.stringify(restaurantContext)}
 
 Choose the single best restaurant that matches the user's mood and budget.
 Since you don't have the full detailed menu, invent a plausible menu item perfectly matching the mood that this restaurant would likely sell.
-Respond with strictly the restaurant ID, the invented itemId (e.g. "burger-clasica"), and a short, energetic justification in Costa Rican Spanish explaining why this hits the spot.`;
+Respond with strictly the restaurant ID, the invented itemId (e.g. "burger-clasica"), and a short, energetic justification in ${isEnglish ? 'English' : 'Costa Rican Spanish'} explaining why this hits the spot.`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',

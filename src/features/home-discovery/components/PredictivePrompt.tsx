@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, X } from 'lucide-react';
 import { emitHomeEvent } from '@/features/home-discovery/analytics';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface PredictiveReorderResponse {
     should_prompt: boolean;
@@ -20,6 +21,8 @@ interface PredictivePromptProps {
 const PREDICTIVE_DISMISS_SESSION_KEY = 'home_banner_predictive_dismissed_v1';
 
 export default function PredictivePrompt({ onReorderClick, onFallbackClick }: PredictivePromptProps) {
+    const t = useTranslations('home.predictivePrompt');
+    const locale = useLocale();
     const [isVisible, setIsVisible] = useState(false);
     const [prediction, setPrediction] = useState<PredictiveReorderResponse | null>(null);
     const [isDismissed, setIsDismissed] = useState(false);
@@ -72,7 +75,10 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
 
                 const response = await fetch('/api/discovery/predictive-reorder', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-locale': locale,
+                    },
                     body: JSON.stringify({
                         order_history: mockOrderHistory,
                         current_time: new Date().toISOString(),
@@ -118,7 +124,7 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
         };
 
         checkPrediction();
-    }, [isDismissed]);
+    }, [isDismissed, locale]);
 
     useEffect(() => {
         if (!isVisible || isLoading || hasTrackedImpression) {
@@ -210,16 +216,20 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
     }
 
     const headline = fallbackType
-        ? 'No pudimos preparar tu sugerencia'
-        : 'Sugerencia para ti';
+        ? t('fallbackHeadline')
+        : t('headline');
+
+    const predictionMessage = locale.toLowerCase().startsWith('en')
+        ? t('defaultMessage')
+        : prediction?.prompt_message || t('defaultMessage');
 
     const message = fallbackType === 'offline'
-        ? 'Sin conexión. Te mostramos opciones para explorar.'
+        ? t('offlineMessage')
         : fallbackType === 'api_error'
-            ? 'Hubo un problema temporal. Toca para ver opciones similares.'
-            : prediction?.prompt_message || '¿Lo de siempre? ¡Pídelo con 1 clic!';
+            ? t('apiErrorMessage')
+            : predictionMessage;
 
-    const displayMessage = isActing ? 'Abriendo opciones para ti...' : message;
+    const displayMessage = isActing ? t('loadingAction') : message;
 
     return (
         <div className="mx-4 mt-6 mb-5 animate-in slide-in-from-top-4 fade-in duration-500">
@@ -230,7 +240,7 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
                 <button
                     onClick={handleDismiss}
                     className="absolute top-2.5 right-2.5 shrink-0 bg-white/20 hover:bg-white/30 rounded-full w-9 h-9 flex items-center justify-center transition-colors text-xs font-bold cursor-pointer z-20"
-                    aria-label="Cerrar sugerencia"
+                    aria-label={t('closeAria')}
                 >
                     <X className="w-4 h-4 text-white/90" />
                 </button>
@@ -242,10 +252,10 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
                         </div>
                         <div className="flex-1">
                             <p className="text-blue-100 text-xs font-semibold uppercase tracking-wider mb-0.5">
-                                Sugerencia para ti
+                                {t('headline')}
                             </p>
                             <h3 className="text-white font-bold text-sm leading-snug">
-                                Preparando tu recomendación...
+                                {t('loadingMessage')}
                             </h3>
                         </div>
                     </div>

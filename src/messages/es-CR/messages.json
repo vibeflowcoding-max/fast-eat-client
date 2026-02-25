@@ -1,0 +1,483 @@
+{
+  "auth": {
+    "signIn": {
+      "title": "Iniciar sesión",
+      "description": "Accede con tu cuenta para cargar tus favoritos, historial y ajustes.",
+      "email": "Email",
+      "password": "Contraseña",
+      "submit": "Ingresar",
+      "submitting": "Ingresando...",
+      "google": "Continuar con Google",
+      "noAccount": "¿No tienes cuenta?",
+      "signUpLink": "Regístrate",
+      "genericError": "No se pudo iniciar sesión",
+      "googleError": "No se pudo continuar con Google"
+    },
+    "signUp": {
+      "title": "Crear cuenta",
+      "description": "Regístrate para guardar pedidos, favoritos y preferencias.",
+      "fullName": "Nombre completo",
+      "phone": "Teléfono",
+      "phonePlaceholder": "88887777",
+      "phoneTitle": "Ingresa 8 dígitos; el prefijo +506 se agrega automáticamente",
+      "email": "Email",
+      "password": "Contraseña",
+      "submit": "Crear cuenta",
+      "submitting": "Creando cuenta...",
+      "hasAccount": "¿Ya tienes cuenta?",
+      "signInLink": "Inicia sesión",
+      "genericError": "No se pudo completar el registro",
+      "phoneError": "Ingresa un teléfono de Costa Rica válido: +506 y 8 dígitos.",
+      "successFallback": "Registro completado. Revisa tu email para confirmar tu cuenta."
+    },
+    "callback": {
+      "title": "Finalizando autenticación...",
+      "loading": "Un momento, te estamos ingresando.",
+      "missingCode": "No se recibió código OAuth",
+      "genericError": "No se pudo completar la autenticación"
+    }
+  },
+  "nav": {
+    "home": "Inicio",
+    "search": "Buscar",
+    "orders": "Pedidos",
+    "profile": "Perfil",
+    "trackOrders": "Rastreo de pedidos",
+    "changeUser": "Cambiar usuario",
+    "openOfferNotifications": "Abrir notificaciones de ofertas",
+    "myOrder": "Mi Pedido"
+  },
+  "profile": {
+    "title": "Perfil",
+    "subtitle": "Tu información, favoritos y preferencias.",
+    "loading": "Cargando perfil...",
+    "loadError": "No se pudo cargar el perfil",
+    "defaultName": "Usuario FastEat",
+    "noPhone": "Sin teléfono",
+    "roleLabel": "Cliente FastEat",
+    "phone": "Teléfono",
+    "name": "Nombre",
+    "location": "Ubicación",
+    "noAddress": "No has guardado una dirección todavía",
+    "viewOrders": "Ver pedidos",
+    "favoriteRestaurants": "Restaurantes favoritos",
+    "noFavorites": "Todavía no hay suficientes pedidos para detectar favoritos.",
+    "allergiesSettings": "Configuración de alergias",
+    "noAllergies": "No registras alergias por ahora.",
+    "languageSection": "Idioma",
+    "languageDescription": "Elige cómo quieres ver el contenido de la app.",
+    "languageLabel": "Idioma de la app",
+    "languageUpdated": "Idioma actualizado"
+  },
+  "common": {
+    "languageUpdated": "Idioma actualizado",
+    "save": "Guardar",
+    "cancel": "Cancelar"
+  },
+  "search": {
+    "title": "Búsqueda inteligente",
+    "subtitle": "Busca por IA, categorías y filtros como en Inicio.",
+    "aiDefaultMessage": "Usa IA para afinar tu búsqueda con base en tus hábitos",
+    "searchPlaceholder": "¿Qué se te antoja hoy?",
+    "searchButton": "Buscar",
+    "aiSuggestions": "Sugerencias IA",
+    "aiGenerating": "Generando sugerencias...",
+    "aiEmpty": "Escribe algo para recibir sugerencias personalizadas.",
+    "recentSearches": "Búsquedas recientes",
+    "recentSearchesEmpty": "Aún no tienes búsquedas guardadas.",
+    "filterByCategory": "Filtrar por categoría",
+    "allCategories": "Todas",
+    "quickFilters": "Filtros rápidos",
+    "results": "Resultados",
+    "loadingRestaurants": "Cargando restaurantes...",
+    "emptyResults": "No encontramos resultados con estos filtros. Intenta otra combinación.",
+    "promo": "Promo",
+    "notAvailable": "N/D",
+    "etaNotAvailable": "ETA N/D",
+    "noDistance": "Sin distancia",
+    "minutes": "min",
+    "intents": {
+      "promotions": "Promos",
+      "fast": "Cerca de mí",
+      "bestRated": "Mejor calidad",
+      "cheap": "Económico"
+    }
+  },
+  "orders": {
+    "title": "Tus pedidos",
+    "subtitle": "Pedidos activos, pujas de delivery y pedidos anteriores.",
+    "loading": "Cargando tus pedidos...",
+    "loadError": "No se pudieron cargar las órdenes",
+    "activeOrders": "Pedidos activos",
+    "activeEmpty": "No tienes pedidos activos en este momento.",
+    "startOrdering": "Empezar pedido",
+    "status": "Estado",
+    "inProgress": "En proceso",
+    "active": "Activo",
+    "restaurant": "Restaurante",
+    "bids": "pujas",
+    "bestBid": "Mejor puja",
+    "pastOrders": "Pedidos anteriores",
+    "pastOrdersEmpty": "Todavía no tienes historial de pedidos.",
+    "completed": "Completado",
+    "repeatOrder": "Repetir pedido",
+    "orderDetail": {
+      "invalidOrder": "Pedido inválido",
+      "missingPhone": "No hay teléfono de sesión para validar este pedido",
+      "loadError": "No se pudo cargar el detalle del pedido",
+      "back": "Volver a pedidos",
+      "title": "Detalle del pedido",
+      "subtitle": "Incluye estado, productos y todas las pujas registradas.",
+      "loading": "Cargando detalle...",
+      "notFound": "No encontramos información para este pedido.",
+      "noStatus": "Sin estado",
+      "restaurantFallback": "Restaurante",
+      "paymentUnavailable": "Método no disponible",
+      "noAddress": "Sin dirección registrada",
+      "notes": "Notas",
+      "products": "Productos del pedido",
+      "productsEmpty": "No hay detalle de productos para este pedido.",
+      "productFallback": "Producto",
+      "bidSection": "Pujas del pedido",
+      "bidSectionEmpty": "No hay pujas registradas para este pedido.",
+      "bid": "Puja",
+      "offer": "Oferta",
+      "base": "Base",
+      "final": "Final",
+      "eta": "ETA",
+      "rating": "Rating"
+    }
+  },
+  "checkout": {
+    "loadingMenu": "Preparando {restaurantName}...",
+    "defaultMenuName": "el Menú",
+    "menuErrorTitle": "¡Oops! Algo salió mal",
+    "menuErrorFallback": "No pudimos cargar el menú en este momento.",
+    "retryLoad": "Reintentar carga",
+    "profilePromptLabel": "Completa tu perfil",
+    "profilePromptText": "Completa la información faltante para una mejor experiencia",
+    "profilePromptNow": "Completar ahora",
+    "dismiss": "Cerrar",
+    "profileModal": {
+      "title": "Completa tu perfil",
+      "subtitle": "Agrega tus datos para mejorar la experiencia de entrega.",
+      "fullName": "Nombre completo",
+      "phone": "Número",
+      "address": "Dirección",
+      "locationConfigured": "Ubicación configurada",
+      "requestLocation": "Permitir ubicación",
+      "requestingLocation": "Solicitando permiso...",
+      "enterAddressManually": "Ingresar dirección manualmente",
+      "later": "Más tarde",
+      "saving": "Guardando...",
+      "continue": "Continuar",
+      "errors": {
+        "fullNameRequired": "El nombre completo es obligatorio.",
+        "phoneRequired": "El número es obligatorio.",
+        "phoneInvalid": "Ingresa un número de teléfono válido.",
+        "addressNeedsName": "El nombre es obligatorio antes de agregar dirección.",
+        "addressNeedsPhone": "El número es obligatorio antes de agregar dirección.",
+        "addressNeedsValidPhone": "Ingresa un número válido antes de agregar dirección.",
+        "saveFailed": "No se pudo guardar la información del perfil."
+      }
+    },
+    "cart": {
+      "title": "Finalizar pedido",
+      "empty": "Tu pedido está vacío",
+      "splitBill": "Dividir cuenta",
+      "processing": "Procesando...",
+      "confirmOrder": "Confirmar pedido",
+      "host": "Organizador",
+      "cantEditOthers": "Solo puedes modificar tus propios productos.",
+      "participantNoItems": "No ha agregado productos"
+    },
+    "orderForm": {
+      "fullName": "Nombre completo",
+      "fullNamePlaceholder": "Ej: Macarena...",
+      "phone": "Teléfono de contacto",
+      "phoneUnavailable": "No disponible",
+      "paymentMethod": "Forma de pago",
+      "selectPayment": "Seleccionar método de pago",
+      "noPaymentOptions": "No hay opciones disponibles",
+      "serviceType": "Tipo de servicio",
+      "selectServiceType": "Seleccionar tipo de entrega",
+      "noServiceTypes": "No hay tipos de servicio disponibles",
+      "tableNumber": "Número de mesa",
+      "selectTable": "Seleccionar mesa",
+      "table": "Mesa",
+      "deliveryAddress": "Dirección de envío",
+      "deliveryPlaceholder": "Calle, número de casa, referencias...",
+      "gpsAttached": "Ubicación GPS adjunta",
+      "gettingGps": "Obteniendo GPS...",
+      "updateGps": "Actualizar ubicación GPS",
+      "shareGps": "Compartir mi ubicación (GPS)",
+      "gpsRequired": "Debes compartir tu ubicación GPS para confirmar pedidos a domicilio.",
+      "ecoTitle": "Sin cubiertos ni servilletas",
+      "ecoSubtitle": "Opción eco-amigable. ¡Ayuda al planeta!",
+      "scheduleTitle": "Programar para más tarde",
+      "scheduleSubtitle": "Elige a qué hora quieres recibir tu pedido"
+    }
+  },
+  "tracking": {
+    "title": "Rastreo de pedidos",
+    "liveConnected": "Conectado en vivo",
+    "disconnected": "Desconectado",
+    "emptyTitle": "No hay actualizaciones recientes",
+    "emptySubtitle": "Los pedidos activos aparecerán aquí automáticamente.",
+    "statusUpdated": "Estado actualizado",
+    "statusMessages": {
+      "pending": "Tu pedido fue enviado al restaurante ⏳",
+      "confirmed": "El restaurante aceptó tu pedido ✅",
+      "auctionActive": "Buscando repartidor para tu pedido 🔍",
+      "driverAssigned": "¡Encontramos repartidor para tu pedido! 🎉",
+      "preparing": "Tu pedido se está preparando 👨‍🍳 · ~{minutes} min",
+      "ready": "Tu pedido está listo y esperando retiro 🟢",
+      "delivering": "¡Tu pedido va en camino! 🛵",
+      "completed": "Tu pedido fue entregado ✅ ¡Buen provecho!",
+      "cancelled": "Tu pedido fue cancelado",
+      "updated": "Pedido actualizado"
+    },
+    "updatedAt": "Actualizado",
+    "orderDetail": "Detalle del pedido",
+    "totalToPay": "Total a pagar",
+    "sortOffers": "Ordenar ofertas",
+    "sort": {
+      "priceAsc": "Precio: menor a mayor",
+      "priceDesc": "Precio: mayor a menor",
+      "ratingDesc": "Rating: mayor a menor",
+      "ratingAsc": "Rating: menor a mayor"
+    },
+    "loadingOffers": "Cargando ofertas en vivo...",
+    "noOffers": "Aún no hay ofertas disponibles.",
+    "shareCode": "Comparte este código con tu repartidor",
+    "driverCodeHelp": "El repartidor pedirá este código al llegar.",
+    "confirming": "Confirmando...",
+    "acceptOrder": "Aceptar pedido",
+    "reviewTitle": "¿Te gustó tu comida?",
+    "reviewSubtitle": "Sube una foto y gana +150 pts de lealtad.",
+    "uploadPhoto": "Subir foto",
+    "realtimeFooter": "Actualizaciones en tiempo real vía SSE"
+  },
+  "home": {
+    "intents": {
+      "promotions": "Promos",
+      "fast": "Cercanos",
+      "bestRated": "Mejor calidad",
+      "cheap": "Económicos",
+      "familyCombo": "Combos",
+      "healthy": "Saludables",
+      "all": "Todos"
+    },
+    "filters": {
+      "budget": "Económico",
+      "eta": "≤ 30 min",
+      "rating": "★ 4.5+",
+      "deliveryFee": "Envío ≤ ₡1000",
+      "promosOnly": "Solo promos",
+      "title": "Filtros y orden",
+      "sortBy": "Ordenar por",
+      "clearAll": "Limpiar todos los filtros",
+      "sort": {
+        "bestValue": "Mejor valor",
+        "fastest": "Más rápido",
+        "topRated": "Mejor calificación",
+        "closest": "Más cercano"
+      }
+    },
+    "errors": {
+      "saveProfile": "No se pudo guardar la información del perfil.",
+      "geolocationUnsupported": "La geolocalización no está disponible en este navegador. Ingresa la dirección manualmente.",
+      "permissionDenied": "Permiso denegado. Ingresa la dirección manualmente.",
+      "namePhoneRequired": "Primero completa tu nombre y teléfono.",
+      "namePhoneRequiredAddress": "Nombre y teléfono son obligatorios antes de guardar dirección.",
+      "saveAddress": "No se pudo guardar la dirección. Intenta de nuevo."
+    },
+    "heroSearch": {
+      "activeLocation": "Ubicación activa",
+      "searchLabel": "Buscar restaurantes o comida",
+      "searchPlaceholder": "Buscar restaurantes o comida...",
+      "searchingSuggestions": "Buscando sugerencias...",
+      "noSuggestions": "No hay sugerencias disponibles.",
+      "suggestionsAria": "Sugerencias de búsqueda",
+      "suggestionKind": {
+        "restaurant": "Restaurante",
+        "category": "Categoría"
+      },
+      "noResults": "No encontramos resultados para esa búsqueda.",
+      "nearbyRestaurants": "Restaurantes cercanos",
+      "popularCategories": "Categorías populares",
+      "clearSearch": "Limpiar búsqueda"
+    },
+    "discoveryAssistant": {
+      "dialogAria": "Asistente de descubrimiento",
+      "title": "Asistente de descubrimiento",
+      "subtitle": "Encuentra mejores opciones antes de elegir restaurante",
+      "closeAria": "Cerrar asistente",
+      "viewRestaurant": "Ver restaurante",
+      "inputAria": "Mensaje para asistente de descubrimiento",
+      "inputPlaceholder": "Ej. quiero algo barato con envío rápido",
+      "openAria": "Abrir asistente de descubrimiento",
+      "buttonLabel": "Asistente",
+      "quickPrompts": {
+        "budget": "Algo barato para hoy",
+        "family": "Combo familiar",
+        "fast": "Lo más rápido cerca",
+        "healthy": "Opciones saludables"
+      }
+    },
+    "restaurantRail": {
+      "empty": {
+        "query": "No encontramos resultados para tu búsqueda actual.",
+        "queryAction": "Limpiar búsqueda",
+        "intent": "No hay resultados con los filtros o intención seleccionados.",
+        "intentAction": "Quitar filtros",
+        "nearby": "No encontramos restaurantes cercanos por ahora.",
+        "nearbyAction": "Ampliar búsqueda",
+        "default": "No hay resultados para esta sección.",
+        "defaultAction": "Reintentar"
+      },
+      "error": {
+        "loadSection": "No pudimos cargar esta sección.",
+        "title": "No pudimos actualizar esta sección",
+        "retryInSeconds": "Inténtalo de nuevo en unos segundos.",
+        "clearFilters": "Quitar filtros"
+      }
+    },
+    "priceComparison": {
+      "closeAria": "Cerrar comparación",
+      "title": "Comparación rápida de precio final",
+      "subtitle": "Incluye subtotal, envío, plataforma y descuentos.",
+      "loading": "Calculando mejores opciones...",
+      "empty": "No hay datos suficientes para comparar.",
+      "base": "Base",
+      "delivery": "Envío",
+      "discount": "Desc."
+    },
+    "categoryBar": {
+      "all": "Todos"
+    },
+    "intentBar": {
+      "scrollLeft": "Desplazar secciones a la izquierda",
+      "scrollRight": "Desplazar secciones a la derecha",
+      "openFilters": "Filtros y orden"
+    },
+    "voiceSearch": {
+      "holdToOrderTitle": "Mantén presionado para ordenar por voz",
+      "listening": "Escuchando...",
+      "listeningHint": "Escuchando... suelta el botón para pedir.",
+      "processing": "Procesando tu pedido con IA ✨...",
+      "addedToCart": "¡Entendido! Hemos agregado tu pedido al carrito. 🍔"
+    },
+    "promoBanner": {
+      "morningMessage": "☕ ¡Buenos días! 15% off en desayunos para empezar el día con energía.",
+      "nightMessage": "🌙 La cena está lista. Descubre las promos exclusivas de esta noche.",
+      "defaultMessage": "🔥 Promo Relámpago: 10% off en tu próximo pedido usando IA10",
+      "loading": "Preparando promo personalizada...",
+      "closeAria": "Cerrar promoción"
+    },
+    "predictivePrompt": {
+      "headline": "Sugerencia para ti",
+      "fallbackHeadline": "No pudimos preparar tu sugerencia",
+      "offlineMessage": "Sin conexión. Te mostramos opciones para explorar.",
+      "apiErrorMessage": "Hubo un problema temporal. Toca para ver opciones similares.",
+      "defaultMessage": "¿Lo de siempre? ¡Pídelo con 1 clic!",
+      "loadingAction": "Abriendo opciones para ti...",
+      "closeAria": "Cerrar sugerencia",
+      "loadingMessage": "Preparando tu recomendación..."
+    },
+    "surpriseMe": {
+      "title": "Sorpréndeme",
+      "subtitle": "Deja que la IA elija tu antojo ideal",
+      "moodPlaceholder": "¿De qué tienes antojo? ej. algo crujiente",
+      "budgetPlaceholder": "Presupuesto máximo",
+      "thinking": "Pensando...",
+      "discoverDish": "Descubrir Platillo",
+      "perfectMatch": "¡Match Perfecto!",
+      "viewRestaurant": "Ver Restaurante",
+      "errors": {
+        "fetchRecommendation": "No se pudo obtener la recomendación",
+        "unknown": "Error desconocido"
+      }
+    },
+    "activityFeed": {
+      "title": "Actividad de Amigos",
+      "comment": "Comentar",
+      "items": {
+        "maria": {
+          "userName": "María",
+          "restaurantName": "La Casona",
+          "caption": "¡María no se aguantó las ganas y pidió 2x Casado con Carne en La Casona! Mae, al chile qué buen antojo.",
+          "timestamp": "Hace 5 min"
+        },
+        "carlos": {
+          "userName": "Carlos",
+          "restaurantName": "Sushi Go",
+          "caption": "Carlos se puso fino y pidió un Roll Volcano en Sushi Go. ¡A cachete!",
+          "timestamp": "Hace 1 hora"
+        },
+        "ana": {
+          "userName": "Ana",
+          "restaurantName": "KFC",
+          "caption": "Ana aseguró su cena con un MEGA Combo. Puro sabor 🤤",
+          "timestamp": "Hace 3 horas"
+        }
+      }
+    },
+    "loyalty": {
+      "aria": "Ver mi lealtad y puntos"
+    },
+    "restaurantCard": {
+      "restaurantFallback": "Restaurante",
+      "promo": "Promo",
+      "etaPending": "ETA por confirmar",
+      "approx": "aprox",
+      "pricePending": "Ticket por confirmar",
+      "free": "Gratis",
+      "trusted": "Seguro",
+      "viewMenuAria": "Ver menú de {name}"
+    },
+    "rails": {
+      "promos": {
+        "title": "Promos",
+        "subtitleWithPromos": "Ofertas activas que te pueden convenir",
+        "subtitleWithoutPromos": "No hay promos activas ahora, pero aquí tienes opciones recomendadas"
+      },
+      "bestQuality": {
+        "title": "Mejor calidad",
+        "subtitle": "Opciones mejor valoradas por clientes"
+      },
+      "nearest": {
+        "title": "Cerca de ti",
+        "subtitle": "Restaurantes más cerca de tu ubicación"
+      },
+      "bestValueNearYou": {
+        "title": "Mejor valor cerca de ti",
+        "subtitle": "Opciones cercanas para decidir rápido"
+      },
+      "popularNow": {
+        "title": "Popular ahora",
+        "subtitle": "Restaurantes destacados en este momento"
+      },
+      "combosUnderBudget": {
+        "title": "Combos bajo tu presupuesto",
+        "subtitle": "Selección estimada por precio final total"
+      },
+      "lowDeliveryFee": {
+        "title": "Baja tarifa de envío",
+        "subtitle": "Opciones con costo de entrega menor"
+      },
+      "continueExploring": {
+        "title": "Seguir explorando",
+        "subtitle": "Todos los restaurantes disponibles"
+      },
+      "recentlyViewed": {
+        "title": "Vistos recientemente",
+        "subtitle": "Retoma restaurantes que revisaste antes"
+      },
+      "forYou": {
+        "title": "Para ti",
+        "subtitle": "Opciones según tus interacciones recientes"
+      }
+    }
+  }
+}

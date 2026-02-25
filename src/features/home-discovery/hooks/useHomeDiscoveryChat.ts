@@ -3,6 +3,8 @@ import { emitHomeEvent } from '../analytics';
 import { discoveryClient } from '../services/discoveryClient';
 import { getHomeDiscoveryHistory, getHomeDiscoverySessionId, setHomeDiscoveryHistory } from '../utils/discoveryStorage';
 import { ChatHistoryItem, CompareOptions, DiscoveryChatResponse, LocationContext, UserConstraints } from '../types';
+import { useCartStore } from '@/store';
+import { normalizeLocale } from '@/i18n/config';
 
 interface UseHomeDiscoveryChatOptions {
     location?: LocationContext;
@@ -10,6 +12,8 @@ interface UseHomeDiscoveryChatOptions {
 }
 
 export function useHomeDiscoveryChat({ location, constraints }: UseHomeDiscoveryChatOptions = {}) {
+    const locale = useCartStore((state) => state.locale);
+    const resolvedLocale = normalizeLocale(locale);
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [inputValue, setInputValue] = useState('');
@@ -49,7 +53,7 @@ export function useHomeDiscoveryChat({ location, constraints }: UseHomeDiscovery
             const response = await discoveryClient.chat(
                 {
                     sessionId: getHomeDiscoverySessionId(),
-                    locale: 'es-CR',
+                    locale: resolvedLocale,
                     query: trimmedQuery,
                     history: nextHistory,
                     location,
@@ -66,13 +70,16 @@ export function useHomeDiscoveryChat({ location, constraints }: UseHomeDiscovery
                 ...currentHistory,
                 {
                     role: 'assistant',
-                    content: 'No pude procesar tu solicitud en este momento. Intenta de nuevo en unos segundos.'
+                    content:
+                        resolvedLocale === 'en-US'
+                            ? 'I could not process your request right now. Please try again in a few seconds.'
+                            : 'No pude procesar tu solicitud en este momento. Intenta de nuevo en unos segundos.'
                 }
             ]);
         } finally {
             setLoading(false);
         }
-    }, [history, loading, location, constraints]);
+    }, [constraints, history, loading, location, resolvedLocale]);
 
     const openChat = useCallback(() => {
         setIsOpen(true);

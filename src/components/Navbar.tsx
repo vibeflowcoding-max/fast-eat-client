@@ -6,6 +6,7 @@ import SearchBar from './SearchBar';
 import OrderNotificationsTray from './OrderNotificationsTray';
 import { useCartStore } from '@/store';
 import { Package, User, ShoppingCart, Zap } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface NavbarProps {
     restaurantInfo: RestaurantInfo | null;
@@ -52,6 +53,7 @@ const Navbar: React.FC<NavbarProps> = ({
     setSearchQuery,
 }) => {
     const [isTrayOpen, setIsTrayOpen] = useState(false);
+    const t = useTranslations('nav');
     const bidNotifications = useCartStore((state) => state.bidNotifications);
     const unreadCount = useMemo(
         () => bidNotifications.filter((notification) => !notification.read).length,
@@ -66,7 +68,7 @@ const Navbar: React.FC<NavbarProps> = ({
                         <button
                             onClick={onShowHistory}
                             className="ui-btn-secondary flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all shrink-0 focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
-                            aria-label="Rastreo de pedidos"
+                            aria-label={t('trackOrders')}
                         >
                             <Package className="w-5 h-5" strokeWidth={2.5} />
                         </button>
@@ -74,7 +76,7 @@ const Navbar: React.FC<NavbarProps> = ({
                             type="button"
                             onClick={onChangeUser}
                             className="ui-btn-secondary flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all shrink-0 focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
-                            aria-label="Cambiar usuario"
+                            aria-label={t('changeUser')}
                         >
                             <User className="w-5 h-5" strokeWidth={2.5} fill="currentColor" />
                         </button>
@@ -83,7 +85,7 @@ const Navbar: React.FC<NavbarProps> = ({
                                 type="button"
                                 onClick={() => setIsTrayOpen((current) => !current)}
                                 className="ui-btn-secondary relative flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
-                                aria-label="Abrir notificaciones de ofertas"
+                                aria-label={t('openOfferNotifications')}
                             >
                                 <Zap className="w-5 h-5" strokeWidth={2.5} fill="currentColor" />
                                 {unreadCount > 0 && (
@@ -112,7 +114,7 @@ const Navbar: React.FC<NavbarProps> = ({
                     <button
                         onClick={onOpenCart}
                         className={`relative flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-full transition-all shrink-0 ml-4 md:ml-0 shadow-sm ${cartLength > 0 ? 'ui-btn-primary shadow-red-200 shadow-lg hover:scale-105 active:scale-95' : 'ui-btn-secondary'}`}
-                        aria-label="Mi Pedido"
+                        aria-label={t('myOrder')}
                     >
                         <ShoppingCart className="w-6 h-6" strokeWidth={2.5} fill={cartLength > 0 ? "currentColor" : "none"} />
                         {totalItemsCount > 0 && (

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ChefHat, Sparkles, Utensils } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface SurpriseMeResponse {
     restaurantId: string;
@@ -14,6 +15,8 @@ interface SurpriseMeWidgetProps {
 }
 
 export default function SurpriseMeWidget({ onRecommendationClick }: SurpriseMeWidgetProps) {
+    const t = useTranslations('home.surpriseMe');
+    const locale = useLocale();
     const [mood, setMood] = useState('');
     const [budget, setBudget] = useState<number | ''>('');
     const [loading, setLoading] = useState(false);
@@ -31,7 +34,10 @@ export default function SurpriseMeWidget({ onRecommendationClick }: SurpriseMeWi
         try {
             const response = await fetch('/api/discovery/surprise', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-locale': locale,
+                },
                 body: JSON.stringify({
                     mood,
                     budget: Number(budget),
@@ -41,13 +47,13 @@ export default function SurpriseMeWidget({ onRecommendationClick }: SurpriseMeWi
             });
 
             if (!response.ok) {
-                throw new Error('No se pudo obtener la recomendación');
+                throw new Error(t('errors.fetchRecommendation'));
             }
 
             const data = await response.json();
             setResult(data);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error desconocido');
+            setError(err instanceof Error ? err.message : t('errors.unknown'));
         } finally {
             setLoading(false);
         }
@@ -64,10 +70,10 @@ export default function SurpriseMeWidget({ onRecommendationClick }: SurpriseMeWi
                 </div>
                 <div>
                     <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">
-                        Sorpréndeme
+                        {t('title')}
                     </h2>
                     <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                        Deja que la IA elija tu antojo ideal
+                        {t('subtitle')}
                     </p>
                 </div>
             </div>
@@ -79,7 +85,7 @@ export default function SurpriseMeWidget({ onRecommendationClick }: SurpriseMeWi
                             type="text"
                             value={mood}
                             onChange={(e) => setMood(e.target.value)}
-                            placeholder="¿De qué tienes antojo? ej. algo crujiente"
+                            placeholder={t('moodPlaceholder')}
                             className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all placeholder:text-slate-400 text-sm font-medium"
                             required
                         />
@@ -90,7 +96,7 @@ export default function SurpriseMeWidget({ onRecommendationClick }: SurpriseMeWi
                             type="number"
                             value={budget}
                             onChange={(e) => setBudget(e.target.value ? Number(e.target.value) : '')}
-                            placeholder="Presupuesto máximo"
+                            placeholder={t('budgetPlaceholder')}
                             className="w-full pl-9 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all placeholder:text-slate-400 text-sm font-medium"
                             required
                         />
@@ -105,12 +111,12 @@ export default function SurpriseMeWidget({ onRecommendationClick }: SurpriseMeWi
                     {loading ? (
                         <>
                             <div className="w-5 h-5 border-2 border-white/20 border-t-white dark:border-slate-900/20 dark:border-t-slate-900 rounded-full animate-spin" />
-                            <span>Pensando...</span>
+                            <span>{t('thinking')}</span>
                         </>
                     ) : (
                         <>
                             <ChefHat className="w-5 h-5" />
-                            <span>Descubrir Platillo</span>
+                            <span>{t('discoverDish')}</span>
                         </>
                     )}
                 </button>
@@ -131,7 +137,7 @@ export default function SurpriseMeWidget({ onRecommendationClick }: SurpriseMeWi
                         <div className="flex-1 min-w-0">
                             <div className="flex flex-col gap-0.5">
                                 <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">
-                                    ¡Match Perfecto!
+                                    {t('perfectMatch')}
                                 </span>
                                 <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight truncate">
                                     {result.itemId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
@@ -145,7 +151,7 @@ export default function SurpriseMeWidget({ onRecommendationClick }: SurpriseMeWi
                                 onClick={() => onRecommendationClick?.(result.restaurantId)}
                                 className="mt-3 text-xs font-bold bg-white border border-gray-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-4 py-2.5 rounded-lg hover:bg-gray-50 flex items-center justify-center w-full transition-colors shadow-sm"
                             >
-                                Ver Restaurante
+                                {t('viewRestaurant')}
                             </button>
                         </div>
                     </div>

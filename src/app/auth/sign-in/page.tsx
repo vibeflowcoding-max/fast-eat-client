@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, Suspense, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useTranslations } from 'next-intl';
 
 export const dynamic = 'force-dynamic';
 
 function SignInPageContent() {
   const router = useRouter();
+  const t = useTranslations('auth.signIn');
   const searchParams = useSearchParams();
   const nextPath = useMemo(() => {
     const value = searchParams.get('next') || '/';
@@ -35,7 +37,7 @@ function SignInPageContent() {
       const data = await response.json();
 
       if (!response.ok || !data?.session?.accessToken || !data?.session?.refreshToken) {
-        throw new Error(data?.message || data?.error || 'No se pudo iniciar sesión');
+        throw new Error(data?.message || data?.error || t('genericError'));
       }
 
       const { error: sessionError } = await supabase.auth.setSession({
@@ -49,7 +51,7 @@ function SignInPageContent() {
 
       router.replace(nextPath);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión');
+      setError(err instanceof Error ? err.message : t('genericError'));
     } finally {
       setLoading(false);
     }
@@ -71,7 +73,7 @@ function SignInPageContent() {
         throw oauthError;
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo continuar con Google');
+      setError(err instanceof Error ? err.message : t('googleError'));
       setLoading(false);
     }
   };
@@ -79,11 +81,11 @@ function SignInPageContent() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-10">
       <section className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold tracking-tight">Iniciar sesión</h1>
-        <p className="mt-1 text-sm text-neutral-600">Accede con tu cuenta para cargar tus favoritos, historial y ajustes.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <p className="mt-1 text-sm text-neutral-600">{t('description')}</p>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          <label className="block text-sm font-medium" htmlFor="email">Email</label>
+          <label className="block text-sm font-medium" htmlFor="email">{t('email')}</label>
           <input
             id="email"
             type="email"
@@ -93,7 +95,7 @@ function SignInPageContent() {
             className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-400"
           />
 
-          <label className="block text-sm font-medium" htmlFor="password">Contraseña</label>
+          <label className="block text-sm font-medium" htmlFor="password">{t('password')}</label>
           <input
             id="password"
             type="password"
@@ -111,7 +113,7 @@ function SignInPageContent() {
             disabled={loading}
             className="w-full rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
-            {loading ? 'Ingresando...' : 'Ingresar'}
+            {loading ? t('submitting') : t('submit')}
           </button>
         </form>
 
@@ -121,13 +123,13 @@ function SignInPageContent() {
           disabled={loading}
           className="mt-3 w-full rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium disabled:opacity-60"
         >
-          Continuar con Google
+          {t('google')}
         </button>
 
         <p className="mt-4 text-sm text-neutral-600">
-          ¿No tienes cuenta?{' '}
+          {t('noAccount')}{' '}
           <Link href="/auth/sign-up" className="font-medium underline">
-            Regístrate
+            {t('signUpLink')}
           </Link>
         </p>
       </section>

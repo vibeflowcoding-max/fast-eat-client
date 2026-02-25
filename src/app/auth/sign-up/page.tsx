@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useTranslations } from 'next-intl';
 
 const COSTA_RICA_PHONE_PREFIX = '+506';
 const COSTA_RICA_PHONE_REGEX = /^\+506\d{8}$/;
@@ -14,6 +15,7 @@ function normalizeCostaRicaLocalPhoneInput(rawValue: string): string {
 
 export default function SignUpPage() {
   const router = useRouter();
+  const t = useTranslations('auth.signUp');
   const [fullName, setFullName] = useState('');
   const [localPhone, setLocalPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -32,7 +34,7 @@ export default function SignUpPage() {
 
     if (!COSTA_RICA_PHONE_REGEX.test(phone)) {
       setLoading(false);
-      setError('Ingresa un teléfono de Costa Rica válido: +506 y 8 dígitos.');
+      setError(t('phoneError'));
       return;
     }
 
@@ -51,7 +53,7 @@ export default function SignUpPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.message || data?.error || 'No se pudo completar el registro');
+        throw new Error(data?.message || data?.error || t('genericError'));
       }
 
       if (data?.session?.accessToken && data?.session?.refreshToken) {
@@ -68,9 +70,9 @@ export default function SignUpPage() {
         return;
       }
 
-      setMessage(data?.message || 'Registro completado. Revisa tu email para confirmar tu cuenta.');
+      setMessage(data?.message || t('successFallback'));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo completar el registro');
+      setError(err instanceof Error ? err.message : t('genericError'));
     } finally {
       setLoading(false);
     }
@@ -79,11 +81,11 @@ export default function SignUpPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-10">
       <section className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold tracking-tight">Crear cuenta</h1>
-        <p className="mt-1 text-sm text-neutral-600">Regístrate para guardar pedidos, favoritos y preferencias.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <p className="mt-1 text-sm text-neutral-600">{t('description')}</p>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          <label className="block text-sm font-medium" htmlFor="fullName">Nombre completo</label>
+          <label className="block text-sm font-medium" htmlFor="fullName">{t('fullName')}</label>
           <input
             id="fullName"
             value={fullName}
@@ -92,7 +94,7 @@ export default function SignUpPage() {
             className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-400"
           />
 
-          <label className="block text-sm font-medium" htmlFor="phone">Teléfono</label>
+          <label className="block text-sm font-medium" htmlFor="phone">{t('phone')}</label>
           <div className="flex w-full rounded-lg border border-neutral-300 text-sm focus-within:ring-2 focus-within:ring-neutral-400">
             <span className="inline-flex items-center border-r border-neutral-300 px-3 text-neutral-700">
               {COSTA_RICA_PHONE_PREFIX}
@@ -106,13 +108,13 @@ export default function SignUpPage() {
               inputMode="numeric"
               pattern="^\d{8}$"
               maxLength={8}
-              placeholder="88887777"
-              title="Ingresa 8 dígitos; el prefijo +506 se agrega automáticamente"
+              placeholder={t('phonePlaceholder')}
+              title={t('phoneTitle')}
               className="w-full rounded-r-lg px-3 py-2 outline-none"
             />
           </div>
 
-          <label className="block text-sm font-medium" htmlFor="email">Email</label>
+          <label className="block text-sm font-medium" htmlFor="email">{t('email')}</label>
           <input
             id="email"
             type="email"
@@ -122,7 +124,7 @@ export default function SignUpPage() {
             className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-400"
           />
 
-          <label className="block text-sm font-medium" htmlFor="password">Contraseña</label>
+          <label className="block text-sm font-medium" htmlFor="password">{t('password')}</label>
           <input
             id="password"
             type="password"
@@ -141,14 +143,14 @@ export default function SignUpPage() {
             disabled={loading}
             className="w-full rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
-            {loading ? 'Creando cuenta...' : 'Crear cuenta'}
+            {loading ? t('submitting') : t('submit')}
           </button>
         </form>
 
         <p className="mt-4 text-sm text-neutral-600">
-          ¿Ya tienes cuenta?{' '}
+          {t('hasAccount')}{' '}
           <Link href="/auth/sign-in" className="font-medium underline">
-            Inicia sesión
+            {t('signInLink')}
           </Link>
         </p>
       </section>

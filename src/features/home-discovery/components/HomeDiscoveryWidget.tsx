@@ -6,6 +6,7 @@ import { useHomeDiscoveryChat } from '../hooks/useHomeDiscoveryChat';
 import { LocationContext, UserConstraints } from '../types';
 import { emitHomeEvent } from '../analytics';
 import ChatInput from '@/components/ChatInput';
+import { useTranslations } from 'next-intl';
 
 interface HomeDiscoveryWidgetProps {
     enabled: boolean;
@@ -14,19 +15,19 @@ interface HomeDiscoveryWidgetProps {
     onRecommendationClick?: (restaurantId: string) => void;
 }
 
-const QUICK_PROMPTS = [
-    'Algo barato para hoy',
-    'Combo familiar',
-    'Lo más rápido cerca',
-    'Opciones saludables'
-];
-
 export default function HomeDiscoveryWidget({
     enabled,
     location,
     constraints,
     onRecommendationClick
 }: HomeDiscoveryWidgetProps) {
+    const t = useTranslations('home.discoveryAssistant');
+    const quickPrompts = React.useMemo(() => ([
+        t('quickPrompts.budget'),
+        t('quickPrompts.family'),
+        t('quickPrompts.fast'),
+        t('quickPrompts.healthy')
+    ]), [t]);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
     const {
         isOpen,
@@ -75,14 +76,14 @@ export default function HomeDiscoveryWidget({
                 <div
                     className="fixed bottom-20 right-4 left-4 sm:left-auto sm:w-[380px] z-50 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden"
                     role="dialog"
-                    aria-label="Asistente de descubrimiento"
+                    aria-label={t('dialogAria')}
                 >
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                         <div>
-                            <p className="text-sm font-semibold text-gray-900">Asistente de descubrimiento</p>
-                            <p className="text-xs text-gray-500">Encuentra mejores opciones antes de elegir restaurante</p>
+                            <p className="text-sm font-semibold text-gray-900">{t('title')}</p>
+                            <p className="text-xs text-gray-500">{t('subtitle')}</p>
                         </div>
-                        <button type="button" onClick={closeChat} className="p-1 text-gray-500 hover:text-gray-700" aria-label="Cerrar asistente">
+                        <button type="button" onClick={closeChat} className="p-1 text-gray-500 hover:text-gray-700" aria-label={t('closeAria')}>
                             <X size={18} />
                         </button>
                     </div>
@@ -90,7 +91,7 @@ export default function HomeDiscoveryWidget({
                     <div className="p-3 space-y-3 max-h-[52vh] overflow-y-auto bg-gray-50" aria-live="polite">
                         {history.length === 0 && (
                             <div className="flex flex-wrap gap-2">
-                                {QUICK_PROMPTS.map((prompt) => (
+                                {quickPrompts.map((prompt) => (
                                     <button
                                         key={prompt}
                                         type="button"
@@ -134,7 +135,7 @@ export default function HomeDiscoveryWidget({
                                                     onRecommendationClick?.(recommendation.restaurantId);
                                                 }}
                                             >
-                                                Ver restaurante
+                                                    {t('viewRestaurant')}
                                             </button>
                                         </div>
                                     </div>
@@ -167,8 +168,8 @@ export default function HomeDiscoveryWidget({
                         value={inputValue}
                         onValueChange={setInputValue}
                         inputRef={inputRef}
-                        inputAriaLabel="Mensaje para asistente de descubrimiento"
-                        placeholder="Ej. quiero algo barato con envío rápido"
+                        inputAriaLabel={t('inputAria')}
+                        placeholder={t('inputPlaceholder')}
                         containerClassName="p-3 border-t border-gray-100 bg-white"
                         inputClassName="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 text-gray-900"
                         buttonClassName="px-3 py-2 rounded-xl bg-orange-500 text-white disabled:opacity-60 min-w-[78px] text-sm"
@@ -180,10 +181,10 @@ export default function HomeDiscoveryWidget({
                 type="button"
                 onClick={openChat}
                 className="fixed z-40 bottom-20 right-4 px-4 py-3 rounded-full shadow-lg bg-orange-500 text-white flex items-center gap-2"
-                aria-label="Abrir asistente de descubrimiento"
+                aria-label={t('openAria')}
             >
                 <Sparkles size={16} />
-                <span className="text-sm font-medium">Asistente</span>
+                <span className="text-sm font-medium">{t('buttonLabel')}</span>
             </button>
         </>
     );

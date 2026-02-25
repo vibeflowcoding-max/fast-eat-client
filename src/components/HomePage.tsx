@@ -31,6 +31,7 @@ import ActivityFeed from '@/features/social/components/ActivityFeed';
 import LoyaltyWidget from '@/features/gamification/components/LoyaltyWidget';
 import StoryMenuFeed from '@/features/content/components/StoryMenuFeed';
 import DynamicPromoBanner from '@/features/home-discovery/components/DynamicPromoBanner';
+import { useTranslations } from 'next-intl';
 
 const HomeDiscoveryWidget = dynamic(
     () => import('@/features/home-discovery/components/HomeDiscoveryWidget'),
@@ -47,13 +48,13 @@ const PredictivePrompt = dynamic(
     { ssr: false }
 );
 
-const INTENT_OPTIONS: Array<{ id: DiscoveryIntent; label: string }> = [
-    { id: 'promotions', label: 'Promos' },
-    { id: 'fast', label: 'Cercanos' },
-    { id: 'best_rated', label: 'Mejor calidad' },
-    { id: 'cheap', label: 'Económicos' },
-    { id: 'family_combo', label: 'Combos' },
-    { id: 'healthy', label: 'Saludables' }
+const INTENT_OPTIONS: Array<{ id: DiscoveryIntent; labelKey: string }> = [
+    { id: 'promotions', labelKey: 'intents.promotions' },
+    { id: 'fast', labelKey: 'intents.fast' },
+    { id: 'best_rated', labelKey: 'intents.bestRated' },
+    { id: 'cheap', labelKey: 'intents.cheap' },
+    { id: 'family_combo', labelKey: 'intents.familyCombo' },
+    { id: 'healthy', labelKey: 'intents.healthy' }
 ];
 
 const HOME_FILTERS_SORT_SESSION_KEY = 'home_filters_sort_state_v1';
@@ -66,19 +67,19 @@ const DEFAULT_HOME_FILTERS: HomeFiltersState = {
     promotions_only: false
 };
 
-const FILTER_CHIPS: Array<{ key: keyof HomeFiltersState; label: string; value: HomeFiltersState[keyof HomeFiltersState] }> = [
-    { key: 'price_band', label: 'Económico', value: 'budget' },
-    { key: 'eta_max', label: '≤ 30 min', value: 30 },
-    { key: 'rating_min', label: '★ 4.5+', value: 4.5 },
-    { key: 'delivery_fee_max', label: 'Envío ≤ ₡1000', value: 1000 },
-    { key: 'promotions_only', label: 'Solo promos', value: true }
+const FILTER_CHIPS: Array<{ key: keyof HomeFiltersState; labelKey: string; value: HomeFiltersState[keyof HomeFiltersState] }> = [
+    { key: 'price_band', labelKey: 'filters.budget', value: 'budget' },
+    { key: 'eta_max', labelKey: 'filters.eta', value: 30 },
+    { key: 'rating_min', labelKey: 'filters.rating', value: 4.5 },
+    { key: 'delivery_fee_max', labelKey: 'filters.deliveryFee', value: 1000 },
+    { key: 'promotions_only', labelKey: 'filters.promosOnly', value: true }
 ];
 
-const SORT_OPTIONS: Array<{ value: HomeSortOption; label: string }> = [
-    { value: 'best_value', label: 'Mejor valor' },
-    { value: 'fastest', label: 'Más rápido' },
-    { value: 'top_rated', label: 'Mejor calificación' },
-    { value: 'closest', label: 'Más cercano' }
+const SORT_OPTIONS: Array<{ value: HomeSortOption; labelKey: string }> = [
+    { value: 'best_value', labelKey: 'filters.sort.bestValue' },
+    { value: 'fastest', labelKey: 'filters.sort.fastest' },
+    { value: 'top_rated', labelKey: 'filters.sort.topRated' },
+    { value: 'closest', labelKey: 'filters.sort.closest' }
 ];
 
 const SEARCH_SUGGESTION_DEBOUNCE_MS = 280;
@@ -91,6 +92,7 @@ function normalizeSearchValue(value: string): string {
 }
 
 export default function HomePage() {
+    const t = useTranslations('home');
     const {
         userLocation,
         customerName,
@@ -130,6 +132,30 @@ export default function HomePage() {
     const [sortBy, setSortBy] = useState<HomeSortOption>('best_value');
     const [viewedHistory, setViewedHistory] = useState<ViewedRestaurantSignal[]>([]);
     const [preferenceHints, setPreferenceHints] = useState<HomePreferenceHints>({ categoryWeights: {} });
+
+    const railLabels = React.useMemo(() => ({
+        promosTitle: t('rails.promos.title'),
+        promosSubtitleWithPromos: t('rails.promos.subtitleWithPromos'),
+        promosSubtitleWithoutPromos: t('rails.promos.subtitleWithoutPromos'),
+        bestQualityTitle: t('rails.bestQuality.title'),
+        bestQualitySubtitle: t('rails.bestQuality.subtitle'),
+        nearestTitle: t('rails.nearest.title'),
+        nearestSubtitle: t('rails.nearest.subtitle'),
+        bestValueNearYouTitle: t('rails.bestValueNearYou.title'),
+        bestValueNearYouSubtitle: t('rails.bestValueNearYou.subtitle'),
+        popularNowTitle: t('rails.popularNow.title'),
+        popularNowSubtitle: t('rails.popularNow.subtitle'),
+        combosUnderBudgetTitle: t('rails.combosUnderBudget.title'),
+        combosUnderBudgetSubtitle: t('rails.combosUnderBudget.subtitle'),
+        lowDeliveryFeeTitle: t('rails.lowDeliveryFee.title'),
+        lowDeliveryFeeSubtitle: t('rails.lowDeliveryFee.subtitle'),
+        continueExploringTitle: t('rails.continueExploring.title'),
+        continueExploringSubtitle: t('rails.continueExploring.subtitle'),
+        recentlyViewedTitle: t('rails.recentlyViewed.title'),
+        recentlyViewedSubtitle: t('rails.recentlyViewed.subtitle'),
+        forYouTitle: t('rails.forYou.title'),
+        forYouSubtitle: t('rails.forYou.subtitle')
+    }), [t]);
 
     const { categories, loading: categoriesLoading } = useCategories();
 
@@ -388,7 +414,7 @@ export default function HomePage() {
 
         if (!response.ok) {
             const payload = await response.json().catch(() => null);
-            throw new Error(payload?.error || 'Could not save profile data.');
+            throw new Error(payload?.error || t('errors.saveProfile'));
         }
 
         setCustomerName(value.name);
@@ -398,11 +424,11 @@ export default function HomePage() {
         if (!isProfileIncomplete) {
             setProfilePromptDismissedAt(null);
         }
-    }, [isProfileIncomplete, setCustomerName, setFromNumber, setOnboarded, setProfilePromptDismissedAt]);
+    }, [isProfileIncomplete, setCustomerName, setFromNumber, setOnboarded, setProfilePromptDismissedAt, t]);
 
     const handleRequestLocationFromProfile = React.useCallback(() => {
         if (!navigator.geolocation) {
-            setLocationPermissionError('Geolocation is not supported in this browser. Enter address manually.');
+            setLocationPermissionError(t('errors.geolocationUnsupported'));
             setIsAddressModalOpen(true);
             return;
         }
@@ -425,7 +451,7 @@ export default function HomePage() {
                 setLocationRequestLoading(false);
             },
             () => {
-                setLocationPermissionError('Permission denied. Enter address manually.');
+                setLocationPermissionError(t('errors.permissionDenied'));
                 setIsAddressModalOpen(true);
                 emitHomeEvent({ name: 'location_permission_denied' });
                 setLocationRequestLoading(false);
@@ -436,7 +462,7 @@ export default function HomePage() {
                 maximumAge: 0
             }
         );
-    }, []);
+    }, [t]);
 
     const handleSaveAddress = React.useCallback(async (value: {
         urlAddress: string;
@@ -452,9 +478,9 @@ export default function HomePage() {
 
         if (!fromNumber.trim() || !customerName.trim()) {
             setIsAddressModalOpen(false);
-            setLocationPermissionError('Please complete your name and phone first.');
+            setLocationPermissionError(t('errors.namePhoneRequired'));
             setIsProfileModalOpen(true);
-            throw new Error('Name and phone are required before saving address.');
+            throw new Error(t('errors.namePhoneRequiredAddress'));
         }
 
         const payload = {
@@ -472,7 +498,7 @@ export default function HomePage() {
         if (!response.ok) {
             emitHomeEvent({ name: 'address_form_save_error' });
             const errorPayload = await response.json().catch(() => null);
-            throw new Error(errorPayload?.error || 'Could not save address. Please retry.');
+            throw new Error(errorPayload?.error || t('errors.saveAddress'));
         }
 
         const data = await response.json();
@@ -493,7 +519,7 @@ export default function HomePage() {
 
         setIsAddressModalOpen(false);
         setIsProfileModalOpen(true);
-    }, [customerName, fromNumber, setCustomerAddress, setOnboarded, setProfilePromptDismissedAt]);
+    }, [customerName, fromNumber, setCustomerAddress, setOnboarded, setProfilePromptDismissedAt, t]);
 
     const rails = useHomeRails({
         restaurants: filteredRestaurants,
@@ -503,7 +529,8 @@ export default function HomePage() {
         personalizedEnabled: true,
         isReturningSession: true,
         viewedHistory,
-        preferenceHints
+        preferenceHints,
+        railLabels
     });
 
     const isPersonalizedRail = React.useCallback(
@@ -793,10 +820,10 @@ export default function HomePage() {
 
                 {!isLegacyListLayout && (
                     <IntentChipsBar
-                        intents={INTENT_OPTIONS}
+                        intents={INTENT_OPTIONS.map((intent) => ({ id: intent.id, label: t(intent.labelKey) }))}
                         activeIntent={activeIntent}
                         showAllOption
-                        allLabel="Todos"
+                        allLabel={t('intents.all')}
                         onIntentChange={(intent) => {
                             setActiveIntent(intent);
                             if (intent) {
@@ -819,7 +846,7 @@ export default function HomePage() {
                                         }`}
                                     aria-pressed={isActive}
                                 >
-                                    {chip.label}
+                                    {t(chip.labelKey)}
                                 </button>
                             );
                         })}
@@ -960,7 +987,7 @@ export default function HomePage() {
                 <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
                     <div className="w-full max-w-md rounded-t-2xl bg-white p-4 sm:rounded-2xl">
                         <div className="mb-4 flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-gray-900">Filtros y Orden</h2>
+                            <h2 className="text-lg font-semibold text-gray-900">{t('filters.title')}</h2>
                             <button
                                 type="button"
                                 onClick={() => setIsFiltersModalOpen(false)}
@@ -973,7 +1000,7 @@ export default function HomePage() {
                         <div className="space-y-4">
                             <div>
                                 <label htmlFor="home-sort-control-modal" className="mb-2 block text-sm font-medium text-gray-700">
-                                    Ordenar por
+                                    {t('filters.sortBy')}
                                 </label>
                                 <select
                                     id="home-sort-control-modal"
@@ -983,7 +1010,7 @@ export default function HomePage() {
                                 >
                                     {SORT_OPTIONS.map((option) => (
                                         <option key={option.value} value={option.value}>
-                                            {option.label}
+                                            {t(option.labelKey)}
                                         </option>
                                     ))}
                                 </select>
@@ -998,7 +1025,7 @@ export default function HomePage() {
                                     }}
                                     className="w-full rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                 >
-                                    Limpiar todos los filtros
+                                    {t('filters.clearAll')}
                                 </button>
                             </div>
                         </div>

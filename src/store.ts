@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AuctionState, BidNotification, CartItem, DeliveryBid, UserLocation } from './types';
+import { AppLocale, DEFAULT_LOCALE, normalizeLocale } from '@/i18n/config';
 
 import { OrderUpdate } from './hooks/useOrderTracking';
 
@@ -36,6 +37,7 @@ interface CartState {
   authEmail: string | null;
   isAuthenticated: boolean;
   authHydrated: boolean;
+  locale: AppLocale;
   clientContext: {
     favorites: string[];
     recentSearches: Array<{ id: string; query: string; created_at: string }>;
@@ -86,6 +88,7 @@ interface CartState {
   setAuthSession: (payload: { userId: string; email: string | null }) => void;
   clearAuthSession: () => void;
   setAuthHydrated: (value: boolean) => void;
+  setLocale: (locale: AppLocale) => void;
   hydrateClientContext: (payload: {
     customerName?: string | null;
     customerPhone?: string | null;
@@ -121,6 +124,7 @@ export const useCartStore = create<CartState>()(
       authEmail: null,
       isAuthenticated: false,
       authHydrated: false,
+      locale: DEFAULT_LOCALE,
       clientContext: null,
 
       // Group Cart Initial State
@@ -329,6 +333,7 @@ export const useCartStore = create<CartState>()(
         clientContext: null,
       }),
       setAuthHydrated: (value) => set({ authHydrated: value }),
+      setLocale: (locale) => set({ locale: normalizeLocale(locale) }),
       hydrateClientContext: (payload) => set((state) => ({
         customerName: payload.customerName ?? state.customerName,
         fromNumber: payload.customerPhone ?? state.fromNumber,
@@ -361,6 +366,7 @@ export const useCartStore = create<CartState>()(
         authUserId: state.authUserId,
         authEmail: state.authEmail,
         isAuthenticated: state.isAuthenticated,
+        locale: state.locale,
         clientContext: state.clientContext
       }),
     }

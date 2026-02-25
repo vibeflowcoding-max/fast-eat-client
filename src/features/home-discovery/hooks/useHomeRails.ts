@@ -18,7 +18,56 @@ interface UseHomeRailsOptions {
     isReturningSession?: boolean;
     viewedHistory?: ViewedRestaurantSignal[];
     preferenceHints?: HomePreferenceHints;
+    railLabels?: HomeRailLabels;
 }
+
+interface HomeRailLabels {
+    promosTitle: string;
+    promosSubtitleWithPromos: string;
+    promosSubtitleWithoutPromos: string;
+    bestQualityTitle: string;
+    bestQualitySubtitle: string;
+    nearestTitle: string;
+    nearestSubtitle: string;
+    bestValueNearYouTitle: string;
+    bestValueNearYouSubtitle: string;
+    popularNowTitle: string;
+    popularNowSubtitle: string;
+    combosUnderBudgetTitle: string;
+    combosUnderBudgetSubtitle: string;
+    lowDeliveryFeeTitle: string;
+    lowDeliveryFeeSubtitle: string;
+    continueExploringTitle: string;
+    continueExploringSubtitle: string;
+    recentlyViewedTitle: string;
+    recentlyViewedSubtitle: string;
+    forYouTitle: string;
+    forYouSubtitle: string;
+}
+
+const DEFAULT_RAIL_LABELS: HomeRailLabels = {
+    promosTitle: 'Promos',
+    promosSubtitleWithPromos: 'Ofertas activas que te pueden convenir',
+    promosSubtitleWithoutPromos: 'No hay promos activas ahora, pero aquí tienes opciones recomendadas',
+    bestQualityTitle: 'Mejor calidad',
+    bestQualitySubtitle: 'Opciones mejor valoradas por clientes',
+    nearestTitle: 'Cerca de ti',
+    nearestSubtitle: 'Restaurantes más cerca de tu ubicación',
+    bestValueNearYouTitle: 'Mejor valor cerca de ti',
+    bestValueNearYouSubtitle: 'Opciones cercanas para decidir rápido',
+    popularNowTitle: 'Popular ahora',
+    popularNowSubtitle: 'Restaurantes destacados en este momento',
+    combosUnderBudgetTitle: 'Combos bajo tu presupuesto',
+    combosUnderBudgetSubtitle: 'Selección estimada por precio final total',
+    lowDeliveryFeeTitle: 'Baja tarifa de envío',
+    lowDeliveryFeeSubtitle: 'Opciones con costo de entrega menor',
+    continueExploringTitle: 'Seguir explorando',
+    continueExploringSubtitle: 'Todos los restaurantes disponibles',
+    recentlyViewedTitle: 'Vistos recientemente',
+    recentlyViewedSubtitle: 'Retoma restaurantes que revisaste antes',
+    forYouTitle: 'Para ti',
+    forYouSubtitle: 'Opciones según tus interacciones recientes'
+};
 
 const COMBO_BUDGET_CENTS = 9000;
 const BASE_BASKET_CENTS = 6900;
@@ -195,7 +244,8 @@ export function dedupeRails(rails: HomeRail[]) {
 export function buildPersonalizedRails(
     orderedRestaurants: RestaurantWithBranches[],
     viewedHistory: ViewedRestaurantSignal[],
-    preferenceHints: HomePreferenceHints
+    preferenceHints: HomePreferenceHints,
+    railLabels: HomeRailLabels
 ) {
     if (viewedHistory.length < PERSONALIZED_MIN_HISTORY) {
         return [] as HomeRail[];
@@ -218,8 +268,8 @@ export function buildPersonalizedRails(
     if (recentlyViewedItems.length >= PERSONALIZED_MIN_HISTORY) {
         rails.push({
             railId: 'recently-viewed',
-            title: 'Vistos recientemente',
-            subtitle: 'Retoma restaurantes que revisaste antes',
+            title: railLabels.recentlyViewedTitle,
+            subtitle: railLabels.recentlyViewedSubtitle,
             items: recentlyViewedItems
         });
     }
@@ -227,8 +277,8 @@ export function buildPersonalizedRails(
     if (forYouItems.length >= PERSONALIZED_MIN_HISTORY) {
         rails.push({
             railId: 'for-you',
-            title: 'Para ti',
-            subtitle: 'Opciones según tus interacciones recientes',
+            title: railLabels.forYouTitle,
+            subtitle: railLabels.forYouSubtitle,
             items: forYouItems
         });
     }
@@ -244,7 +294,8 @@ export function useHomeRails({
     personalizedEnabled = false,
     isReturningSession = false,
     viewedHistory = [],
-    preferenceHints = { categoryWeights: {} }
+    preferenceHints = { categoryWeights: {} },
+    railLabels = DEFAULT_RAIL_LABELS
 }: UseHomeRailsOptions) {
     return useMemo(() => {
         const filtered = applyHomeFilters(restaurants, filters);
@@ -284,22 +335,22 @@ export function useHomeRails({
         const coreRails: HomeRail[] = [
             {
             railId: 'promos',
-            title: 'Promos',
+            title: railLabels.promosTitle,
             subtitle: promoItems.length > 0
-                ? 'Ofertas activas que te pueden convenir'
-                : 'No hay promos activas ahora, pero aquí tienes opciones recomendadas',
+                ? railLabels.promosSubtitleWithPromos
+                : railLabels.promosSubtitleWithoutPromos,
             items: (promoItems.length > 0 ? promoItems : ordered).slice(0, 8)
             },
             {
                 railId: 'best-quality',
-                title: 'Mejor calidad',
-                subtitle: 'Opciones mejor valoradas por clientes',
+                title: railLabels.bestQualityTitle,
+                subtitle: railLabels.bestQualitySubtitle,
                 items: orderedByQuality.slice(0, 8)
             },
             {
                 railId: 'nearest',
-                title: 'Cerca de ti',
-                subtitle: 'Restaurantes más cerca de tu ubicación',
+                title: railLabels.nearestTitle,
+                subtitle: railLabels.nearestSubtitle,
                 items: orderedByDistance.slice(0, 8)
             }
         ];
@@ -307,14 +358,14 @@ export function useHomeRails({
         const additionalRails: HomeRail[] = [];
 
         if (personalizedEnabled && isReturningSession) {
-            additionalRails.push(...buildPersonalizedRails(ordered, viewedHistory, preferenceHints));
+            additionalRails.push(...buildPersonalizedRails(ordered, viewedHistory, preferenceHints, railLabels));
         }
 
         if (nearby.length > 0) {
             additionalRails.push({
                 railId: 'best-value-near-you',
-                title: 'Mejor valor cerca de ti',
-                subtitle: 'Opciones cercanas para decidir rápido',
+                title: railLabels.bestValueNearYouTitle,
+                subtitle: railLabels.bestValueNearYouSubtitle,
                 items: nearby
             });
         }
@@ -322,8 +373,8 @@ export function useHomeRails({
         if (ordered.length > 0) {
             additionalRails.push({
                 railId: 'popular-now',
-                title: 'Popular ahora',
-                subtitle: 'Restaurantes destacados en este momento',
+                title: railLabels.popularNowTitle,
+                subtitle: railLabels.popularNowSubtitle,
                 items: ordered.slice(0, 8)
             });
         }
@@ -331,23 +382,23 @@ export function useHomeRails({
         const combosUnderBudget = orderedByValue.filter((restaurant) => estimateFinalPrice(restaurant) <= COMBO_BUDGET_CENTS);
         additionalRails.push({
             railId: 'combos-under-budget',
-            title: 'Combos bajo tu presupuesto',
-            subtitle: 'Selección estimada por precio final total',
+            title: railLabels.combosUnderBudgetTitle,
+            subtitle: railLabels.combosUnderBudgetSubtitle,
             items: combosUnderBudget.slice(0, 8)
         });
 
         const lowDeliveryFee = orderedByFee.filter((restaurant) => estimateDeliveryFee(restaurant) <= 1000);
         additionalRails.push({
             railId: 'low-delivery-fee',
-            title: 'Baja tarifa de envío',
-            subtitle: 'Opciones con costo de entrega menor',
+            title: railLabels.lowDeliveryFeeTitle,
+            subtitle: railLabels.lowDeliveryFeeSubtitle,
             items: (lowDeliveryFee.length > 0 ? lowDeliveryFee : orderedByFee).slice(0, 8)
         });
 
         additionalRails.push({
             railId: 'continue-exploring',
-            title: 'Seguir explorando',
-            subtitle: 'Todos los restaurantes disponibles',
+            title: railLabels.continueExploringTitle,
+            subtitle: railLabels.continueExploringSubtitle,
             items: other.length > 0 ? other : ordered
         });
 
@@ -357,5 +408,5 @@ export function useHomeRails({
             ...coreRails,
             ...dedupedAdditionalRails
         ];
-    }, [restaurants, activeIntent, filters, sortBy, personalizedEnabled, isReturningSession, viewedHistory, preferenceHints]);
+    }, [restaurants, activeIntent, filters, sortBy, personalizedEnabled, isReturningSession, viewedHistory, preferenceHints, railLabels]);
 }

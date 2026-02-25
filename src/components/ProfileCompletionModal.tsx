@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 
 interface ProfileCompletionModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export default function ProfileCompletionModal({
   onLater,
   onClose
 }: ProfileCompletionModalProps) {
+  const t = useTranslations('checkout.profileModal');
   const [name, setName] = React.useState(initialName ?? '');
   const [phone, setPhone] = React.useState(initialPhone ?? '');
   const [error, setError] = React.useState<string | null>(null);
@@ -45,7 +47,6 @@ export default function ProfileCompletionModal({
     if (!isOpen) {
       return;
     }
-
     setName(initialName ?? '');
     setPhone(initialPhone ?? '');
     setError(null);
@@ -57,37 +58,37 @@ export default function ProfileCompletionModal({
     }
 
     if (!name.trim()) {
-      setError('Full name is required before adding address.');
+      setError(t('errors.addressNeedsName'));
       return;
     }
 
     if (!phone.trim()) {
-      setError('Number is required before adding address.');
+      setError(t('errors.addressNeedsPhone'));
       return;
     }
 
     if (!isPhoneValid(phone)) {
-      setError('Please enter a valid phone number before adding address.');
+      setError(t('errors.addressNeedsValidPhone'));
       return;
     }
 
     setError(null);
     onEnterAddressManually({ name: name.trim(), phone: phone.trim() });
-  }, [name, onEnterAddressManually, phone]);
+  }, [name, onEnterAddressManually, phone, t]);
 
   const handleContinue = React.useCallback(async () => {
     if (!name.trim()) {
-      setError('Full name is required.');
+      setError(t('errors.fullNameRequired'));
       return;
     }
 
     if (!phone.trim()) {
-      setError('Number is required.');
+      setError(t('errors.phoneRequired'));
       return;
     }
 
     if (!isPhoneValid(phone)) {
-      setError('Please enter a valid phone number.');
+      setError(t('errors.phoneInvalid'));
       return;
     }
 
@@ -98,11 +99,11 @@ export default function ProfileCompletionModal({
       await onContinue({ name: name.trim(), phone: phone.trim() });
       onClose();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Could not save profile data.');
+      setError(saveError instanceof Error ? saveError.message : t('errors.saveFailed'));
     } finally {
       setIsSaving(false);
     }
-  }, [name, onClose, onContinue, phone]);
+  }, [name, onClose, onContinue, phone, t]);
 
   if (!isOpen) {
     return null;
@@ -110,7 +111,7 @@ export default function ProfileCompletionModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+      className="fixed inset-0 z-[150] flex items-end justify-center bg-black/30 p-0 sm:items-center sm:p-4"
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -118,12 +119,14 @@ export default function ProfileCompletionModal({
       }}
     >
       <div className="max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-white p-4 sm:max-w-md sm:rounded-2xl">
-        <h2 className="text-lg font-semibold text-gray-900">Complete your profile</h2>
-        <p className="mt-1 text-sm text-gray-500">Add your details so we can improve delivery experience.</p>
+        <h2 className="text-lg font-semibold text-gray-900">{t('title')}</h2>
+        <p className="mt-1 text-sm text-gray-500">{t('subtitle')}</p>
 
         <div className="mt-4 space-y-3">
           <div>
-            <label htmlFor="profile-name" className="mb-1 block text-sm font-medium text-gray-700">Full name</label>
+            <label htmlFor="profile-name" className="mb-1 block text-sm font-medium text-gray-700">
+              {t('fullName')}
+            </label>
             <input
               id="profile-name"
               type="text"
@@ -134,7 +137,9 @@ export default function ProfileCompletionModal({
           </div>
 
           <div>
-            <label htmlFor="profile-phone" className="mb-1 block text-sm font-medium text-gray-700">Number</label>
+            <label htmlFor="profile-phone" className="mb-1 block text-sm font-medium text-gray-700">
+              {t('phone')}
+            </label>
             <input
               id="profile-phone"
               type="tel"
@@ -145,9 +150,9 @@ export default function ProfileCompletionModal({
           </div>
 
           <div className="rounded-lg border border-gray-200 p-3">
-            <p className="text-sm font-medium text-gray-800">Address</p>
+            <p className="text-sm font-medium text-gray-800">{t('address')}</p>
             {hasConfiguredAddress ? (
-              <p className="mt-1 text-xs text-green-700">Ubicación configurada</p>
+              <p className="mt-1 text-xs text-green-700">{t('locationConfigured')}</p>
             ) : (
               <div className="mt-2">
                 <button
@@ -156,10 +161,11 @@ export default function ProfileCompletionModal({
                   disabled={locationRequestLoading}
                   className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700"
                 >
-                  {locationRequestLoading ? 'Requesting permission...' : 'Permitir ubicación'}
+                  {locationRequestLoading ? t('requestingLocation') : t('requestLocation')}
                 </button>
               </div>
             )}
+
             {locationPermissionError && (
               <div className="mt-2 space-y-2">
                 <p className="text-xs text-amber-700" aria-live="polite">
@@ -171,7 +177,7 @@ export default function ProfileCompletionModal({
                     onClick={handleEnterAddressManually}
                     className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700"
                   >
-                    Enter address manually
+                    {t('enterAddressManually')}
                   </button>
                 )}
               </div>
@@ -191,7 +197,7 @@ export default function ProfileCompletionModal({
             onClick={onLater}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
           >
-            Later
+            {t('later')}
           </button>
           <button
             type="button"
@@ -199,7 +205,7 @@ export default function ProfileCompletionModal({
             disabled={isSaving}
             className="rounded-lg bg-orange-500 px-3 py-2 text-sm font-semibold text-white disabled:opacity-70"
           >
-            {isSaving ? 'Saving...' : 'Continue'}
+            {isSaving ? t('saving') : t('continue')}
           </button>
         </div>
       </div>

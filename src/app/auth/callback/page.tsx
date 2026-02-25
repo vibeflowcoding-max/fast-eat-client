@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useTranslations } from 'next-intl';
 
 export const dynamic = 'force-dynamic';
 
 function AuthCallbackContent() {
   const router = useRouter();
+  const t = useTranslations('auth.callback');
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +24,7 @@ function AuthCallbackContent() {
         const nextPath = nextValue.startsWith('/') ? nextValue : '/';
 
         if (!code) {
-          throw new Error('No se recibió código OAuth');
+          throw new Error(t('missingCode'));
         }
 
         const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
@@ -48,7 +50,7 @@ function AuthCallbackContent() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'No se pudo completar la autenticación');
+          setError(err instanceof Error ? err.message : t('genericError'));
         }
       }
     }
@@ -63,8 +65,8 @@ function AuthCallbackContent() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-10">
       <section className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-sm">
-        <h1 className="text-xl font-semibold">Finalizando autenticación...</h1>
-        {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : <p className="mt-3 text-sm text-neutral-600">Un momento, te estamos ingresando.</p>}
+        <h1 className="text-xl font-semibold">{t('title')}</h1>
+        {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : <p className="mt-3 text-sm text-neutral-600">{t('loading')}</p>}
       </section>
     </main>
   );

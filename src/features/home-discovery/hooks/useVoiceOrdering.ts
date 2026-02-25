@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 
 export const useVoiceOrdering = () => {
+    const t = useTranslations('home.voiceSearch');
     const [isListening, setIsListening] = useState(false);
     const [transcript, setTranscript] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -10,9 +12,9 @@ export const useVoiceOrdering = () => {
         setTranscript('');
         // Mock recording logic
         setTimeout(() => {
-            setTranscript('Escuchando...');
+            setTranscript(t('listening'));
         }, 500);
-    }, []);
+    }, [t]);
 
     const stopListening = useCallback(() => {
         setIsListening(false);
@@ -20,9 +22,9 @@ export const useVoiceOrdering = () => {
         // Mock API call to STT -> LLM -> Cart
         setTimeout(() => {
             setIsProcessing(false);
-            setTranscript('¡Entendido! Hemos agregado tu pedido al carrito. 🍔');
+            setTranscript(t('addedToCart'));
         }, 2000);
-    }, []);
+    }, [t]);
 
     return {
         isListening,

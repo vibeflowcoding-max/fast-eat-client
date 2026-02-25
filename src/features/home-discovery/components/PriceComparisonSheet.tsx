@@ -1,5 +1,6 @@
 import React from 'react';
 import { CompareOption } from '../types';
+import { useTranslations } from 'next-intl';
 
 interface PriceComparisonSheetProps {
     open: boolean;
@@ -19,6 +20,8 @@ export default function PriceComparisonSheet({
     loading,
     error
 }: PriceComparisonSheetProps) {
+    const t = useTranslations('home.priceComparison');
+
     if (!open) {
         return null;
     }
@@ -29,20 +32,20 @@ export default function PriceComparisonSheet({
                 type="button"
                 className="absolute inset-0 bg-black/45"
                 onClick={() => onOpenChange(false)}
-                aria-label="Cerrar comparación"
+                aria-label={t('closeAria')}
             />
 
             <div className="absolute left-0 right-0 bottom-0 bg-white rounded-t-2xl p-4 max-h-[75vh] overflow-y-auto">
                 <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
-                <h3 className="text-base font-semibold text-gray-900">Comparación rápida de precio final</h3>
-                <p className="text-sm text-gray-500 mt-1">Incluye subtotal, envío, plataforma y descuentos.</p>
+                <h3 className="text-base font-semibold text-gray-900">{t('title')}</h3>
+                <p className="text-sm text-gray-500 mt-1">{t('subtitle')}</p>
 
                 {loading ? (
-                    <p className="text-sm text-gray-500 py-6">Calculando mejores opciones...</p>
+                    <p className="text-sm text-gray-500 py-6">{t('loading')}</p>
                 ) : error ? (
                     <p className="text-sm text-red-600 py-6">{error}</p>
                 ) : options.length === 0 ? (
-                    <p className="text-sm text-gray-500 py-6">No hay datos suficientes para comparar.</p>
+                    <p className="text-sm text-gray-500 py-6">{t('empty')}</p>
                 ) : (
                     <div className="mt-4 space-y-3">
                         {options.map((option) => (
@@ -57,8 +60,8 @@ export default function PriceComparisonSheet({
                                     <p className="text-orange-600 font-semibold">₡{Math.round(option.finalPrice).toLocaleString()}</p>
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
-                                    Base ₡{Math.round(option.basePrice).toLocaleString()} · Envío ₡{Math.round(option.deliveryFee).toLocaleString()} ·
-                                    Desc. ₡{Math.round(option.discount).toLocaleString()}
+                                    {t('base')} ₡{Math.round(option.basePrice).toLocaleString()} · {t('delivery')} ₡{Math.round(option.deliveryFee).toLocaleString()} ·
+                                    {t('discount')} ₡{Math.round(option.discount).toLocaleString()}
                                 </p>
                             </button>
                         ))}

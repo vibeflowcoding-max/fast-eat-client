@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Globe } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface FeedItem {
     id: string;
@@ -13,38 +14,37 @@ interface FeedItem {
     likes: number;
 }
 
-const MOCK_ITEMS: FeedItem[] = [
-    {
-        id: '1',
-        userName: 'María',
-        restaurantName: 'La Casona',
-        caption: '¡María no se aguantó las ganas y pidió 2x Casado con Carne en La Casona! Mae, al chile qué buen antojo.',
-        emoji: '🍛',
-        timestamp: 'Hace 5 min',
-        likes: 12
-    },
-    {
-        id: '2',
-        userName: 'Carlos',
-        restaurantName: 'Sushi Go',
-        caption: 'Carlos se puso fino y pidió un Roll Volcano en Sushi Go. ¡A cachete!',
-        emoji: '🍣',
-        timestamp: 'Hace 1 hora',
-        likes: 5
-    },
-    {
-        id: '3',
-        userName: 'Ana',
-        restaurantName: 'KFC',
-        caption: 'Ana aseguró su cena con un MEGA Combo. Puro sabor 🤤',
-        emoji: '🍗',
-        timestamp: 'Hace 3 horas',
-        likes: 24
-    }
-];
-
 export default function ActivityFeed() {
-    const [feed] = useState<FeedItem[]>(MOCK_ITEMS);
+    const t = useTranslations('home.activityFeed');
+    const feed: FeedItem[] = [
+        {
+            id: '1',
+            userName: t('items.maria.userName'),
+            restaurantName: t('items.maria.restaurantName'),
+            caption: t('items.maria.caption'),
+            emoji: '🍛',
+            timestamp: t('items.maria.timestamp'),
+            likes: 12
+        },
+        {
+            id: '2',
+            userName: t('items.carlos.userName'),
+            restaurantName: t('items.carlos.restaurantName'),
+            caption: t('items.carlos.caption'),
+            emoji: '🍣',
+            timestamp: t('items.carlos.timestamp'),
+            likes: 5
+        },
+        {
+            id: '3',
+            userName: t('items.ana.userName'),
+            restaurantName: t('items.ana.restaurantName'),
+            caption: t('items.ana.caption'),
+            emoji: '🍗',
+            timestamp: t('items.ana.timestamp'),
+            likes: 24
+        }
+    ];
     const [likedItems, setLikedItems] = useState<Set<string>>(new Set());
 
     const toggleLike = (id: string) => {
@@ -60,7 +60,7 @@ export default function ActivityFeed() {
         <div className="w-full space-y-4 mb-8">
             <div className="flex items-center gap-2 mb-4 px-1">
                 <Globe className="w-5 h-5 text-red-500" />
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Actividad de Amigos</h3>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{t('title')}</h3>
             </div>
 
             <div className="flex overflow-x-auto pb-4 gap-4 snap-x hide-scrollbar px-1">
@@ -94,7 +94,7 @@ export default function ActivityFeed() {
                                 </button>
                                 <button className="flex items-center gap-1.5 text-gray-400 hover:text-blue-500 transition-colors">
                                     <MessageCircle className="w-4 h-4" />
-                                    <span className="text-[10px] font-bold">Comentar</span>
+                                    <span className="text-[10px] font-bold">{t('comment')}</span>
                                 </button>
                             </div>
                         </div>

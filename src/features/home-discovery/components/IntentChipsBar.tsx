@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { DiscoveryIntent } from '../types';
+import { useTranslations } from 'next-intl';
 
 interface IntentChipsBarProps {
     intents: Array<{ id: DiscoveryIntent; label: string }>;
@@ -22,6 +23,7 @@ export default function IntentChipsBar({
     children,
     onOpenFilters
 }: IntentChipsBarProps & { onOpenFilters?: () => void }) {
+    const t = useTranslations('home.intentBar');
     const scrollRef = React.useRef<HTMLDivElement | null>(null);
 
     const scrollChips = React.useCallback((direction: 'left' | 'right') => {
@@ -42,7 +44,7 @@ export default function IntentChipsBar({
                     type="button"
                     onClick={() => scrollChips('left')}
                     className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600"
-                    aria-label="Desplazar secciones a la izquierda"
+                    aria-label={t('scrollLeft')}
                 >
                     <ChevronLeft size={16} />
                 </button>
@@ -100,7 +102,7 @@ export default function IntentChipsBar({
                     type="button"
                     onClick={() => scrollChips('right')}
                     className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600"
-                    aria-label="Desplazar secciones a la derecha"
+                    aria-label={t('scrollRight')}
                 >
                     <ChevronRight size={16} />
                 </button>
@@ -112,7 +114,7 @@ export default function IntentChipsBar({
                             type="button"
                             onClick={onOpenFilters}
                             className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                            aria-label="Filtros y orden"
+                            aria-label={t('openFilters')}
                         >
                             <SlidersHorizontal size={16} />
                         </button>

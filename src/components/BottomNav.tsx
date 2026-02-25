@@ -4,10 +4,12 @@ import React from 'react';
 import { Home, Search, Receipt, User } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useAppRouter } from '@/hooks/useAppRouter';
+import { useTranslations } from 'next-intl';
 
 export default function BottomNav() {
     const pathname = usePathname();
     const router = useAppRouter();
+    const t = useTranslations('nav');
 
     const handleNavigation = (path: string) => {
         if (typeof window !== 'undefined' && path === '/') {
@@ -26,25 +28,25 @@ export default function BottomNav() {
 
     const navItems = [
         { 
-            id: 'home', label: 'Inicio', icon: Home, path: '/',
+            id: 'home', label: t('home'), icon: Home, path: '/',
             activeBg: 'bg-gradient-to-tr from-red-500 to-red-600',
             glowColor: 'bg-red-500',
             activeText: 'text-red-600'
         },
         { 
-            id: 'search', label: 'Buscar', icon: Search, path: '/search',
+            id: 'search', label: t('search'), icon: Search, path: '/search',
             activeBg: 'bg-gradient-to-tr from-red-500 to-red-600',
             glowColor: 'bg-red-500',
             activeText: 'text-red-600'
         },
         { 
-            id: 'orders', label: 'Pedidos', icon: Receipt, path: '/orders',
+            id: 'orders', label: t('orders'), icon: Receipt, path: '/orders',
             activeBg: 'bg-gradient-to-tr from-red-500 to-red-600',
             glowColor: 'bg-red-500',
             activeText: 'text-red-600'
         },
         { 
-            id: 'profile', label: 'Perfil', icon: User, path: '/profile',
+            id: 'profile', label: t('profile'), icon: User, path: '/profile',
             activeBg: 'bg-gradient-to-tr from-red-500 to-red-600',
             glowColor: 'bg-red-500',
             activeText: 'text-red-600'

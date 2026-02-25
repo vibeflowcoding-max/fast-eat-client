@@ -7,12 +7,13 @@ import { useCategories } from '@/hooks/useCategories';
 import { useRestaurants } from '@/hooks/useRestaurants';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
+import { useTranslations } from 'next-intl';
 
 const intentChips = [
-  { id: 'promotions', label: 'Promos' },
-  { id: 'fast', label: 'Cerca de mí' },
-  { id: 'best_rated', label: 'Mejor calidad' },
-  { id: 'cheap', label: 'Económico' }
+  { id: 'promotions', labelKey: 'intents.promotions' },
+  { id: 'fast', labelKey: 'intents.fast' },
+  { id: 'best_rated', labelKey: 'intents.bestRated' },
+  { id: 'cheap', labelKey: 'intents.cheap' }
 ] as const;
 
 type IntentId = (typeof intentChips)[number]['id'];
@@ -35,6 +36,7 @@ function slugify(value: string) {
 }
 
 export default function SearchPage() {
+  const t = useTranslations('search');
   const router = useAppRouter();
   const { userLocation, fromNumber, customerName } = useCartStore();
   const { categories } = useCategories();
@@ -44,7 +46,7 @@ export default function SearchPage() {
   const [selectedCategoryId, setSelectedCategoryId] = React.useState<string | null>(null);
   const [activeIntent, setActiveIntent] = React.useState<IntentId | null>(null);
   const [recentSearches, setRecentSearches] = React.useState<RecentSearch[]>([]);
-  const [aiMessage, setAiMessage] = React.useState('Usa IA para afinar tu búsqueda con base en tus hábitos');
+  const [aiMessage, setAiMessage] = React.useState(t('aiDefaultMessage'));
   const [aiSuggestions, setAiSuggestions] = React.useState<AiSuggestion[]>([]);
   const [loadingAi, setLoadingAi] = React.useState(false);
 
@@ -89,7 +91,7 @@ export default function SearchPage() {
     } finally {
       setLoadingAi(false);
     }
-  }, [categories, aiMessage]);
+  }, [categories, aiMessage, t]);
 
   React.useEffect(() => {
     fetchRecentSearches();
@@ -191,8 +193,8 @@ export default function SearchPage() {
     <main className="ui-page min-h-screen pb-32">
       <div className="mx-auto w-full max-w-3xl px-4 pt-6 space-y-5">
         <header className="space-y-2">
-          <h1 className="text-2xl font-black">Búsqueda inteligente</h1>
-          <p className="ui-text-muted text-sm">Busca por IA, categorías y filtros como en Inicio.</p>
+          <h1 className="text-2xl font-black">{t('title')}</h1>
+          <p className="ui-text-muted text-sm">{t('subtitle')}</p>
         </header>
 
         <form onSubmit={submitSearch} className="ui-panel rounded-2xl p-3 shadow-sm">
@@ -201,14 +203,14 @@ export default function SearchPage() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="¿Qué se te antoja hoy?"
+              placeholder={t('searchPlaceholder')}
               className="ui-text w-full bg-transparent text-sm placeholder:text-gray-400 outline-none"
             />
             <button
               type="submit"
               className="ui-btn-primary rounded-xl px-3 py-2 text-xs font-bold transition-colors"
             >
-              Buscar
+              {t('searchButton')}
             </button>
           </div>
         </form>
@@ -216,13 +218,13 @@ export default function SearchPage() {
         <section className="ui-chip-brand rounded-2xl p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4" />
-            <h2 className="text-sm font-black">Sugerencias IA</h2>
+            <h2 className="text-sm font-black">{t('aiSuggestions')}</h2>
           </div>
           <p className="text-xs">{aiMessage}</p>
           {loadingAi ? (
             <div className="flex items-center gap-2 text-xs">
               <Loader2 className="w-3 h-3 animate-spin" />
-              Generando sugerencias...
+              {t('aiGenerating')}
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
@@ -237,14 +239,14 @@ export default function SearchPage() {
                 </button>
               ))}
               {aiSuggestions.length === 0 && (
-                <span className="text-xs">Escribe algo para recibir sugerencias personalizadas.</span>
+                <span className="text-xs">{t('aiEmpty')}</span>
               )}
             </div>
           )}
         </section>
 
         <section className="space-y-2">
-          <h2 className="ui-text-muted text-xs font-black uppercase tracking-wide">Búsquedas recientes</h2>
+          <h2 className="ui-text-muted text-xs font-black uppercase tracking-wide">{t('recentSearches')}</h2>
           <div className="flex flex-wrap gap-2">
             {recentSearches.map((search) => (
               <button
@@ -257,13 +259,13 @@ export default function SearchPage() {
               </button>
             ))}
             {recentSearches.length === 0 && (
-              <span className="ui-text-muted text-xs">Aún no tienes búsquedas guardadas.</span>
+              <span className="ui-text-muted text-xs">{t('recentSearchesEmpty')}</span>
             )}
           </div>
         </section>
 
         <section className="space-y-2">
-          <h2 className="ui-text-muted text-xs font-black uppercase tracking-wide">Filtrar por categoría</h2>
+          <h2 className="ui-text-muted text-xs font-black uppercase tracking-wide">{t('filterByCategory')}</h2>
           <div className="flex overflow-x-auto gap-2 pb-1">
             <button
               type="button"
@@ -274,7 +276,7 @@ export default function SearchPage() {
                     : 'ui-btn-secondary'
               }`}
             >
-              Todas
+              {t('allCategories')}
             </button>
             {categories.map((category) => (
               <button
@@ -294,7 +296,7 @@ export default function SearchPage() {
         </section>
 
         <section className="space-y-2">
-          <h2 className="ui-text-muted text-xs font-black uppercase tracking-wide">Filtros rápidos</h2>
+          <h2 className="ui-text-muted text-xs font-black uppercase tracking-wide">{t('quickFilters')}</h2>
           <div className="flex flex-wrap gap-2">
             {intentChips.map((chip) => (
               <button
@@ -307,23 +309,23 @@ export default function SearchPage() {
                     : 'ui-btn-secondary'
                 }`}
               >
-                {chip.label}
+                {t(chip.labelKey)}
               </button>
             ))}
           </div>
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-sm font-black">Resultados</h2>
+          <h2 className="text-sm font-black">{t('results')}</h2>
           {loading && (
-            <div className="ui-panel rounded-2xl p-4 text-sm ui-text-muted">Cargando restaurantes...</div>
+            <div className="ui-panel rounded-2xl p-4 text-sm ui-text-muted">{t('loadingRestaurants')}</div>
           )}
           {error && (
             <div className="ui-state-danger rounded-2xl p-4 text-sm">{error}</div>
           )}
           {!loading && !error && filteredRestaurants.length === 0 && (
             <div className="ui-panel rounded-2xl p-4 text-sm ui-text-muted">
-              No encontramos resultados con estos filtros. Intenta otra combinación.
+              {t('emptyResults')}
             </div>
           )}
 
@@ -349,7 +351,7 @@ export default function SearchPage() {
                 {restaurant.promo_text && (
                   <span className="ui-chip-brand inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold">
                     <Tag className="w-3 h-3" />
-                    Promo
+                    {t('promo')}
                   </span>
                 )}
               </div>
@@ -357,15 +359,15 @@ export default function SearchPage() {
               <div className="ui-text-muted flex flex-wrap gap-3 text-[11px]">
                 <span className="inline-flex items-center gap-1">
                   <Star className="w-3 h-3" />
-                  {restaurant.rating ? restaurant.rating.toFixed(1) : 'N/D'}
+                  {restaurant.rating ? restaurant.rating.toFixed(1) : t('notAvailable')}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <Clock3 className="w-3 h-3" />
-                  {restaurant.eta_min ? `${restaurant.eta_min} min` : 'ETA N/D'}
+                  {restaurant.eta_min ? `${restaurant.eta_min} ${t('minutes')}` : t('etaNotAvailable')}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
-                  {typeof restaurant.distance === 'number' ? `${restaurant.distance.toFixed(1)} km` : 'Sin distancia'}
+                  {typeof restaurant.distance === 'number' ? `${restaurant.distance.toFixed(1)} km` : t('noDistance')}
                 </span>
               </div>
             </article>

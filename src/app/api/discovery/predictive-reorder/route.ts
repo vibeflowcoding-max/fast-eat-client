@@ -18,6 +18,8 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
     const traceId = getTraceId(req.headers.get('x-trace-id'));
+    const requestLocale = (req.headers.get('x-locale') ?? '').trim().toLowerCase();
+    const isEnglish = requestLocale.startsWith('en');
 
     try {
         const body = await req.json();
@@ -34,7 +36,9 @@ export async function POST(req: NextRequest) {
                     confidence: 0.9,
                     restaurantId: order_history[0].restaurantId || 'mock-resta',
                     itemId: order_history[0].itemId || 'mock-item',
-                    prompt_message: '¿Lo de siempre? ¡Pídelo con 1 clic!',
+                    prompt_message: isEnglish
+                        ? 'Your usual order? Reorder in one tap!'
+                        : '¿Lo de siempre? ¡Pídelo con 1 clic!',
                     traceId
                 });
             }
@@ -55,7 +59,7 @@ Location: ${JSON.stringify(location || {})}
 User Order History (last 30 days): ${JSON.stringify(order_history || [])}
 
 Analyze the history. Are there strong temporal patterns (e.g., ordering coffee every weekday at 8 AM, or pizza on Friday nights)?
-If the current time and day closely match a strong pattern, return should_prompt=true, provide the restaurantId and itemId, and write a catchy, 1-line prompt_message in Costa Rican Spanish (e.g., "¡Llegó la hora de tu Pinto mañanero!").
+If the current time and day closely match a strong pattern, return should_prompt=true, provide the restaurantId and itemId, and write a catchy, 1-line prompt_message in ${isEnglish ? 'English' : 'Costa Rican Spanish'}.
 If there is no strong pattern, return should_prompt=false.
 Be conservative: only prompt if confidence is high (>0.7).`;
 
