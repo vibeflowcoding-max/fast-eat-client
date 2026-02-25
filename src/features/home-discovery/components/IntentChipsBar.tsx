@@ -36,7 +36,7 @@ export default function IntentChipsBar({
     }, []);
 
     return (
-        <div className="px-4 pb-3">
+        <div className="px-4 pt-2 pb-4">
             <div className="flex items-center gap-2">
                 <button
                     type="button"
@@ -48,7 +48,7 @@ export default function IntentChipsBar({
                 </button>
 
                 <div ref={scrollRef} className="overflow-x-auto flex-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                    <div className="flex min-w-max items-center gap-2">
+                    <div className="flex min-w-max items-center gap-2 px-1">
                         {showAllOption && (
                             <button
                                 key="all"

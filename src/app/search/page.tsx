@@ -188,39 +188,39 @@ export default function SearchPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-32">
+    <main className="ui-page min-h-screen pb-32">
       <div className="mx-auto w-full max-w-3xl px-4 pt-6 space-y-5">
         <header className="space-y-2">
-          <h1 className="text-2xl font-black text-gray-900">Búsqueda inteligente</h1>
-          <p className="text-sm text-gray-500">Busca por IA, categorías y filtros como en Inicio.</p>
+          <h1 className="text-2xl font-black">Búsqueda inteligente</h1>
+          <p className="ui-text-muted text-sm">Busca por IA, categorías y filtros como en Inicio.</p>
         </header>
 
-        <form onSubmit={submitSearch} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+        <form onSubmit={submitSearch} className="ui-panel rounded-2xl p-3 shadow-sm">
           <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-gray-400" />
+            <Search className="ui-text-muted h-4 w-4" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="¿Qué se te antoja hoy?"
-              className="w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none"
+              className="ui-text w-full bg-transparent text-sm placeholder:text-gray-400 outline-none"
             />
             <button
               type="submit"
-              className="rounded-xl bg-orange-500 px-3 py-2 text-xs font-bold text-white hover:bg-orange-600 transition-colors"
+              className="ui-btn-primary rounded-xl px-3 py-2 text-xs font-bold transition-colors"
             >
               Buscar
             </button>
           </div>
         </form>
 
-        <section className="rounded-2xl border border-orange-100 bg-orange-50 p-4 space-y-3">
-          <div className="flex items-center gap-2 text-orange-700">
+        <section className="ui-chip-brand rounded-2xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4" />
             <h2 className="text-sm font-black">Sugerencias IA</h2>
           </div>
-          <p className="text-xs text-orange-800">{aiMessage}</p>
+          <p className="text-xs">{aiMessage}</p>
           {loadingAi ? (
-            <div className="flex items-center gap-2 text-xs text-orange-700">
+            <div className="flex items-center gap-2 text-xs">
               <Loader2 className="w-3 h-3 animate-spin" />
               Generando sugerencias...
             </div>
@@ -231,47 +231,47 @@ export default function SearchPage() {
                   key={`${suggestion.type}-${suggestion.value}`}
                   type="button"
                   onClick={() => applySuggestion(suggestion)}
-                  className="rounded-full border border-orange-200 bg-white px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition-colors"
+                  className="ui-btn-secondary rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
                 >
                   {suggestion.label}
                 </button>
               ))}
               {aiSuggestions.length === 0 && (
-                <span className="text-xs text-orange-700">Escribe algo para recibir sugerencias personalizadas.</span>
+                <span className="text-xs">Escribe algo para recibir sugerencias personalizadas.</span>
               )}
             </div>
           )}
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-xs font-black uppercase tracking-wide text-gray-500">Búsquedas recientes (máx. 5)</h2>
+          <h2 className="ui-text-muted text-xs font-black uppercase tracking-wide">Búsquedas recientes</h2>
           <div className="flex flex-wrap gap-2">
             {recentSearches.map((search) => (
               <button
                 key={`${search.query}-${search.createdAt}`}
                 type="button"
                 onClick={() => setQuery(search.query)}
-                className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-gray-300 hover:bg-gray-100 transition-colors"
+                className="ui-btn-secondary rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
               >
                 {search.query}
               </button>
             ))}
             {recentSearches.length === 0 && (
-              <span className="text-xs text-gray-500">Aún no tienes búsquedas guardadas.</span>
+              <span className="ui-text-muted text-xs">Aún no tienes búsquedas guardadas.</span>
             )}
           </div>
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-xs font-black uppercase tracking-wide text-gray-500">Filtrar por categoría</h2>
+          <h2 className="ui-text-muted text-xs font-black uppercase tracking-wide">Filtrar por categoría</h2>
           <div className="flex overflow-x-auto gap-2 pb-1">
             <button
               type="button"
               onClick={() => setSelectedCategoryId(null)}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors ${
                 selectedCategoryId === null
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
+                    ? 'ui-btn-primary border-transparent'
+                    : 'ui-btn-secondary'
               }`}
             >
               Todas
@@ -283,8 +283,8 @@ export default function SearchPage() {
                 onClick={() => setSelectedCategoryId(category.id)}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold border whitespace-nowrap transition-colors ${
                   selectedCategoryId === category.id
-                    ? 'bg-gray-900 text-white border-gray-900'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
+                      ? 'ui-btn-primary border-transparent'
+                      : 'ui-btn-secondary'
                 }`}
               >
                 {category.name}
@@ -294,7 +294,7 @@ export default function SearchPage() {
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-xs font-black uppercase tracking-wide text-gray-500">Filtros rápidos</h2>
+          <h2 className="ui-text-muted text-xs font-black uppercase tracking-wide">Filtros rápidos</h2>
           <div className="flex flex-wrap gap-2">
             {intentChips.map((chip) => (
               <button
@@ -303,8 +303,8 @@ export default function SearchPage() {
                 onClick={() => setActiveIntent((prev) => (prev === chip.id ? null : chip.id))}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors ${
                   activeIntent === chip.id
-                    ? 'bg-orange-500 text-white border-orange-500'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
+                    ? 'ui-btn-primary border-transparent'
+                    : 'ui-btn-secondary'
                 }`}
               >
                 {chip.label}
@@ -314,15 +314,15 @@ export default function SearchPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-sm font-black text-gray-900">Resultados</h2>
+          <h2 className="text-sm font-black">Resultados</h2>
           {loading && (
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-500">Cargando restaurantes...</div>
+            <div className="ui-panel rounded-2xl p-4 text-sm ui-text-muted">Cargando restaurantes...</div>
           )}
           {error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+            <div className="ui-state-danger rounded-2xl p-4 text-sm">{error}</div>
           )}
           {!loading && !error && filteredRestaurants.length === 0 && (
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
+            <div className="ui-panel rounded-2xl p-4 text-sm ui-text-muted">
               No encontramos resultados con estos filtros. Intenta otra combinación.
             </div>
           )}
@@ -339,22 +339,22 @@ export default function SearchPage() {
                   router.push(`/${restaurant.slug || slugify(restaurant.name)}`);
                 }
               }}
-              className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-2 cursor-pointer hover:border-orange-200 hover:shadow-md transition-all"
+              className="ui-panel rounded-2xl p-4 shadow-sm space-y-2 cursor-pointer hover:shadow-md transition-all"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-black text-gray-900">{restaurant.name}</h3>
-                  <p className="text-xs text-gray-500">{restaurant.categories.map((category) => category.name).join(' • ')}</p>
+                  <h3 className="text-sm font-black">{restaurant.name}</h3>
+                  <p className="ui-text-muted text-xs">{restaurant.categories.map((category) => category.name).join(' • ')}</p>
                 </div>
                 {restaurant.promo_text && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2 py-1 text-[10px] font-bold text-orange-700">
+                  <span className="ui-chip-brand inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold">
                     <Tag className="w-3 h-3" />
                     Promo
                   </span>
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-3 text-[11px] text-gray-600">
+              <div className="ui-text-muted flex flex-wrap gap-3 text-[11px]">
                 <span className="inline-flex items-center gap-1">
                   <Star className="w-3 h-3" />
                   {restaurant.rating ? restaurant.rating.toFixed(1) : 'N/D'}

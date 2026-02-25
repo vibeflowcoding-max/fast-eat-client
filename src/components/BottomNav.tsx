@@ -27,32 +27,32 @@ export default function BottomNav() {
     const navItems = [
         { 
             id: 'home', label: 'Inicio', icon: Home, path: '/',
-            activeBg: 'bg-gradient-to-tr from-orange-500 to-red-500',
-            glowColor: 'bg-orange-500',
-            activeText: 'text-orange-600'
+            activeBg: 'bg-gradient-to-tr from-red-500 to-red-600',
+            glowColor: 'bg-red-500',
+            activeText: 'text-red-600'
         },
         { 
             id: 'search', label: 'Buscar', icon: Search, path: '/search',
-            activeBg: 'bg-gradient-to-tr from-blue-500 to-cyan-500',
-            glowColor: 'bg-blue-500',
-            activeText: 'text-blue-600'
+            activeBg: 'bg-gradient-to-tr from-red-500 to-red-600',
+            glowColor: 'bg-red-500',
+            activeText: 'text-red-600'
         },
         { 
             id: 'orders', label: 'Pedidos', icon: Receipt, path: '/orders',
-            activeBg: 'bg-gradient-to-tr from-emerald-500 to-teal-400',
-            glowColor: 'bg-emerald-500',
-            activeText: 'text-emerald-600'
+            activeBg: 'bg-gradient-to-tr from-red-500 to-red-600',
+            glowColor: 'bg-red-500',
+            activeText: 'text-red-600'
         },
         { 
             id: 'profile', label: 'Perfil', icon: User, path: '/profile',
-            activeBg: 'bg-gradient-to-tr from-purple-500 to-pink-500',
-            glowColor: 'bg-purple-500',
-            activeText: 'text-purple-600'
+            activeBg: 'bg-gradient-to-tr from-red-500 to-red-600',
+            glowColor: 'bg-red-500',
+            activeText: 'text-red-600'
         },
     ];
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md pb-safe">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md pb-safe">
             <div className="bg-white/70 backdrop-blur-3xl border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-[2rem] p-2 flex items-center justify-between">
                 {navItems.map((item) => {
                     const isActive = pathname === item.path;

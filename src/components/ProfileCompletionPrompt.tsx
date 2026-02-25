@@ -33,7 +33,7 @@ export default function ProfileCompletionPrompt({ visible, onCompleteNow, onLate
       <button
         type="button"
         onClick={onLater}
-        className="text-orange-400 hover:text-orange-600 p-1"
+        className="ml-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-orange-200 bg-white/70 text-orange-500 transition-colors hover:bg-white hover:text-orange-700"
         aria-label="Dismiss"
       >
         <X size={14} />

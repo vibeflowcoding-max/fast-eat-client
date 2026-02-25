@@ -151,6 +151,12 @@ export interface HomeAnalyticsDimensions {
     session_type?: 'new' | 'returning';
 }
 
+export type HomeBannerId = 'promo' | 'predictive';
+export type HomeBannerTargetType = 'promo_intent' | 'reorder' | 'fallback_discovery';
+export type HomeBannerDismissReason = 'user_close' | 'session_restored';
+export type HomeBannerFallbackType = 'missing_target' | 'item_unavailable' | 'offline' | 'api_error';
+export type HomeBannerConversionType = 'visit_promotions' | 'visit_restaurant';
+
 export type HomeAnalyticsEvent = HomeAnalyticsDimensions & (
     | { name: 'home_view' }
     | { name: 'intent_chip_click'; chip: DiscoveryIntent }
@@ -174,4 +180,34 @@ export type HomeAnalyticsEvent = HomeAnalyticsDimensions & (
     | { name: 'profile_prompt_impression' | 'profile_prompt_click' | 'profile_prompt_dismiss' }
     | { name: 'location_permission_request' | 'location_permission_granted' | 'location_permission_denied' }
     | { name: 'address_form_save_click' | 'address_form_save_success' | 'address_form_save_error' }
+    | {
+        name: 'home_banner_impression';
+        banner_id: HomeBannerId;
+        prediction_confidence?: number;
+    }
+    | {
+        name: 'home_banner_click';
+        banner_id: HomeBannerId;
+        target_type: HomeBannerTargetType;
+        restaurant_id?: string;
+        item_id?: string;
+        prediction_confidence?: number;
+    }
+    | {
+        name: 'home_banner_dismiss';
+        banner_id: HomeBannerId;
+        dismiss_reason: HomeBannerDismissReason;
+    }
+    | {
+        name: 'home_banner_fallback_shown';
+        banner_id: HomeBannerId;
+        fallback_type: HomeBannerFallbackType;
+    }
+    | {
+        name: 'home_banner_conversion';
+        banner_id: HomeBannerId;
+        conversion_type: HomeBannerConversionType;
+        restaurant_id?: string;
+        item_id?: string;
+    }
 );

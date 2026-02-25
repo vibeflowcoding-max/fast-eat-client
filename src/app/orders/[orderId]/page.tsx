@@ -120,109 +120,109 @@ export default function OrderDetailPage() {
   const normalizedItems = React.useMemo(() => normalizeItems(order?.items ?? []), [order?.items]);
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-32">
+    <main className="ui-page min-h-screen pb-32">
       <div className="mx-auto w-full max-w-3xl px-4 pt-6 space-y-5">
         <header className="space-y-3">
           <button
             type="button"
             onClick={() => router.push('/orders')}
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+            className="ui-btn-secondary inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold"
           >
             <ArrowLeft className="w-4 h-4" />
             Volver a pedidos
           </button>
 
           <div>
-            <h1 className="text-2xl font-black text-gray-900">Detalle del pedido</h1>
-            <p className="text-sm text-gray-500">Incluye estado, productos y todas las pujas registradas.</p>
+            <h1 className="text-2xl font-black">Detalle del pedido</h1>
+            <p className="ui-text-muted text-sm">Incluye estado, productos y todas las pujas registradas.</p>
           </div>
         </header>
 
         {loading && (
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600 flex items-center gap-2">
+          <div className="ui-panel ui-text-muted flex items-center gap-2 rounded-2xl p-5 text-sm">
             <Loader2 className="w-4 h-4 animate-spin" />
             Cargando detalle...
           </div>
         )}
 
-        {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">{error}</div>}
+        {error && <div className="ui-state-danger rounded-2xl p-5 text-sm">{error}</div>}
 
         {!loading && !error && !order && (
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600">
+          <div className="ui-panel ui-text-muted rounded-2xl p-5 text-sm">
             No encontramos información para este pedido.
           </div>
         )}
 
         {!loading && !error && order && (
           <>
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 space-y-3">
+            <section className="ui-panel rounded-2xl p-5 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <h2 className="text-lg font-black text-gray-900">{order.orderNumber ?? order.id.slice(0, 8)}</h2>
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                <h2 className="text-lg font-black">{order.orderNumber ?? order.id.slice(0, 8)}</h2>
+                <span className="ui-chip-brand rounded-full px-3 py-1 text-xs font-bold">
                   {order.statusLabel ?? order.statusCode ?? 'Sin estado'}
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
-                <p className="inline-flex items-center gap-2"><Store className="w-4 h-4 text-gray-500" />{order.restaurant?.name ?? 'Restaurante'}</p>
-                <p className="inline-flex items-center gap-2"><Clock3 className="w-4 h-4 text-gray-500" />{new Date(order.createdAt).toLocaleString('es-CR')}</p>
-                <p className="inline-flex items-center gap-2"><Wallet className="w-4 h-4 text-gray-500" />{order.paymentMethod ?? 'Método no disponible'}</p>
-                <p className="inline-flex items-center gap-2"><ClipboardList className="w-4 h-4 text-gray-500" />₡{Math.round(order.total).toLocaleString()}</p>
+              <div className="ui-text-muted grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <p className="inline-flex items-center gap-2"><Store className="h-4 w-4" />{order.restaurant?.name ?? 'Restaurante'}</p>
+                <p className="inline-flex items-center gap-2"><Clock3 className="h-4 w-4" />{new Date(order.createdAt).toLocaleString('es-CR')}</p>
+                <p className="inline-flex items-center gap-2"><Wallet className="h-4 w-4" />{order.paymentMethod ?? 'Método no disponible'}</p>
+                <p className="inline-flex items-center gap-2"><ClipboardList className="h-4 w-4" />₡{Math.round(order.total).toLocaleString()}</p>
               </div>
 
-              <p className="text-sm text-gray-700 inline-flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
+              <p className="ui-text-muted inline-flex items-start gap-2 text-sm">
+                <MapPin className="mt-0.5 h-4 w-4" />
                 {order.deliveryAddress ?? 'Sin dirección registrada'}
               </p>
 
-              {order.notes ? <p className="text-sm text-gray-600">Notas: {order.notes}</p> : null}
+              {order.notes ? <p className="ui-text-muted text-sm">Notas: {order.notes}</p> : null}
             </section>
 
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 space-y-3">
-              <h3 className="text-sm font-black text-gray-900">Productos del pedido</h3>
+            <section className="ui-panel rounded-2xl p-5 space-y-3">
+              <h3 className="text-sm font-black">Productos del pedido</h3>
               {normalizedItems.length === 0 ? (
-                <p className="text-sm text-gray-600">No hay detalle de productos para este pedido.</p>
+                <p className="ui-text-muted text-sm">No hay detalle de productos para este pedido.</p>
               ) : (
                 <div className="space-y-2">
                   {normalizedItems.map((item, index) => (
-                    <article key={`${item.name}-${index}`} className="rounded-xl border border-gray-200 p-3">
+                    <article key={`${item.name}-${index}`} className="ui-panel-soft rounded-xl p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-bold text-gray-900">{item.name}</p>
-                        <p className="text-xs text-gray-600">x{item.quantity}</p>
+                        <p className="text-sm font-bold">{item.name}</p>
+                        <p className="ui-text-muted text-xs">x{item.quantity}</p>
                       </div>
-                      {item.price != null ? <p className="text-xs text-gray-600">₡{Math.round(item.price).toLocaleString()}</p> : null}
-                      {item.notes ? <p className="text-xs text-gray-500">{item.notes}</p> : null}
+                      {item.price != null ? <p className="ui-text-muted text-xs">₡{Math.round(item.price).toLocaleString()}</p> : null}
+                      {item.notes ? <p className="ui-text-muted text-xs">{item.notes}</p> : null}
                     </article>
                   ))}
                 </div>
               )}
             </section>
 
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 space-y-3">
-              <h3 className="text-sm font-black text-gray-900 inline-flex items-center gap-2">
-                <Gavel className="w-4 h-4 text-indigo-600" />
+            <section className="ui-panel rounded-2xl p-5 space-y-3">
+              <h3 className="inline-flex items-center gap-2 text-sm font-black">
+                <Gavel className="h-4 w-4 text-[var(--color-brand)]" />
                 Pujas del pedido
               </h3>
 
               {order.bids.length === 0 ? (
-                <p className="text-sm text-gray-600">No hay pujas registradas para este pedido.</p>
+                <p className="ui-text-muted text-sm">No hay pujas registradas para este pedido.</p>
               ) : (
                 <div className="space-y-2">
                   {order.bids.map((bid) => (
-                    <article key={bid.id} className="rounded-xl border border-indigo-100 bg-indigo-50 p-3 space-y-1">
+                    <article key={bid.id} className="ui-panel-soft rounded-xl p-3 space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-black text-indigo-900">Puja {bid.id.slice(0, 8)}</p>
-                        <span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-indigo-700">{bid.status || 'unknown'}</span>
+                        <p className="text-xs font-black">Puja {bid.id.slice(0, 8)}</p>
+                        <span className="ui-chip-brand rounded-full px-2 py-1 text-[10px] font-bold">{bid.status || 'unknown'}</span>
                       </div>
-                      <div className="flex flex-wrap gap-3 text-xs text-indigo-800">
+                      <div className="ui-text-muted flex flex-wrap gap-3 text-xs">
                         <span>Oferta: ₡{Math.round(bid.driverOffer).toLocaleString()}</span>
                         <span>Base: ₡{Math.round(bid.basePrice).toLocaleString()}</span>
                         {bid.finalPrice > 0 ? <span>Final: ₡{Math.round(bid.finalPrice).toLocaleString()}</span> : null}
                         {bid.estimatedTimeMinutes != null ? <span>ETA: {bid.estimatedTimeMinutes} min</span> : null}
                         {bid.driverRatingSnapshot != null ? <span>Rating: {bid.driverRatingSnapshot.toFixed(1)}</span> : null}
                       </div>
-                      {bid.driverNotes ? <p className="text-xs text-indigo-700">{bid.driverNotes}</p> : null}
-                      <p className="text-[11px] text-indigo-700">{new Date(bid.createdAt).toLocaleString('es-CR')}</p>
+                      {bid.driverNotes ? <p className="ui-text-muted text-xs">{bid.driverNotes}</p> : null}
+                      <p className="ui-text-muted text-[11px]">{new Date(bid.createdAt).toLocaleString('es-CR')}</p>
                     </article>
                   ))}
                 </div>

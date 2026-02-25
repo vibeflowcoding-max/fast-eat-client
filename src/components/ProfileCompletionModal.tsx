@@ -12,6 +12,7 @@ interface ProfileCompletionModalProps {
   onRequestLocation: () => void;
   onEnterAddressManually?: (value: { name: string; phone: string }) => void;
   onContinue: (value: { name: string; phone: string }) => Promise<void>;
+  onLater: () => void;
   onClose: () => void;
 }
 
@@ -32,6 +33,7 @@ export default function ProfileCompletionModal({
   onRequestLocation,
   onEnterAddressManually,
   onContinue,
+  onLater,
   onClose
 }: ProfileCompletionModalProps) {
   const [name, setName] = React.useState(initialName ?? '');
@@ -107,7 +109,14 @@ export default function ProfileCompletionModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className="max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-white p-4 sm:max-w-md sm:rounded-2xl">
         <h2 className="text-lg font-semibold text-gray-900">Complete your profile</h2>
         <p className="mt-1 text-sm text-gray-500">Add your details so we can improve delivery experience.</p>
@@ -179,7 +188,7 @@ export default function ProfileCompletionModal({
         <div className="mt-4 flex items-center justify-end gap-2">
           <button
             type="button"
-            onClick={onClose}
+            onClick={onLater}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
           >
             Later

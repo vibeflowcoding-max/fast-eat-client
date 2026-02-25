@@ -12,7 +12,7 @@ interface CategoryBarProps {
 export default function CategoryBar({ categories, selectedCategoryId, onSelectCategory }: CategoryBarProps) {
     return (
         <div className="w-full overflow-x-auto scrollbar-hide">
-            <div className="flex gap-4 px-4 py-3 min-w-max">
+            <div className="flex gap-4 px-4 pt-3 pb-4 min-w-max">
                 {/* All categories button */}
                 <button
                     onClick={() => onSelectCategory(null)}

@@ -14,7 +14,7 @@ const Hero: React.FC<HeroProps> = ({ restaurantInfo }) => {
                 alt="Hero"
             />
             <div className="absolute inset-0 hero-overlay flex flex-col items-center justify-center text-white text-center p-4">
-                <span className="text-red-500 text-xl md:text-5xl mb-1 md:mb-4 font-bold tracking-widest">
+                <span className="text-[var(--color-brand)] text-xl md:text-5xl mb-1 md:mb-4 font-bold tracking-widest">
                     {restaurantInfo ? "RESTAURANTE" : ""}
                 </span>
                 <h1 className="text-3xl md:text-8xl font-black tracking-tighter uppercase">

@@ -85,7 +85,6 @@ const SEARCH_SUGGESTION_DEBOUNCE_MS = 280;
 const MAX_VISIBLE_SUGGESTIONS = 8;
 const MAX_RECOVERY_ALTERNATIVES = 3;
 const MAX_RECOVERY_CATEGORIES = 4;
-const PROFILE_PROMPT_RESHOW_MS = 24 * 60 * 60 * 1000;
 
 function normalizeSearchValue(value: string): string {
     return value.trim().toLowerCase();
@@ -111,6 +110,7 @@ export default function HomePage() {
     const isSearchSuggestionsV1Enabled = process.env.NEXT_PUBLIC_HOME_SEARCH_SUGGESTIONS_V1?.toLowerCase() !== 'false';
     const isSurpriseMeEnabled = process.env.NEXT_PUBLIC_HOME_SURPRISE_ME?.toLowerCase() !== 'false';
     const isPredictiveReorderEnabled = process.env.NEXT_PUBLIC_HOME_PREDICTIVE_REORDER?.toLowerCase() !== 'false';
+    const isStoryMenusEnabled = process.env.NEXT_PUBLIC_HOME_STORY_MENUS?.toLowerCase() !== 'false';
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
     const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
@@ -301,11 +301,7 @@ export default function HomePage() {
             return false;
         }
 
-        if (!profilePromptDismissedAt) {
-            return true;
-        }
-
-        return Date.now() - profilePromptDismissedAt > PROFILE_PROMPT_RESHOW_MS;
+        return !profilePromptDismissedAt;
     }, [isProfileIncomplete, profilePromptDismissedAt]);
 
     const hasTrackedProfilePromptImpression = React.useRef(false);
@@ -734,6 +730,12 @@ export default function HomePage() {
         return 'default' as const;
     }, [activeIntent, searchQuery, selectedCategoryId]);
 
+    const openBannerFallbackDiscovery = React.useCallback(() => {
+        clearSearch();
+        setActiveIntent(null);
+        router.push('/search');
+    }, [clearSearch, router]);
+
     if (categoriesLoading) {
         return <LoadingScreen />;
     }
@@ -827,7 +829,14 @@ export default function HomePage() {
 
             {/* Main Content */}
             <main className="px-4 py-6">
-                <DynamicPromoBanner />
+                <DynamicPromoBanner
+                    onPromoClick={() => {
+                        clearSearch();
+                        setSelectedCategoryId(null);
+                        setActiveIntent('promotions');
+                        router.push('/search');
+                    }}
+                />
 
                 {isPredictiveReorderEnabled && (
                     <PredictivePrompt
@@ -835,12 +844,29 @@ export default function HomePage() {
                             const selectedRestaurant = restaurants.find((restaurant) => restaurant.id === restaurantId);
                             if (selectedRestaurant?.slug) {
                                 router.push(`/${selectedRestaurant.slug}`);
+                                return true;
                             }
+
+                            emitHomeEvent({
+                                name: 'home_banner_fallback_shown',
+                                banner_id: 'predictive',
+                                fallback_type: 'missing_target'
+                            });
+
+                            openBannerFallbackDiscovery();
+                            return false;
+                        }}
+                        onFallbackClick={() => {
+                            openBannerFallbackDiscovery();
                         }}
                     />
                 )}
 
-                <StoryMenuFeed />
+                {isStoryMenusEnabled && (
+                    <div className="mt-2">
+                        <StoryMenuFeed />
+                    </div>
+                )}
 
                 <ActivityFeed />
 
@@ -903,9 +929,13 @@ export default function HomePage() {
                     setIsAddressModalOpen(true);
                 }}
                 onContinue={handleProfileContinue}
-                onClose={() => {
+                onLater={() => {
                     setIsProfileModalOpen(false);
                     setProfilePromptDismissedAt(Date.now());
+                    emitHomeEvent({ name: 'profile_prompt_dismiss' });
+                }}
+                onClose={() => {
+                    setIsProfileModalOpen(false);
                 }}
             />
 

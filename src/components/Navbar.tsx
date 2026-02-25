@@ -59,13 +59,13 @@ const Navbar: React.FC<NavbarProps> = ({
     );
 
     return (
-        <div className="sticky top-0 bg-white shadow-2xl z-50 border-b border-gray-100">
+        <div className="sticky top-0 ui-panel shadow-2xl z-50 border-b">
             <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col">
                 <div className="flex items-center justify-between py-3 md:py-4">
                     <div className="flex items-center gap-3 md:gap-4 overflow-visible no-scrollbar scroll-smooth flex-nowrap pr-4 -mr-4 md:pr-0 md:mr-0">
                         <button
                             onClick={onShowHistory}
-                            className="flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all shrink-0 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
+                            className="ui-btn-secondary flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all shrink-0 focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
                             aria-label="Rastreo de pedidos"
                         >
                             <Package className="w-5 h-5" strokeWidth={2.5} />
@@ -73,7 +73,7 @@ const Navbar: React.FC<NavbarProps> = ({
                         <button
                             type="button"
                             onClick={onChangeUser}
-                            className="flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full bg-violet-50 text-violet-600 hover:bg-violet-100 transition-all shrink-0 focus:ring-2 focus:ring-violet-500 focus:outline-none shadow-sm"
+                            className="ui-btn-secondary flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all shrink-0 focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
                             aria-label="Cambiar usuario"
                         >
                             <User className="w-5 h-5" strokeWidth={2.5} fill="currentColor" />
@@ -82,12 +82,12 @@ const Navbar: React.FC<NavbarProps> = ({
                             <button
                                 type="button"
                                 onClick={() => setIsTrayOpen((current) => !current)}
-                                className="relative flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full bg-amber-50 text-amber-500 hover:bg-amber-100 transition-all focus:ring-2 focus:ring-amber-500 focus:outline-none shadow-sm"
+                                className="ui-btn-secondary relative flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
                                 aria-label="Abrir notificaciones de ofertas"
                             >
                                 <Zap className="w-5 h-5" strokeWidth={2.5} fill="currentColor" />
                                 {unreadCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center border-2 border-white font-bold shadow-sm">
+                                    <span className="absolute -top-1 -right-1 ui-btn-primary text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center border-2 border-white font-bold shadow-sm">
                                         {unreadCount}
                                     </span>
                                 )}
@@ -111,12 +111,12 @@ const Navbar: React.FC<NavbarProps> = ({
 
                     <button
                         onClick={onOpenCart}
-                        className={`relative flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-full transition-all shrink-0 ml-4 md:ml-0 shadow-sm ${cartLength > 0 ? 'bg-emerald-500 text-white shadow-emerald-200 shadow-lg hover:bg-emerald-600 hover:scale-105 active:scale-95' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
+                        className={`relative flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-full transition-all shrink-0 ml-4 md:ml-0 shadow-sm ${cartLength > 0 ? 'ui-btn-primary shadow-red-200 shadow-lg hover:scale-105 active:scale-95' : 'ui-btn-secondary'}`}
                         aria-label="Mi Pedido"
                     >
                         <ShoppingCart className="w-6 h-6" strokeWidth={2.5} fill={cartLength > 0 ? "currentColor" : "none"} />
                         {totalItemsCount > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[11px] min-w-[22px] h-[22px] rounded-full flex items-center justify-center border-2 border-white shadow-sm font-bold">
+                            <span className="absolute -top-1 -right-1 ui-btn-primary text-[11px] min-w-[22px] h-[22px] rounded-full flex items-center justify-center border-2 border-white shadow-sm font-bold">
                                 {totalItemsCount}
                             </span>
                         )}
@@ -158,7 +158,7 @@ const Navbar: React.FC<NavbarProps> = ({
                                     key={cat}
                                     data-cat={cat}
                                     onClick={() => setActiveCategory(cat)}
-                                    className={`px-5 md:px-10 py-2.5 md:py-4 rounded-xl transition-all text-[9px] md:text-[11px] font-black uppercase tracking-widest border-2 flex-shrink-0 ${activeCategory === cat ? 'bg-red-600 text-white border-red-600 shadow-xl scale-105' : 'text-gray-400 border-transparent bg-gray-50 hover:bg-gray-100 hover:text-gray-900'}`}
+                                    className={`px-5 md:px-10 py-2.5 md:py-4 rounded-xl transition-all text-[9px] md:text-[11px] font-black uppercase tracking-widest border-2 flex-shrink-0 ${activeCategory === cat ? 'ui-btn-primary border-transparent shadow-xl scale-105' : 'ui-btn-secondary ui-text-muted'}`}
                                 >
                                     {cat}
                                 </button>

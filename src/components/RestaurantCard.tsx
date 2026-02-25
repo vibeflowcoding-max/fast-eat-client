@@ -38,8 +38,6 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
     const primaryBranch = restaurant.branches?.[0];
     const imageUrl = primaryBranch?.image_url || restaurant.logo_url || '/placeholder-restaurant.svg';
     const categoryNames = restaurant.categories?.map(c => c.name).join(', ') || 'Restaurante';
-    const metricErrors = getMetricErrors(restaurant);
-    const hasMetricErrors = metricErrors.length > 0;
     const etaMinutes = restaurant.eta_min;
     const finalPriceEstimate = restaurant.avg_price_estimate;
     const rating = restaurant.rating;
@@ -110,39 +108,42 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
 
             <p className="truncate text-sm text-gray-500">{categoryNames}</p>
 
-            {hasMetricErrors ? (
-                <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-2 py-2 text-xs text-red-700">
-                    <p className="font-semibold">Error de datos de restaurante</p>
-                    <p className="mt-1">Faltan métricas obligatorias: {metricErrors.join(', ')}.</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[10px] md:text-xs text-gray-500 font-medium">
+                <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
+                    <Clock size={10} className="text-gray-400" />
+                    <span className="text-gray-900 font-bold">
+                        {typeof etaMinutes === 'number' && etaMinutes > 0
+                            ? `${etaMinutes}-${etaMinutes + 10} min`
+                            : 'ETA por confirmar'}
+                    </span>
                 </div>
-            ) : (
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[10px] md:text-xs text-gray-500 font-medium">
-                    {typeof etaMinutes === 'number' && etaMinutes > 0 && (
-                        <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
-                            <Clock size={10} className="text-gray-400" />
-                            <span className="text-gray-900 font-bold">{etaMinutes}-{etaMinutes + 10} min</span>
-                        </div>
-                    )}
+                <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
+                    <span className="text-gray-400 font-bold">₡</span>
+                    <span>
+                        {typeof finalPriceEstimate === 'number' && finalPriceEstimate > 0
+                            ? `${finalPriceEstimate.toLocaleString()} aprox`
+                            : 'Ticket por confirmar'}
+                    </span>
+                </div>
+                <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
+                    <Truck size={10} className="text-gray-400" />
+                    <span>
+                        {typeof deliveryFeeHint === 'number' && deliveryFeeHint > 0
+                            ? `₡${deliveryFeeHint.toLocaleString()}`
+                            : 'Gratis'}
+                    </span>
+                </div>
+                {reviewCount && reviewCount > 0 && (
                     <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
-                        <Truck size={10} className="text-gray-400" />
-                        <span>
-                            {typeof deliveryFeeHint === 'number' && deliveryFeeHint > 0
-                                ? `₡${deliveryFeeHint.toLocaleString()}`
-                                : 'Gratis'}
-                        </span>
+                        <Star size={10} className="text-amber-400 fill-amber-400" />
+                        <span>{reviewCount}+</span>
                     </div>
-                    {reviewCount && reviewCount > 0 && (
-                        <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
-                            <Star size={10} className="text-amber-400 fill-amber-400" />
-                            <span>{reviewCount}+</span>
-                        </div>
-                    )}
-                    <div className="flex items-center gap-1 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-md text-emerald-700">
-                        <ShieldCheck size={10} className="text-emerald-500" />
-                        <span className="font-bold uppercase tracking-tighter text-[8px]">Seguro</span>
-                    </div>
+                )}
+                <div className="flex items-center gap-1 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-md text-emerald-700">
+                    <ShieldCheck size={10} className="text-emerald-500" />
+                    <span className="font-bold uppercase tracking-tighter text-[8px]">Seguro</span>
                 </div>
-            )}
+            </div>
         </div>
     );
 

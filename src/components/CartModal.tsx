@@ -64,28 +64,28 @@ const CartModal: React.FC<CartModalProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
-            <div className="bg-[#fdfcf0] w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh] relative">
+            <div className="ui-page w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh] relative">
                 {(isSyncing || isOrdering) && (
                     <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-[110] flex items-center justify-center rounded-[2rem]">
-                        <div className="w-12 h-12 border-4 border-black border-t-red-600 rounded-full animate-spin"></div>
+                        <div className="w-12 h-12 border-4 border-black border-t-[var(--color-brand)] rounded-full animate-spin"></div>
                     </div>
                 )}
-                <div className="p-5 md:p-8 bg-white border-b-4 border-gray-100 flex justify-between items-center">
-                    <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter">Finalizar Pedido</h3>
-                    <button onClick={onClose} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-black font-black hover:bg-gray-200 transition-colors">✕</button>
+                <div className="ui-panel p-5 md:p-8 border-b-4 flex justify-between items-center">
+                    <h3 className="text-xl font-black uppercase tracking-tighter">Finalizar Pedido</h3>
+                    <button onClick={onClose} className="ui-btn-secondary w-10 h-10 rounded-full flex items-center justify-center font-black transition-colors">✕</button>
                 </div>
                 <div className="flex-grow overflow-y-auto p-5 md:p-8 space-y-4">
                     <GroupCartWidget />
                     {cart.length === 0 && (!groupSessionId || groupParticipants.length === 0) ? (
                         <div className="flex flex-col items-center py-20">
                             <span className="text-6xl mb-4">🍱</span>
-                            <p className="text-gray-400 font-black uppercase tracking-widest text-xs">Tu pedido está vacío</p>
+                            <p className="ui-text-muted font-black uppercase tracking-widest text-xs">Tu pedido está vacío</p>
                         </div>
                     ) : groupSessionId && groupParticipants.length > 0 ? (
                         <div className="space-y-6">
                             {groupParticipants.map(participant => (
                                 <div key={participant.id} className="space-y-2">
-                                    <h4 className="font-bold text-sm text-gray-500 uppercase tracking-wider border-b pb-1">
+                                    <h4 className="ui-text-muted font-bold text-sm uppercase tracking-wider border-b pb-1">
                                         {participant.name} {participant.isHost ? '(Organizador)' : ''}
                                     </h4>
                                     {participant.items.map((item, idx) => (
@@ -102,7 +102,7 @@ const CartModal: React.FC<CartModalProps> = ({
                                             }}
                                         />
                                     ))}
-                                    {participant.items.length === 0 && <p className="text-xs text-gray-400 italic">No ha agregado productos</p>}
+                                    {participant.items.length === 0 && <p className="ui-text-muted text-xs italic">No ha agregado productos</p>}
                                 </div>
                             ))}
                         </div>
@@ -132,12 +132,12 @@ const CartModal: React.FC<CartModalProps> = ({
                         />
                     )}
                 </div>
-                <div className="p-5 md:p-8 bg-white border-t-4 border-gray-100 space-y-3">
+                <div className="ui-panel p-5 md:p-8 border-t-4 space-y-3">
                     {groupSessionId && groupParticipants.length > 1 && (
                         <button
                             onClick={() => setShowBillSplitter(true)}
                             disabled={cart.length === 0}
-                            className={`w-full py-4 rounded-2xl font-bold uppercase tracking-wider text-xs border-2 transition-all active:scale-95 ${cart.length > 0 ? 'border-gray-900 text-gray-900 hover:bg-gray-50' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}
+                            className={`w-full py-4 rounded-2xl font-bold uppercase tracking-wider text-xs border-2 transition-all active:scale-95 ${cart.length > 0 ? 'ui-btn-secondary' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}
                         >
                             Dividir Cuenta 🧮
                         </button>
@@ -145,7 +145,7 @@ const CartModal: React.FC<CartModalProps> = ({
                     <button
                         onClick={onPlaceOrder}
                         disabled={cart.length === 0 || !isOrderFormValid() || isOrdering}
-                        className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-2xl transition-all active:scale-95 ${cart.length > 0 && isOrderFormValid() ? 'bg-black text-white hover:bg-red-600' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
+                        className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-2xl transition-all active:scale-95 ${cart.length > 0 && isOrderFormValid() ? 'ui-btn-primary' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
                     >
                         {isOrdering ? 'Procesando...' : 'Confirmar Pedido ⛩️'}
                     </button>

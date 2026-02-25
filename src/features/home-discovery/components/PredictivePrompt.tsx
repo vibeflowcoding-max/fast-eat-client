@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Clock, ArrowRight, X } from 'lucide-react';
+import { Clock, X } from 'lucide-react';
+import { emitHomeEvent } from '@/features/home-discovery/analytics';
 
 interface PredictiveReorderResponse {
     should_prompt: boolean;
@@ -12,17 +13,55 @@ interface PredictiveReorderResponse {
 }
 
 interface PredictivePromptProps {
-    onReorderClick?: (restaurantId: string, itemId: string) => void;
+    onReorderClick?: (restaurantId: string, itemId: string) => boolean | void | Promise<boolean | void>;
+    onFallbackClick?: () => void;
 }
 
-export default function PredictivePrompt({ onReorderClick }: PredictivePromptProps) {
+const PREDICTIVE_DISMISS_SESSION_KEY = 'home_banner_predictive_dismissed_v1';
+
+export default function PredictivePrompt({ onReorderClick, onFallbackClick }: PredictivePromptProps) {
     const [isVisible, setIsVisible] = useState(false);
     const [prediction, setPrediction] = useState<PredictiveReorderResponse | null>(null);
     const [isDismissed, setIsDismissed] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isActing, setIsActing] = useState(false);
+    const [fallbackType, setFallbackType] = useState<'offline' | 'api_error' | null>(null);
+    const [hasTrackedImpression, setHasTrackedImpression] = useState(false);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        if (window.sessionStorage.getItem(PREDICTIVE_DISMISS_SESSION_KEY) === '1') {
+            setIsDismissed(true);
+            setIsVisible(false);
+            setIsLoading(false);
+            emitHomeEvent({
+                name: 'home_banner_dismiss',
+                banner_id: 'predictive',
+                dismiss_reason: 'session_restored'
+            });
+        }
+    }, []);
 
     useEffect(() => {
         // If already dismissed in this session, don't check again
-        if (isDismissed) return;
+        if (isDismissed) {
+            return;
+        }
+
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            setFallbackType('offline');
+            setIsVisible(true);
+            setIsLoading(false);
+            emitHomeEvent({
+                name: 'home_banner_fallback_shown',
+                banner_id: 'predictive',
+                fallback_type: 'offline'
+            });
+            return;
+        }
 
         const checkPrediction = async () => {
             try {
@@ -41,60 +80,200 @@ export default function PredictivePrompt({ onReorderClick }: PredictivePromptPro
                     })
                 });
 
-                if (!response.ok) return;
+                if (!response.ok) {
+                    setFallbackType('api_error');
+                    setIsVisible(true);
+                    setIsLoading(false);
+                    emitHomeEvent({
+                        name: 'home_banner_fallback_shown',
+                        banner_id: 'predictive',
+                        fallback_type: 'api_error'
+                    });
+                    return;
+                }
 
                 const data: PredictiveReorderResponse = await response.json();
 
-                if (data.should_prompt && data.confidence > 0.7 && data.restaurantId && data.itemId) {
+                if (data.should_prompt && data.confidence > 0.7) {
                     setPrediction(data);
                     setIsVisible(true);
+                    setFallbackType(null);
+                } else {
+                    setPrediction(null);
+                    setIsVisible(false);
                 }
+
+                setIsLoading(false);
             } catch (error) {
                 console.error('[PredictivePrompt] Failed to fetch prediction:', error);
+                setFallbackType('api_error');
+                setIsVisible(true);
+                setIsLoading(false);
+                emitHomeEvent({
+                    name: 'home_banner_fallback_shown',
+                    banner_id: 'predictive',
+                    fallback_type: 'api_error'
+                });
             }
         };
 
         checkPrediction();
     }, [isDismissed]);
 
-    if (!isVisible || !prediction || !prediction.restaurantId || !prediction.itemId || isDismissed) {
+    useEffect(() => {
+        if (!isVisible || isLoading || hasTrackedImpression) {
+            return;
+        }
+
+        emitHomeEvent({
+            name: 'home_banner_impression',
+            banner_id: 'predictive',
+            prediction_confidence: prediction?.confidence
+        });
+        setHasTrackedImpression(true);
+    }, [hasTrackedImpression, isLoading, isVisible, prediction?.confidence]);
+
+    const handleDismiss = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        setIsDismissed(true);
+        setIsVisible(false);
+        if (typeof window !== 'undefined') {
+            window.sessionStorage.setItem(PREDICTIVE_DISMISS_SESSION_KEY, '1');
+        }
+
+        emitHomeEvent({
+            name: 'home_banner_dismiss',
+            banner_id: 'predictive',
+            dismiss_reason: 'user_close'
+        });
+    };
+
+    const handleFallbackAction = (type: 'offline' | 'api_error' | 'missing_target') => {
+        setIsActing(true);
+        emitHomeEvent({
+            name: 'home_banner_click',
+            banner_id: 'predictive',
+            target_type: 'fallback_discovery',
+            prediction_confidence: prediction?.confidence
+        });
+        emitHomeEvent({
+            name: 'home_banner_fallback_shown',
+            banner_id: 'predictive',
+            fallback_type: type
+        });
+        onFallbackClick?.();
+
+        window.setTimeout(() => {
+            setIsActing(false);
+        }, 1200);
+    };
+
+    const handlePrimaryAction = async () => {
+        setIsActing(true);
+
+        if (!prediction) {
+            handleFallbackAction(fallbackType ?? 'api_error');
+            return;
+        }
+
+        if (!prediction.restaurantId || !prediction.itemId) {
+            handleFallbackAction('missing_target');
+            return;
+        }
+
+        emitHomeEvent({
+            name: 'home_banner_click',
+            banner_id: 'predictive',
+            target_type: 'reorder',
+            restaurant_id: prediction.restaurantId,
+            item_id: prediction.itemId,
+            prediction_confidence: prediction.confidence
+        });
+
+        const actionResult = await Promise.resolve(onReorderClick?.(prediction.restaurantId, prediction.itemId));
+        if (actionResult === false) {
+            setIsActing(false);
+            return;
+        }
+
+        emitHomeEvent({
+            name: 'home_banner_conversion',
+            banner_id: 'predictive',
+            conversion_type: 'visit_restaurant',
+            restaurant_id: prediction.restaurantId,
+            item_id: prediction.itemId
+        });
+    };
+
+    if (!isVisible || isDismissed) {
         return null;
     }
 
+    const headline = fallbackType
+        ? 'No pudimos preparar tu sugerencia'
+        : 'Sugerencia para ti';
+
+    const message = fallbackType === 'offline'
+        ? 'Sin conexión. Te mostramos opciones para explorar.'
+        : fallbackType === 'api_error'
+            ? 'Hubo un problema temporal. Toca para ver opciones similares.'
+            : prediction?.prompt_message || '¿Lo de siempre? ¡Pídelo con 1 clic!';
+
+    const displayMessage = isActing ? 'Abriendo opciones para ti...' : message;
+
     return (
-        <div className="mx-4 mt-6 animate-in slide-in-from-top-4 fade-in duration-500">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-4 shadow-lg shadow-blue-900/20 relative overflow-hidden group">
+        <div className="mx-4 mt-6 mb-5 animate-in slide-in-from-top-4 fade-in duration-500">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-4 pr-12 shadow-lg shadow-blue-900/20 relative overflow-hidden group">
                 {/* Decorative background circle */}
                 <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700" />
 
                 <button
-                    onClick={() => setIsDismissed(true)}
-                    className="absolute top-2 right-2 p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-colors z-10"
+                    onClick={handleDismiss}
+                    className="absolute top-2.5 right-2.5 shrink-0 bg-white/20 hover:bg-white/30 rounded-full w-9 h-9 flex items-center justify-center transition-colors text-xs font-bold cursor-pointer z-20"
+                    aria-label="Cerrar sugerencia"
                 >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4 text-white/90" />
                 </button>
 
-                <div className="flex items-center gap-4 relative z-10">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shrink-0 border border-white/20">
-                        <Clock className="w-6 h-6 text-white" />
+                {isLoading ? (
+                    <div className="relative z-10 flex items-center gap-4 opacity-90" aria-busy="true">
+                        <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shrink-0 border border-white/20">
+                            <Clock className="w-6 h-6 text-white animate-pulse" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-blue-100 text-xs font-semibold uppercase tracking-wider mb-0.5">
+                                Sugerencia para ti
+                            </p>
+                            <h3 className="text-white font-bold text-sm leading-snug">
+                                Preparando tu recomendación...
+                            </h3>
+                        </div>
                     </div>
-
-                    <div className="flex-1">
-                        <p className="text-blue-100 text-xs font-semibold uppercase tracking-wider mb-0.5">
-                            Sugerencia para ti
-                        </p>
-                        <h3 className="text-white font-bold text-sm leading-snug">
-                            {prediction.prompt_message || '¡Hora de repetir tu última orden!'}
-                        </h3>
-                    </div>
-
+                ) : (
                     <button
-                        onClick={() => onReorderClick?.(prediction.restaurantId!, prediction.itemId!)}
-                        className="shrink-0 bg-white text-blue-600 w-10 h-10 rounded-full flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all"
+                        type="button"
+                        onClick={fallbackType ? () => handleFallbackAction(fallbackType) : () => {
+                            void handlePrimaryAction();
+                        }}
+                        disabled={isActing}
+                        className="w-full text-left relative z-10 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:opacity-80"
                     >
-                        <ArrowRight className="w-5 h-5" />
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shrink-0 border border-white/20">
+                                <Clock className="w-6 h-6 text-white" />
+                            </div>
+
+                            <div className="flex-1">
+                                <p className="text-blue-100 text-xs font-semibold uppercase tracking-wider mb-0.5">
+                                    {headline}
+                                </p>
+                                <h3 className="text-white font-bold text-sm leading-snug">
+                                    {displayMessage}
+                                </h3>
+                            </div>
+                        </div>
                     </button>
-                </div>
+                )}
             </div>
         </div>
     );
