@@ -11,5 +11,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(
   supabaseUrl || fallbackSupabaseUrl,
-  supabaseAnonKey || fallbackSupabaseAnonKey
+  supabaseAnonKey || fallbackSupabaseAnonKey,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce',
+      storageKey: 'fast-eat-client-auth'
+    }
+  }
 );

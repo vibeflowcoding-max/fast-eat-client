@@ -28,6 +28,18 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
 
+    const requestUrl = new URL(event.request.url);
+    const isAuthSensitiveApi =
+        requestUrl.pathname.startsWith('/api/auth/') ||
+        requestUrl.pathname.startsWith('/api/consumer/me/') ||
+        requestUrl.pathname.startsWith('/api/customer/profile') ||
+        requestUrl.pathname.startsWith('/api/orders/history');
+
+    if (isAuthSensitiveApi) {
+        event.respondWith(fetch(event.request));
+        return;
+    }
+
     event.respondWith(
         fetch(event.request)
             .then((response) => {

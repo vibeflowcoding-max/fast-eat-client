@@ -32,6 +32,16 @@ interface CartState {
   } | null;
   profilePromptDismissedAt: number | null;
   dietaryProfile: import('./types').DietaryProfile | null;
+  authUserId: string | null;
+  authEmail: string | null;
+  isAuthenticated: boolean;
+  authHydrated: boolean;
+  clientContext: {
+    favorites: string[];
+    recentSearches: Array<{ id: string; query: string; created_at: string }>;
+    orderHistorySummary: { total: number; recent: any[] } | null;
+    settings: { shareActivity: boolean; dietaryProfile: any } | null;
+  } | null;
 
   // Group Cart State
   groupSessionId: string | null;
@@ -73,6 +83,18 @@ interface CartState {
   setCustomerAddress: (address: CartState['customerAddress']) => void;
   setProfilePromptDismissedAt: (value: number | null) => void;
   setDietaryProfile: (profile: import('./types').DietaryProfile | null) => void;
+  setAuthSession: (payload: { userId: string; email: string | null }) => void;
+  clearAuthSession: () => void;
+  setAuthHydrated: (value: boolean) => void;
+  hydrateClientContext: (payload: {
+    customerName?: string | null;
+    customerPhone?: string | null;
+    customerAddress?: CartState['customerAddress'];
+    favorites?: string[];
+    recentSearches?: Array<{ id: string; query: string; created_at: string }>;
+    orderHistorySummary?: { total: number; recent: any[] } | null;
+    settings?: { shareActivity: boolean; dietaryProfile: any } | null;
+  }) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -95,6 +117,11 @@ export const useCartStore = create<CartState>()(
       customerAddress: null,
       profilePromptDismissedAt: null,
       dietaryProfile: null,
+      authUserId: null,
+      authEmail: null,
+      isAuthenticated: false,
+      authHydrated: false,
+      clientContext: null,
 
       // Group Cart Initial State
       groupSessionId: null,
@@ -289,7 +316,30 @@ export const useCartStore = create<CartState>()(
       setOnboarded: (value) => set({ isOnboarded: value }),
       setCustomerAddress: (address) => set({ customerAddress: address }),
       setProfilePromptDismissedAt: (value) => set({ profilePromptDismissedAt: value }),
-      setDietaryProfile: (profile) => set({ dietaryProfile: profile })
+      setDietaryProfile: (profile) => set({ dietaryProfile: profile }),
+      setAuthSession: ({ userId, email }) => set({
+        authUserId: userId,
+        authEmail: email,
+        isAuthenticated: true,
+      }),
+      clearAuthSession: () => set({
+        authUserId: null,
+        authEmail: null,
+        isAuthenticated: false,
+        clientContext: null,
+      }),
+      setAuthHydrated: (value) => set({ authHydrated: value }),
+      hydrateClientContext: (payload) => set((state) => ({
+        customerName: payload.customerName ?? state.customerName,
+        fromNumber: payload.customerPhone ?? state.fromNumber,
+        customerAddress: payload.customerAddress ?? state.customerAddress,
+        clientContext: {
+          favorites: payload.favorites ?? state.clientContext?.favorites ?? [],
+          recentSearches: payload.recentSearches ?? state.clientContext?.recentSearches ?? [],
+          orderHistorySummary: payload.orderHistorySummary ?? state.clientContext?.orderHistorySummary ?? null,
+          settings: payload.settings ?? state.clientContext?.settings ?? null,
+        },
+      })),
     }),
     {
       name: 'fasteat-storage',
@@ -307,7 +357,11 @@ export const useCartStore = create<CartState>()(
         userLocation: state.userLocation,
         isOnboarded: state.isOnboarded,
         customerAddress: state.customerAddress,
-        profilePromptDismissedAt: state.profilePromptDismissedAt
+        profilePromptDismissedAt: state.profilePromptDismissedAt,
+        authUserId: state.authUserId,
+        authEmail: state.authEmail,
+        isAuthenticated: state.isAuthenticated,
+        clientContext: state.clientContext
       }),
     }
   )

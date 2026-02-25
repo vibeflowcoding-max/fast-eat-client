@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import RouteTransitionIndicator from "@/components/RouteTransitionIndicator";
+import AuthBootstrap from "@/components/AuthBootstrap";
 
 export const metadata: Metadata = {
     title: "FastEat - Ordena comida rápido",
@@ -38,6 +39,7 @@ export default function RootLayout({
                 <Suspense fallback={null}>
                     <RouteTransitionIndicator />
                 </Suspense>
+                <AuthBootstrap />
                 {children}
                 <ServiceWorkerRegistration />
             </body>
