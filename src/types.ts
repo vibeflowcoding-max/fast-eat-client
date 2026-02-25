@@ -100,6 +100,7 @@ export interface DeliveryBid {
   estimatedTimeMinutes: number | null;
   driverNotes: string | null;
   basePrice: number;
+  customerCounterOffer?: number | null;
   status: string;
   expiresAt: string;
   createdAt: string;

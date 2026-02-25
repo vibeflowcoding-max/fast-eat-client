@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import RouteTransitionIndicator from "@/components/RouteTransitionIndicator";
@@ -34,7 +35,9 @@ export default function RootLayout({
                 <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
             </head>
             <body>
-                <RouteTransitionIndicator />
+                <Suspense fallback={null}>
+                    <RouteTransitionIndicator />
+                </Suspense>
                 {children}
                 <ServiceWorkerRegistration />
             </body>
