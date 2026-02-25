@@ -113,6 +113,7 @@ export default function HomePage() {
     const isSurpriseMeEnabled = process.env.NEXT_PUBLIC_HOME_SURPRISE_ME?.toLowerCase() !== 'false';
     const isPredictiveReorderEnabled = process.env.NEXT_PUBLIC_HOME_PREDICTIVE_REORDER?.toLowerCase() !== 'false';
     const isStoryMenusEnabled = process.env.NEXT_PUBLIC_HOME_STORY_MENUS?.toLowerCase() !== 'false';
+    const isFriendsActivityEnabled = process.env.NEXT_PUBLIC_HOME_FRIENDS_ACTIVITY?.toLowerCase() !== 'false';
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
     const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
@@ -895,7 +896,7 @@ export default function HomePage() {
                     </div>
                 )}
 
-                <ActivityFeed />
+                {isFriendsActivityEnabled && <ActivityFeed />}
 
                 {isSurpriseMeEnabled && (
                     <SurpriseMeWidget
