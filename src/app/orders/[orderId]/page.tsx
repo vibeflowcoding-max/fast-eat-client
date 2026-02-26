@@ -7,10 +7,15 @@ import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
 import { useTranslations } from 'next-intl';
+import ReviewCard from '@/features/reviews/components/ReviewCard';
+import { useOrderReviewEligibility } from '@/features/reviews/hooks/useOrderReviewEligibility';
+import { useSubmitRestaurantReview } from '@/features/reviews/hooks/useSubmitRestaurantReview';
+import { useSubmitDeliveryReview } from '@/features/reviews/hooks/useSubmitDeliveryReview';
 
 type OrderBid = {
   id: string;
   status: string;
+  driverId: string | null;
   driverOffer: number;
   basePrice: number;
   finalPrice: number;
@@ -35,7 +40,9 @@ type OrderDetail = {
   notes: string | null;
   estimatedTime: number | null;
   paymentMethod: string | null;
+  branchId: string | null;
   restaurant: { id: string; name: string; logo_url: string | null } | null;
+  acceptedDeliveryBid: { id: string; driverId: string | null } | null;
   bids: OrderBid[];
 };
 
@@ -80,10 +87,29 @@ export default function OrderDetailPage() {
   const params = useParams<{ orderId: string }>();
   const router = useAppRouter();
   const { fromNumber } = useCartStore();
+  const reviewsEnabled = process.env.NEXT_PUBLIC_REVIEWS_ENABLED !== 'false';
+  const deliveryReviewsEnabled = process.env.NEXT_PUBLIC_DELIVERY_REVIEWS_ENABLED !== 'false';
+  const reviewsRef = React.useRef<HTMLElement | null>(null);
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [order, setOrder] = React.useState<OrderDetail | null>(null);
+
+  const {
+    loading: loadingEligibility,
+    error: eligibilityError,
+    eligibility,
+    refresh: refreshEligibility
+  } = useOrderReviewEligibility({
+    orderId: params?.orderId,
+    phone: fromNumber,
+    enabled: reviewsEnabled && Boolean(params?.orderId) && Boolean(fromNumber)
+  });
+
+  const { submitting: submittingRestaurant, error: restaurantSubmitError, submit: submitRestaurantReview } =
+    useSubmitRestaurantReview();
+  const { submitting: submittingDelivery, error: deliverySubmitError, submit: submitDeliveryReview } =
+    useSubmitDeliveryReview();
 
   React.useEffect(() => {
     async function fetchDetail() {
@@ -119,10 +145,68 @@ export default function OrderDetailPage() {
     fetchDetail();
   }, [fromNumber, params?.orderId, t]);
 
+  React.useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (window.location.hash !== '#reviews') {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      reviewsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 160);
+
+    return () => window.clearTimeout(timer);
+  }, [loading, order?.id]);
+
   const normalizedItems = React.useMemo(() => normalizeItems(order?.items ?? []).map((item) => ({
     ...item,
     name: item.name || t('productFallback'),
   })), [order?.items, t]);
+
+  const restaurantReason = eligibility?.reasons.restaurant?.[0] ?? null;
+  const deliveryReason = eligibility?.reasons.delivery?.[0] ?? null;
+
+  const handleSubmitRestaurantReview = React.useCallback(
+    async ({ rating, comment }: { rating: number; comment: string }) => {
+      if (!order?.id || !fromNumber || !order.branchId) {
+        throw new Error(t('reviews.missingData'));
+      }
+
+      await submitRestaurantReview({
+        orderId: order.id,
+        phone: fromNumber,
+        branchId: order.branchId,
+        rating,
+        comment
+      });
+
+      await refreshEligibility();
+    },
+    [fromNumber, order?.branchId, order?.id, refreshEligibility, submitRestaurantReview, t]
+  );
+
+  const handleSubmitDeliveryReview = React.useCallback(
+    async ({ rating, comment }: { rating: number; comment: string }) => {
+      if (!order?.id || !fromNumber) {
+        throw new Error(t('reviews.missingData'));
+      }
+
+      await submitDeliveryReview({
+        orderId: order.id,
+        phone: fromNumber,
+        rating,
+        comment,
+        driverId: eligibility?.targets.driverId ?? order.acceptedDeliveryBid?.driverId ?? undefined,
+        deliveryBidId: eligibility?.targets.acceptedBidId ?? order.acceptedDeliveryBid?.id ?? undefined
+      });
+
+      await refreshEligibility();
+    },
+    [eligibility?.targets.acceptedBidId, eligibility?.targets.driverId, fromNumber, order?.acceptedDeliveryBid?.driverId, order?.acceptedDeliveryBid?.id, order?.id, refreshEligibility, submitDeliveryReview, t]
+  );
 
   return (
     <main className="ui-page min-h-screen pb-32">
@@ -233,6 +317,57 @@ export default function OrderDetailPage() {
                 </div>
               )}
             </section>
+
+            {reviewsEnabled && (
+              <section id="reviews" ref={reviewsRef} className="ui-panel rounded-2xl p-5 space-y-4">
+                <div>
+                  <h3 className="text-sm font-black">{t('reviews.title')}</h3>
+                  <p className="ui-text-muted text-xs">{t('reviews.subtitle')}</p>
+                </div>
+
+                {loadingEligibility && (
+                  <p className="ui-text-muted text-sm">{t('reviews.loading')}</p>
+                )}
+
+                {eligibilityError && (
+                  <div className="ui-state-danger rounded-xl px-3 py-2 text-xs">{eligibilityError}</div>
+                )}
+
+                {!loadingEligibility && !eligibilityError && eligibility && (
+                  <div className="space-y-3">
+                    <ReviewCard
+                      title={t('reviews.restaurantTitle')}
+                      subtitle={t('reviews.restaurantSubtitle')}
+                      existingReview={eligibility.existing.restaurant}
+                      canReview={eligibility.canReviewRestaurant}
+                      disabledReason={restaurantReason}
+                      submitting={submittingRestaurant}
+                      dismissKey={`restaurant-${order.id}`}
+                      onSubmit={handleSubmitRestaurantReview}
+                    />
+
+                    {deliveryReviewsEnabled && (
+                      <ReviewCard
+                        title={t('reviews.deliveryTitle')}
+                        subtitle={t('reviews.deliverySubtitle')}
+                        existingReview={eligibility.existing.delivery}
+                        canReview={eligibility.canReviewDelivery}
+                        disabledReason={deliveryReason}
+                        submitting={submittingDelivery}
+                        dismissKey={`delivery-${order.id}`}
+                        onSubmit={handleSubmitDeliveryReview}
+                      />
+                    )}
+
+                    {(restaurantSubmitError || deliverySubmitError) && (
+                      <div className="ui-state-danger rounded-xl px-3 py-2 text-xs">
+                        {restaurantSubmitError || deliverySubmitError}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
           </>
         )}
       </div>

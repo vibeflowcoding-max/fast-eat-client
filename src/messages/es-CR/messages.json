@@ -38,6 +38,7 @@
     }
   },
   "nav": {
+    "back": "Volver",
     "home": "Inicio",
     "search": "Buscar",
     "orders": "Pedidos",
@@ -45,7 +46,11 @@
     "trackOrders": "Rastreo de pedidos",
     "changeUser": "Cambiar usuario",
     "openOfferNotifications": "Abrir notificaciones de ofertas",
-    "myOrder": "Mi Pedido"
+    "myOrder": "Mi Pedido",
+    "openRestaurantReviews": "Abrir reseñas del restaurante",
+    "addFavoriteRestaurant": "Agregar restaurante a favoritos",
+    "removeFavoriteRestaurant": "Quitar restaurante de favoritos",
+    "ratingNotAvailable": "N/D"
   },
   "profile": {
     "title": "Perfil",
@@ -120,6 +125,7 @@
     "pastOrders": "Pedidos anteriores",
     "pastOrdersEmpty": "Todavía no tienes historial de pedidos.",
     "completed": "Completado",
+    "rateOrder": "Calificar pedido",
     "repeatOrder": "Repetir pedido",
     "orderDetail": {
       "invalidOrder": "Pedido inválido",
@@ -145,8 +151,29 @@
       "base": "Base",
       "final": "Final",
       "eta": "ETA",
-      "rating": "Rating"
+      "rating": "Rating",
+      "reviews": {
+        "title": "Califica tu experiencia",
+        "subtitle": "Tu opinión ayuda a mejorar el servicio del restaurante y del delivery.",
+        "loading": "Cargando estado de reseñas...",
+        "restaurantTitle": "Reseña del restaurante",
+        "restaurantSubtitle": "Califica la comida y la experiencia general del restaurante.",
+        "deliveryTitle": "Reseña del delivery",
+        "deliverySubtitle": "Califica el servicio de entrega de este pedido.",
+        "missingData": "No hay datos suficientes para enviar la reseña."
+      }
     }
+  },
+  "restaurantReviews": {
+    "title": "Opiniones de clientes",
+    "subtitle": "Comentarios recientes de personas que ya ordenaron aquí.",
+    "loading": "Cargando reseñas del restaurante...",
+    "loadError": "No se pudieron cargar las reseñas en este momento.",
+    "empty": "Todavía no hay comentarios publicados para este restaurante.",
+    "noRating": "N/D",
+    "reviewCount": "{count} reseñas",
+    "branchFallback": "Sucursal",
+    "backToMenu": "Volver al menú"
   },
   "checkout": {
     "loadingMenu": "Preparando {restaurantName}...",
@@ -433,6 +460,7 @@
       "approx": "aprox",
       "pricePending": "Ticket por confirmar",
       "free": "Gratis",
+      "noReviews": "N/D",
       "trusted": "Seguro",
       "viewMenuAria": "Ver menú de {name}"
     },

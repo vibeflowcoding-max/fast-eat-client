@@ -116,6 +116,7 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
     const deliveryFeeHint = restaurant.estimated_delivery_fee;
     const reviewConfidence = reviewConfidenceLabel(reviewCount);
     const hasRating = typeof rating === 'number' && !Number.isNaN(rating) && rating > 0;
+    const ratingLabel = hasRating ? rating.toFixed(1) : t('noReviews');
 
     const handleClick = () => {
         onOpen?.(restaurant);
@@ -168,12 +169,6 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
         <div className="space-y-1 p-3">
             <div className="flex items-start justify-between gap-2">
                 <h3 className="truncate text-lg font-bold text-gray-900">{restaurant.name}</h3>
-                {hasRating && (
-                    <div className="flex shrink-0 items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-800">
-                        <Star size={12} className="fill-gray-800 text-gray-800" aria-hidden="true" />
-                        <span>{rating.toFixed(1)}</span>
-                    </div>
-                )}
             </div>
 
             <p className="truncate text-sm text-gray-500">{categoryNames}</p>
@@ -203,12 +198,10 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
                             : t('free')}
                     </span>
                 </div>
-                {reviewCount && reviewCount > 0 && (
-                    <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
-                        <Star size={10} className="text-amber-400 fill-amber-400" />
-                        <span>{reviewCount}+</span>
-                    </div>
-                )}
+                <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
+                    {hasRating && <Star size={10} className="text-amber-400 fill-amber-400" aria-hidden="true" />}
+                    <span>{ratingLabel}</span>
+                </div>
                 <div className="flex items-center gap-1 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-md text-emerald-700">
                     <ShieldCheck size={10} className="text-emerald-500" />
                     <span className="font-bold uppercase tracking-tighter text-[8px]">{t('trusted')}</span>

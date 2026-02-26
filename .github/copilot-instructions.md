@@ -2,6 +2,7 @@
 
 ## Development Visibility Rule (Mandatory)
 
+- Always create a detailed plan of the implementation first before starting to implement any code changes and show this plan to the user.
 - During active product building, **do not hide newly implemented user-facing features behind feature flags**.
 - New UI/UX features must be **visible by default** so they can be reviewed immediately.
 - If a feature flag already exists, keep compatibility in code only when needed, but the feature should still be enabled/rendered in development flows.

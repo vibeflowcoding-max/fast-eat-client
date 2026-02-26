@@ -359,7 +359,7 @@ export default function HomePage() {
         fetch(`/api/customer/address?phone=${encodeURIComponent(normalizedPhone)}`, { signal: controller.signal })
             .then(async (response) => {
                 if (!response.ok) {
-                    return null;
+                    throw new Error('Could not fetch customer address');
                 }
 
                 return response.json();
@@ -389,8 +389,10 @@ export default function HomePage() {
                     setAddressInitialPosition(recoveredPosition);
                 }
             })
-            .catch(() => {
-                loadedAddressForPhoneRef.current = normalizedPhone;
+            .catch((error) => {
+                if ((error as { name?: string })?.name === 'AbortError') {
+                    return;
+                }
             });
 
         return () => controller.abort();

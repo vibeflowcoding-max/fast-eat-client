@@ -161,3 +161,54 @@ export async function ensureCustomerByPhone(params: { phone: string; fullName?: 
 
   throw new Error('Could not create customer record for provided phone');
 }
+
+export async function ensureCustomerByAuthUser(params: {
+  authUserId: string;
+  email?: string | null;
+  fullName?: string | null;
+}): Promise<{ customerId: string }> {
+  const supabaseServer = getSupabaseServer();
+  const authUserId = params.authUserId.trim();
+
+  if (!authUserId) {
+    throw new Error('authUserId is required');
+  }
+
+  const { data: existingCustomer, error: existingError } = await (supabaseServer as any)
+    .from('customers')
+    .select('id')
+    .eq('auth_user_id', authUserId)
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(existingError.message || 'Could not query customer by auth user');
+  }
+
+  if (hasId(existingCustomer)) {
+    return { customerId: String(existingCustomer.id) };
+  }
+
+  const payload: Record<string, string> = {
+    auth_user_id: authUserId
+  };
+
+  if (typeof params.email === 'string' && params.email.trim()) {
+    payload.email = params.email.trim();
+  }
+
+  if (typeof params.fullName === 'string' && params.fullName.trim()) {
+    payload.name = params.fullName.trim();
+  }
+
+  const { data: createdCustomer, error: createError } = await (supabaseServer as any)
+    .from('customers')
+    .insert(payload)
+    .select('id')
+    .single();
+
+  if (createError || !hasId(createdCustomer)) {
+    throw new Error(createError?.message || 'Could not create customer for auth user');
+  }
+
+  return { customerId: String(createdCustomer.id) };
+}

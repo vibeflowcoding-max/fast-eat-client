@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseServer } from '@/lib/supabase-server';
 
 // Force dynamic to avoid build-time Supabase calls
 export const dynamic = 'force-dynamic';
@@ -84,6 +84,11 @@ interface FeeRuleRow {
     platform_fee: number | string;
 }
 
+interface BranchReviewRow {
+    branch_id: string;
+    rating: number | string | null;
+}
+
 function toNumber(value: unknown): number | null {
     if (typeof value === 'number' && Number.isFinite(value)) {
         return value;
@@ -124,13 +129,14 @@ function isDealActiveNow(deal: Pick<DealRow, 'starts_at' | 'ends_at'>): boolean 
 
 export async function GET(request: NextRequest) {
     try {
+        const supabaseServer = getSupabaseServer();
         const { searchParams } = new URL(request.url);
         const categoryId = searchParams.get('categoryId');
         const lat = searchParams.get('lat');
         const lng = searchParams.get('lng');
 
         // Build the query - fetch restaurants with their branches and categories
-        const query = supabase
+        const query = supabaseServer
             .from('restaurants')
             .select(`
                 id,
@@ -189,20 +195,37 @@ export async function GET(request: NextRequest) {
 
         let dealsByBranch = new Map<string, DealRow>();
         let feeByBranch = new Map<string, number>();
+        let reviewsByBranch = new Map<string, { reviewCount: number; ratingSum: number }>();
 
         if (branchIds.length > 0) {
-            const [{ data: dealsData }, { data: feeRulesData }] = await Promise.all([
-                supabase
+            const [{ data: dealsData, error: dealsError }, { data: feeRulesData, error: feeRulesError }, { data: branchReviewsData, error: branchReviewsError }] = await Promise.all([
+                supabaseServer
                     .from('deals')
                     .select('branch_id,title,starts_at,ends_at,created_at')
                     .in('branch_id', branchIds)
                     .eq('active', true),
-                supabase
+                supabaseServer
                     .from('fee_rules')
                     .select('branch_id,delivery_fee,service_fee,platform_fee')
                     .in('branch_id', branchIds)
-                    .eq('active', true)
+                    .eq('active', true),
+                supabaseServer
+                    .from('branch_reviews')
+                    .select('branch_id,rating')
+                    .in('branch_id', branchIds)
             ]);
+
+            if (dealsError) {
+                console.warn('Could not fetch deals for restaurant listing:', dealsError.message);
+            }
+
+            if (feeRulesError) {
+                console.warn('Could not fetch fee rules for restaurant listing:', feeRulesError.message);
+            }
+
+            if (branchReviewsError) {
+                console.warn('Could not fetch branch reviews for restaurant listing:', branchReviewsError.message);
+            }
 
             const activeDeals = ((dealsData || []) as DealRow[])
                 .filter((deal) => isDealActiveNow(deal))
@@ -232,6 +255,21 @@ export async function GET(request: NextRequest) {
 
                 return acc;
             }, new Map<string, number>());
+
+            reviewsByBranch = ((branchReviewsData || []) as BranchReviewRow[]).reduce((acc, row) => {
+                const rating = toNumber(row.rating);
+                if (rating == null) {
+                    return acc;
+                }
+
+                const previous = acc.get(row.branch_id) || { reviewCount: 0, ratingSum: 0 };
+                acc.set(row.branch_id, {
+                    reviewCount: previous.reviewCount + 1,
+                    ratingSum: previous.ratingSum + rating
+                });
+
+                return acc;
+            }, new Map<string, { reviewCount: number; ratingSum: number }>());
         }
 
         // Transform the data to flatten categories and enrich from discovery tables
@@ -244,24 +282,37 @@ export async function GET(request: NextRequest) {
             const branchesWithDerivedMetrics = (restaurant.branches || []).map((branch) => {
                 const promoText = branch.promo_text || dealsByBranch.get(branch.id)?.title || null;
                 const branchFee = toNumber(branch.estimated_delivery_fee) ?? feeByBranch.get(branch.id) ?? null;
+                const branchReviewStats = reviewsByBranch.get(branch.id);
+                const branchReviewCount = branchReviewStats?.reviewCount ?? 0;
+                const branchRating = branchReviewStats && branchReviewCount > 0
+                    ? Number((branchReviewStats.ratingSum / branchReviewCount).toFixed(2))
+                    : null;
 
                 return {
                     ...branch,
+                    rating: branchRating,
+                    review_count: branchReviewCount,
                     promo_text: promoText,
                     estimated_delivery_fee: branchFee
                 };
             });
 
-            const branchRatings = branchesWithDerivedMetrics.map((branch) => toNumber(branch.rating));
-            const branchReviewCounts = branchesWithDerivedMetrics.map((branch) => toNumber(branch.review_count));
+            const branchRatings = branchesWithDerivedMetrics
+                .map((branch) => toNumber(branch.rating))
+                .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+            const branchReviewCounts = branchesWithDerivedMetrics
+                .map((branch) => toNumber(branch.review_count))
+                .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
             const branchEta = branchesWithDerivedMetrics.map((branch) => toNumber(branch.eta_min));
             const branchAvgPrice = branchesWithDerivedMetrics.map((branch) => toNumber(branch.avg_price_estimate));
             const branchFees = branchesWithDerivedMetrics.map((branch) => toNumber(branch.estimated_delivery_fee));
 
-            const derivedRating = average(branchRatings);
-            const derivedReviewCount = branchReviewCounts
-                .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
-                .reduce((sum, value) => sum + value, 0);
+            const derivedRating = branchRatings.length > 0 ? Number(average(branchRatings)?.toFixed(2)) : null;
+            const derivedReviewCount = branchReviewCounts.reduce((sum, value) => sum + value, 0);
+            const restaurantRating = toNumber(restaurant.rating);
+            const restaurantReviewCount = toNumber(restaurant.review_count);
+            const resolvedRating = derivedRating ?? restaurantRating;
+            const resolvedReviewCount = derivedReviewCount > 0 ? derivedReviewCount : (restaurantReviewCount ?? 0);
             const derivedEta = average(branchEta);
             const derivedAvgPrice = average(branchAvgPrice);
             const derivedFee = average(branchFees);
@@ -274,8 +325,8 @@ export async function GET(request: NextRequest) {
                 logo_url: restaurant.logo_url,
                 description: restaurant.description,
                 is_active: restaurant.is_active,
-                rating: restaurant.rating ?? derivedRating,
-                review_count: restaurant.review_count ?? (derivedReviewCount > 0 ? derivedReviewCount : null),
+                rating: resolvedRating,
+                review_count: Math.max(0, resolvedReviewCount),
                 eta_min: restaurant.eta_min ?? (derivedEta !== null ? Math.round(derivedEta) : null),
                 avg_price_estimate: restaurant.avg_price_estimate ?? (derivedAvgPrice !== null ? Math.round(derivedAvgPrice) : null),
                 estimated_delivery_fee: restaurant.estimated_delivery_fee ?? (derivedFee !== null ? Math.round(derivedFee) : null),

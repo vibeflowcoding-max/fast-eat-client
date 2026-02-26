@@ -57,12 +57,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ord
     const [{ data: orderRaw }, { data: bids }, { data: restaurant }] = await Promise.all([
       (supabaseServer as any)
         .from('orders')
-        .select('id,order_number,delivery_address,notes,estimated_time,payment_method,total,created_at')
+        .select('id,order_number,branch_id,delivery_address,notes,estimated_time,payment_method,total,created_at')
         .eq('id', orderId)
         .maybeSingle(),
       (supabaseServer as any)
         .from('delivery_bids')
-        .select('id,order_id,status,driver_offer,base_price,final_price,estimated_time_minutes,driver_notes,driver_rating_snapshot,created_at,expires_at,accepted_at,rejected_at')
+        .select('id,order_id,driver_id,status,driver_offer,base_price,final_price,estimated_time_minutes,driver_notes,driver_rating_snapshot,created_at,expires_at,accepted_at,rejected_at')
         .eq('order_id', orderId)
         .order('created_at', { ascending: false }),
       orderView.restaurant_id
@@ -77,6 +77,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ord
     const normalizedBids = Array.isArray(bids)
       ? bids.map((bid) => ({
           id: String(bid.id),
+          driverId: bid.driver_id ? String(bid.driver_id) : null,
           status: String(bid.status ?? '').toLowerCase(),
           driverOffer: toNumber(bid.driver_offer),
           basePrice: toNumber(bid.base_price),
@@ -91,6 +92,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ord
         }))
       : [];
 
+    const acceptedDeliveryBid = normalizedBids.find(
+      (bid) => Boolean(bid.acceptedAt) || bid.status === 'accepted' || bid.status === 'delivering'
+    );
+
     return NextResponse.json({
       order: {
         id: String(orderView.id),
@@ -100,6 +105,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ord
         total: toNumber(orderView.total ?? orderRaw?.total),
         createdAt: String(orderView.created_at ?? orderRaw?.created_at ?? ''),
         items: Array.isArray(orderView.items) ? orderView.items : [],
+        branchId: orderRaw?.branch_id ? String(orderRaw.branch_id) : null,
         deliveryAddress: typeof orderRaw?.delivery_address === 'string' ? orderRaw.delivery_address : null,
         notes: typeof orderRaw?.notes === 'string' ? orderRaw.notes : null,
         estimatedTime: typeof orderRaw?.estimated_time === 'number' ? orderRaw.estimated_time : null,
@@ -109,6 +115,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ord
               id: String(restaurant.id),
               name: String(restaurant.name),
               logo_url: restaurant.logo_url ? String(restaurant.logo_url) : null
+            }
+          : null,
+        acceptedDeliveryBid: acceptedDeliveryBid
+          ? {
+              id: acceptedDeliveryBid.id,
+              driverId: acceptedDeliveryBid.driverId
             }
           : null,
         bids: normalizedBids

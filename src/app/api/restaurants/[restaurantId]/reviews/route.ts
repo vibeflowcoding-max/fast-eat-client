@@ -35,13 +35,26 @@ export async function POST(
 
     const { data: order, error: orderError } = await (supabaseServer as any)
       .from('orders')
-      .select('id, restaurant_id, customer_id, completed_at, status_id')
+      .select('id, branch_id, customer_id, completed_at, status_id')
       .eq('id', body.orderId)
-      .eq('restaurant_id', restaurantId)
       .single();
 
     if (orderError || !order) {
-      return NextResponse.json({ error: 'Order not found for this restaurant' }, { status: 404 });
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    if (!order.branch_id) {
+      return NextResponse.json({ error: 'Order does not have a branch assigned' }, { status: 400 });
+    }
+
+    const { data: branch } = await (supabaseServer as any)
+      .from('branches')
+      .select('id,restaurant_id')
+      .eq('id', order.branch_id)
+      .maybeSingle();
+
+    if (!branch || String(branch.restaurant_id) !== restaurantId) {
+      return NextResponse.json({ error: 'Branch does not belong to target restaurant' }, { status: 400 });
     }
 
     const { data: statusRecord } = await (supabaseServer as any)
@@ -60,7 +73,7 @@ export async function POST(
     }
 
     const payload = {
-      restaurant_id: restaurantId,
+      branch_id: String(order.branch_id),
       order_id: body.orderId,
       customer_id: body.customerId || order.customer_id || null,
       rating: body.rating,
@@ -68,9 +81,9 @@ export async function POST(
     };
 
     const { data: review, error: reviewError } = await (supabaseServer as any)
-      .from('restaurant_reviews')
+      .from('branch_reviews')
       .upsert(payload, { onConflict: 'order_id' })
-      .select('id, restaurant_id, order_id, customer_id, rating, comment, created_at, updated_at')
+      .select('id, branch_id, order_id, customer_id, rating, comment, created_at, updated_at')
       .single();
 
     if (reviewError) {

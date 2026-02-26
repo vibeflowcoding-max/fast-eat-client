@@ -187,6 +187,13 @@ export default function OrdersPage() {
                     </div>
                     <button
                       type="button"
+                      onClick={() => router.push(`/orders/${order.id}#reviews`)}
+                      className="text-xs font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]"
+                    >
+                      {t('rateOrder')}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => router.push('/')}
                       className="text-xs font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]"
                     >

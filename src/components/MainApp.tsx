@@ -42,7 +42,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         setBranchId,
         setFromNumber,
         toggleTestMode,
-        resetSession,
         customerName
     } = useCartStore();
 
@@ -90,7 +89,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
     const [isConfirming, setIsConfirming] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
-    const [showUserChangeConfirm, setShowUserChangeConfirm] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     // Resolution State - Blocks rendering until we know what branch we are on
@@ -101,6 +99,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     // Refs
     const tabsRef = useRef<HTMLDivElement>(null);
     const modalScrollRef = useRef<HTMLDivElement>(null);
+    const categorySectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
     const [orderMetadata, setOrderMetadata] = useState<OrderMetadata>({
         customerName: '',
@@ -389,6 +388,69 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         return items;
     }, [activeCategory, menuItems, searchQuery]);
 
+    const categorySections = useMemo(() => {
+        if (searchQuery.trim()) {
+            return [] as Array<{ category: string; items: MenuItem[] }>;
+        }
+
+        const grouped = new Map<string, MenuItem[]>();
+        for (const item of menuItems) {
+            const category = item.category.trim();
+            const previous = grouped.get(category) || [];
+            grouped.set(category, [...previous, item]);
+        }
+
+        const orderedCategories = categories.filter((category) => category !== 'Todos' && grouped.has(category));
+        return orderedCategories.map((category) => ({
+            category,
+            items: grouped.get(category) || []
+        }));
+    }, [categories, menuItems, searchQuery]);
+
+    const handleCategoryChange = (category: string) => {
+        setActiveCategory(category);
+
+        if (searchQuery.trim()) {
+            return;
+        }
+
+        if (category === 'Todos') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        const section = categorySectionRefs.current[category];
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    useEffect(() => {
+        if (searchQuery.trim() || categorySections.length === 0) {
+            return;
+        }
+
+        const handleScroll = () => {
+            const threshold = 180;
+            const active = categorySections.find((section) => {
+                const element = categorySectionRefs.current[section.category];
+                if (!element) {
+                    return false;
+                }
+
+                const rect = element.getBoundingClientRect();
+                return rect.top <= threshold && rect.bottom > threshold;
+            });
+
+            if (active && active.category !== activeCategory) {
+                setActiveCategory(active.category);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [activeCategory, categorySections, searchQuery, setActiveCategory]);
+
     const groupSessionId = useCartStore(state => state.groupSessionId);
     const groupParticipants = useCartStore(state => state.groupParticipants);
 
@@ -456,32 +518,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         );
     };
 
-    const handleChangeUser = () => {
-        setShowUserChangeConfirm(true);
-    };
-
-    const executeUserChange = () => {
-        resetSession();
-        setChefNotification(null);
-        localStorage.removeItem('izakaya_chat_history');
-        localStorage.removeItem('izakaya_metadata');
-        localStorage.removeItem('izakaya_active_orders');
-        localStorage.removeItem('izakaya_user_name');
-
-        setOrderMetadata({
-            customerName: '',
-            customerPhone: '',
-            paymentMethod: '',
-            orderType: '',
-            source: 'client',
-            address: '',
-            gpsLocation: ''
-        });
-        setPhoneBody('');
-        setShowPhonePrompt(true);
-        setShowUserChangeConfirm(false);
-    };
-
     if (showPhonePrompt) return (
         <PhonePrompt
             restaurantInfo={restaurantInfo}
@@ -512,16 +548,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
 
     return (
         <div className="min-h-screen relative japanese-pattern pb-24">
-            {showUserChangeConfirm && (
-                <ConfirmModal
-                    title="⚠️ ¿Cambiar de Usuario?"
-                    description="Si cambias de usuario, perderás todos los datos del pedido actual y el historial de rastreo en este dispositivo para comenzar una nueva orden. ¿Deseas continuar?"
-                    confirmText="Sí, Limpiar y Cambiar 👤"
-                    cancelText="No, Mantener Actual"
-                    onConfirm={executeUserChange}
-                    onCancel={() => setShowUserChangeConfirm(false)}
-                />
-            )}
             {expirationTime && cart.length > 0 && (
                 <ExpirationTimer timeLeftStr={timeLeftStr} />
             )}
@@ -550,14 +576,25 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                 cartLength={cart.length}
                 categories={categories}
                 activeCategory={activeCategory}
-                setActiveCategory={setActiveCategory}
+                setActiveCategory={handleCategoryChange}
                 tabsRef={tabsRef}
                 canScrollLeft={canScrollLeft}
                 canScrollRight={canScrollRight}
                 scrollTabs={scrollTabs}
                 onScroll={checkScroll}
                 isLoading={loading}
-                onChangeUser={handleChangeUser}
+                onOpenReviews={() => {
+                    if (branchId && branchId !== ':branchId') {
+                        router.push(`/reviews/${encodeURIComponent(branchId)}`);
+                    }
+                }}
+                onGoBack={() => {
+                    if (typeof window !== 'undefined' && window.history.length > 1) {
+                        router.back();
+                    } else {
+                        router.push('/');
+                    }
+                }}
                 customerName={customerName}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
@@ -587,7 +624,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                                 Limpiar Búsqueda
                             </button>
                         </div>
-                    ) : (
+                    ) : searchQuery.trim() ? (
                         filteredItems.map(item => (
                             <MenuItemCard
                                 key={item.id}
@@ -597,6 +634,27 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                                 isHighlighted={highlightedItemId === String(item.id)}
                             />
                         ))
+                    ) : (
+                        categorySections.flatMap((section) => [
+                            <div
+                                key={`heading-${section.category}`}
+                                ref={(element) => {
+                                    categorySectionRefs.current[section.category] = element;
+                                }}
+                                className="col-span-full pt-2"
+                            >
+                                <h2 className="text-lg md:text-xl font-black">{section.category}</h2>
+                            </div>,
+                            ...section.items.map((item) => (
+                                <MenuItemCard
+                                    key={item.id}
+                                    item={item}
+                                    onAddToCart={(newItem) => addToCart(newItem, orderMetadata)}
+                                    currentQuantity={itemQuantities[item.id] || 0}
+                                    isHighlighted={highlightedItemId === String(item.id)}
+                                />
+                            ))
+                        ])
                     )}
                 </div>
             </main>

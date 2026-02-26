@@ -38,6 +38,7 @@
     }
   },
   "nav": {
+    "back": "Go back",
     "home": "Home",
     "search": "Search",
     "orders": "Orders",
@@ -45,7 +46,11 @@
     "trackOrders": "Order tracking",
     "changeUser": "Change user",
     "openOfferNotifications": "Open offer notifications",
-    "myOrder": "My order"
+    "myOrder": "My order",
+    "openRestaurantReviews": "Open restaurant reviews",
+    "addFavoriteRestaurant": "Add restaurant to favorites",
+    "removeFavoriteRestaurant": "Remove restaurant from favorites",
+    "ratingNotAvailable": "N/A"
   },
   "profile": {
     "title": "Profile",
@@ -120,6 +125,7 @@
     "pastOrders": "Past orders",
     "pastOrdersEmpty": "You do not have order history yet.",
     "completed": "Completed",
+    "rateOrder": "Rate order",
     "repeatOrder": "Repeat order",
     "orderDetail": {
       "invalidOrder": "Invalid order",
@@ -145,8 +151,29 @@
       "base": "Base",
       "final": "Final",
       "eta": "ETA",
-      "rating": "Rating"
+      "rating": "Rating",
+      "reviews": {
+        "title": "Rate your experience",
+        "subtitle": "Your feedback helps improve restaurant and delivery quality.",
+        "loading": "Loading review status...",
+        "restaurantTitle": "Restaurant review",
+        "restaurantSubtitle": "Rate food quality and overall restaurant experience.",
+        "deliveryTitle": "Delivery review",
+        "deliverySubtitle": "Rate the delivery service for this order.",
+        "missingData": "Missing data to submit the review."
+      }
     }
+  },
+  "restaurantReviews": {
+    "title": "Customer reviews",
+    "subtitle": "Recent comments from people who already ordered here.",
+    "loading": "Loading restaurant reviews...",
+    "loadError": "Could not load reviews right now.",
+    "empty": "There are no published comments for this restaurant yet.",
+    "noRating": "N/A",
+    "reviewCount": "{count} reviews",
+    "branchFallback": "Branch",
+    "backToMenu": "Back to menu"
   },
   "checkout": {
     "loadingMenu": "Preparing {restaurantName}...",
@@ -433,6 +460,7 @@
       "approx": "approx",
       "pricePending": "Estimated total pending",
       "free": "Free",
+      "noReviews": "N/A",
       "trusted": "Trusted",
       "viewMenuAria": "View menu for {name}"
     },
