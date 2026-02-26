@@ -3,6 +3,7 @@
 ## Development Visibility Rule (Mandatory)
 
 - **Mandatory planning gate:** Before any code change (create/edit/delete), always create a detailed implementation plan and show it to the user first.
+- **Plan content requirement:** The plan must include a review and analysis of the code that will be modified, plus ideas and suggestions for the proposed changes.
 - Do not perform any code changes until that detailed plan has been presented to the user in the response.
 - **Explicit approval required:** After presenting the plan, the agent must stop and wait for explicit user approval before doing any further work.
 - **No execution before approval:** Until the user explicitly approves the plan, do not run tools, execute commands, edit/create/delete files, or apply patches.
