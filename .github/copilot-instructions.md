@@ -8,6 +8,7 @@
 - **Explicit approval required:** After presenting the plan, the agent must stop and wait for explicit user approval before doing any further work.
 - **No execution before approval:** Until the user explicitly approves the plan, do not run tools, execute commands, edit/create/delete files, or apply patches.
 - **Approval format:** Proceed only after a clear approval message from the user (for example: "approved", "go ahead", "implement", or equivalent explicit confirmation).
+- **Plan-file addendum:** If the user already provides plan files, or files that already contain an execution plan in the request context, treat that as explicit implementation authorization. In that case, still present the implementation plan, but do not ask for an additional approval message before implementing.
 - During active product building, **do not hide newly implemented user-facing features behind feature flags**.
 - New UI/UX features must be **visible by default** so they can be reviewed immediately.
 - If a feature flag already exists, keep compatibility in code only when needed, but the feature should still be enabled/rendered in development flows.
