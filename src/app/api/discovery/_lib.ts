@@ -98,8 +98,6 @@ interface DealRow {
 interface FeeRuleRow {
     branch_id: string;
     delivery_fee: number | string;
-    service_fee: number | string;
-    platform_fee: number | string;
 }
 
 function nowIso() {
@@ -569,7 +567,7 @@ export async function getRestaurantRows() {
             .eq('active', true),
         supabase
             .from('fee_rules')
-            .select('branch_id,delivery_fee,service_fee,platform_fee')
+            .select('branch_id,delivery_fee')
             .in('branch_id', branchIds)
             .eq('active', true)
     ]);
@@ -590,14 +588,14 @@ export async function getRestaurantRows() {
     }, new Map<string, DealRow>());
 
     const feeByBranch = ((feeRulesData || []) as FeeRuleRow[]).reduce((acc, row) => {
-        const deliveryFee = toNumber(row.delivery_fee) ?? 0;
-        const serviceFee = toNumber(row.service_fee) ?? 0;
-        const platformFee = toNumber(row.platform_fee) ?? 0;
-        const totalFee = deliveryFee + serviceFee + platformFee;
+        const deliveryFee = toNumber(row.delivery_fee);
+        if (deliveryFee === null) {
+            return acc;
+        }
 
         const current = acc.get(row.branch_id);
-        if (current === undefined || totalFee < current) {
-            acc.set(row.branch_id, totalFee);
+        if (current === undefined || deliveryFee < current) {
+            acc.set(row.branch_id, deliveryFee);
         }
 
         return acc;
@@ -611,7 +609,7 @@ export async function getRestaurantRows() {
             return {
                 ...branch,
                 promo_text: branch.promo_text ?? deal?.title ?? null,
-                estimated_delivery_fee: branch.estimated_delivery_fee ?? feeFromRule ?? null
+                estimated_delivery_fee: feeFromRule ?? branch.estimated_delivery_fee ?? null
             };
         });
 
@@ -622,7 +620,8 @@ export async function getRestaurantRows() {
             .reduce((sum, value) => sum + value, 0);
         const etaMinAvg = restaurant.eta_min ?? average(branches.map((branch) => toNumber(branch.eta_min)));
         const avgPriceEstimate = restaurant.avg_price_estimate ?? average(branches.map((branch) => toNumber(branch.avg_price_estimate)));
-        const estimatedDeliveryFee = restaurant.estimated_delivery_fee ?? average(branches.map((branch) => toNumber(branch.estimated_delivery_fee)));
+        const estimatedDeliveryFee = average(branches.map((branch) => toNumber(branch.estimated_delivery_fee)))
+            ?? toNumber(restaurant.estimated_delivery_fee);
 
         const firstPromoBranch = branches.find((branch) => Boolean(branch.promo_text));
         const promoDeal = firstPromoBranch ? dealsByBranch.get(firstPromoBranch.id) : undefined;

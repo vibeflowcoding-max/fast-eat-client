@@ -144,6 +144,12 @@ export interface Branch {
   delivery_radius_km: number | null;
   is_accepting_orders: boolean;
   code: string | null;
+  rating?: number | null;
+  review_count?: number | null;
+  eta_min?: number | null;
+  avg_price_estimate?: number | null;
+  estimated_delivery_fee?: number | null;
+  promo_text?: string | null;
 }
 
 export interface Restaurant {

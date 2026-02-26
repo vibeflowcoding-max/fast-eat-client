@@ -113,7 +113,7 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
     const rating = restaurant.rating;
     const reviewCount = restaurant.review_count;
     const hasPromo = Boolean(restaurant.promo_text);
-    const deliveryFeeHint = restaurant.estimated_delivery_fee;
+    const deliveryFeeHint = primaryBranch?.estimated_delivery_fee ?? restaurant.estimated_delivery_fee;
     const reviewConfidence = reviewConfidenceLabel(reviewCount);
     const hasRating = typeof rating === 'number' && !Number.isNaN(rating) && rating > 0;
     const ratingLabel = hasRating ? rating.toFixed(1) : t('noReviews');

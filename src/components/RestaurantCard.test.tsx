@@ -10,6 +10,28 @@ vi.mock('next/navigation', () => ({
   })
 }));
 
+vi.mock('next-intl', () => ({
+  useLocale: () => 'es-CR',
+  useTranslations: () => (key: string, values?: { name?: string }) => {
+    const dictionary: Record<string, string> = {
+      promo: 'PROMO',
+      etaPending: 'ETA pending',
+      approx: 'approx',
+      pricePending: 'Estimated total pending',
+      free: 'Free',
+      noReviews: 'No reviews yet',
+      trusted: 'TRUSTED',
+      restaurantFallback: 'Restaurant'
+    };
+
+    if (key === 'viewMenuAria') {
+      return `View menu ${values?.name ?? ''}`;
+    }
+
+    return dictionary[key] ?? key;
+  }
+}));
+
 const baseRestaurant: RestaurantWithBranches = {
   id: 'restaurant-1',
   name: 'Pizza House',
@@ -39,7 +61,8 @@ const baseRestaurant: RestaurantWithBranches = {
       human_addres: 'Centro, San José',
       delivery_radius_km: null,
       is_accepting_orders: true,
-      code: 'pizza-centro'
+      code: 'pizza-centro',
+      estimated_delivery_fee: 800
     }
   ],
   categories: [{ id: 'cat-1', name: 'Pizza', description: null, icon: '🍕' }],
@@ -51,22 +74,25 @@ describe('RestaurantCard', () => {
     pushMock.mockClear();
   });
 
-  it('renders promo badge when restaurant has promo', () => {
+  it('uses primary branch delivery fee in truck badge', () => {
     render(<RestaurantCard restaurant={baseRestaurant} />);
 
-    expect(screen.getByText('Promo activa')).toBeInTheDocument();
-    expect(screen.getByText('ETA 25 min')).toBeInTheDocument();
+    expect(screen.getByText('PROMO')).toBeInTheDocument();
+    expect(screen.getByText('₡800')).toBeInTheDocument();
   });
 
-  it('renders non-promo badge when promo is absent', () => {
+  it('falls back to restaurant delivery fee when branch fee is missing', () => {
     render(
       <RestaurantCard
-        restaurant={{ ...baseRestaurant, promo_text: null }}
+        restaurant={{
+          ...baseRestaurant,
+          estimated_delivery_fee: 1700,
+          branches: [{ ...baseRestaurant.branches[0], estimated_delivery_fee: null }]
+        }}
       />
     );
 
-    expect(screen.getByText('Sin promo')).toBeInTheDocument();
-    expect(screen.queryByText('Promo activa')).not.toBeInTheDocument();
+    expect(screen.getByText('₡1,700')).toBeInTheDocument();
   });
 
   it('falls back to placeholder image when image fails to load', () => {
@@ -79,15 +105,13 @@ describe('RestaurantCard', () => {
     expect(image.dataset.fallbackApplied).toBe('true');
   });
 
-  it('shows new-restaurant fallback when rating data is missing', () => {
+  it('shows rating fallback when rating data is missing', () => {
     render(
       <RestaurantCard
         restaurant={{ ...baseRestaurant, rating: null, review_count: 0 }}
       />
     );
 
-    expect(screen.queryByText('Error de datos de restaurante')).not.toBeInTheDocument();
-    expect(screen.getByText(/Nuevo/)).toBeInTheDocument();
-    expect(screen.getByText(/Sin reseñas aún/)).toBeInTheDocument();
+    expect(screen.getByText('No reviews yet')).toBeInTheDocument();
   });
 });

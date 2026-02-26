@@ -2,7 +2,11 @@
 
 ## Development Visibility Rule (Mandatory)
 
-- Always create a detailed plan of the implementation first before starting to implement any code changes and show this plan to the user.
+- **Mandatory planning gate:** Before any code change (create/edit/delete), always create a detailed implementation plan and show it to the user first.
+- Do not perform any code changes until that detailed plan has been presented to the user in the response.
+- **Explicit approval required:** After presenting the plan, the agent must stop and wait for explicit user approval before doing any further work.
+- **No execution before approval:** Until the user explicitly approves the plan, do not run tools, execute commands, edit/create/delete files, or apply patches.
+- **Approval format:** Proceed only after a clear approval message from the user (for example: "approved", "go ahead", "implement", or equivalent explicit confirmation).
 - During active product building, **do not hide newly implemented user-facing features behind feature flags**.
 - New UI/UX features must be **visible by default** so they can be reviewed immediately.
 - If a feature flag already exists, keep compatibility in code only when needed, but the feature should still be enabled/rendered in development flows.
