@@ -8,8 +8,14 @@ import { useTranslations } from 'next-intl';
 
 export default function LoyaltyWidget() {
     const t = useTranslations('home.loyalty');
-    const { points } = useLoyaltyStore();
+    const { points, hydrate, hasHydrated, isHydrating } = useLoyaltyStore();
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+
+    React.useEffect(() => {
+        if (!hasHydrated && !isHydrating) {
+            void hydrate();
+        }
+    }, [hydrate, hasHydrated, isHydrating]);
 
     React.useEffect(() => {
         const handleNavigateHome = () => setIsDashboardOpen(false);

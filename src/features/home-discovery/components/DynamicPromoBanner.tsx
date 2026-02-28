@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { emitHomeEvent } from '@/features/home-discovery/analytics';
 import { useTranslations } from 'next-intl';
+import { supabase } from '@/lib/supabase';
 
 interface DynamicPromoBannerProps {
     onPromoClick?: () => void;
@@ -10,7 +11,7 @@ const PROMO_DISMISS_SESSION_KEY = 'home_banner_promo_dismissed_v1';
 
 export default function DynamicPromoBanner({ onPromoClick }: DynamicPromoBannerProps) {
     const t = useTranslations('home.promoBanner');
-    const [promo, setPromo] = useState('');
+    const [promo, setPromo] = useState<string | null>(null);
     const [isVisible, setIsVisible] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -25,21 +26,58 @@ export default function DynamicPromoBanner({ onPromoClick }: DynamicPromoBannerP
             return;
         }
 
-        // Mock AI-generated context-aware promo based on time/weather rules
-        const timer = window.setTimeout(() => {
-            const hour = new Date().getHours();
-            if (hour < 11) {
-                setPromo(t('morningMessage'));
-            } else if (hour > 18) {
-                setPromo(t('nightMessage'));
-            } else {
-                setPromo(t('defaultMessage'));
+        const abortController = new AbortController();
+
+        async function loadActivePromotion() {
+            setIsLoading(true);
+
+            try {
+                const { data } = await supabase.auth.getSession();
+                const accessToken = data.session?.access_token;
+
+                if (!accessToken) {
+                    setPromo(null);
+                    return;
+                }
+
+                const response = await fetch('/api/consumer/promotions/active', {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`
+                    },
+                    cache: 'no-store',
+                    signal: abortController.signal
+                });
+
+                if (!response.ok) {
+                    setPromo(null);
+                    return;
+                }
+
+                const payload: unknown = await response.json();
+                const promotions = Array.isArray((payload as { data?: unknown })?.data)
+                    ? (payload as { data: Array<{ title?: unknown }> }).data
+                    : [];
+
+                const firstActive = promotions.find((item) => typeof item?.title === 'string' && item.title.trim().length > 0);
+                setPromo(typeof firstActive?.title === 'string' ? firstActive.title.trim() : null);
+            } catch {
+                if (abortController.signal.aborted) {
+                    return;
+                }
+
+                setPromo(null);
+            } finally {
+                if (!abortController.signal.aborted) {
+                    setIsLoading(false);
+                }
             }
-            setIsLoading(false);
-        }, 1200);
+        }
+
+        loadActivePromotion();
 
         return () => {
-            window.clearTimeout(timer);
+            abortController.abort();
         };
     }, [t]);
 

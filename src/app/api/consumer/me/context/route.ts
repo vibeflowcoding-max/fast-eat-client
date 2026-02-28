@@ -13,13 +13,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
     }
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch(`${apiUrl}/api/consumer/v1/me/context`, {
       method: 'GET',
       headers: {
         Authorization: authHeader,
       },
-      cache: 'no-store'
+      cache: 'no-store',
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     const data = await response.json();
     return NextResponse.json(data, {
@@ -29,6 +35,13 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return NextResponse.json(
+        { error: 'Context proxy timed out' },
+        { status: 504 },
+      );
+    }
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Context proxy failed' },
       { status: 500 }

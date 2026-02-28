@@ -6,14 +6,17 @@ import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
 import { useTranslations } from 'next-intl';
+import { useOrderTracking, type OrderUpdate } from '@/hooks/useOrderTracking';
 
 type ApiOrder = {
   id: string;
+  customerId: string;
   orderNumber: string | null;
   statusCode: string | null;
   statusLabel: string | null;
   total: number;
   createdAt: string;
+  items: unknown[];
   bidCount: number;
   bestBid: number | null;
   restaurant: { id: string; name: string; logo_url: string | null } | null;
@@ -22,46 +25,112 @@ type ApiOrder = {
 export default function OrdersPage() {
   const t = useTranslations('orders');
   const router = useAppRouter();
-  const { activeOrders, bidsByOrderId, fromNumber } = useCartStore();
+  const { activeOrders, bidsByOrderId, fromNumber, customerId, isAuthenticated, branchId, setCustomerId, replaceActiveOrders } = useCartStore();
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [activeFromApi, setActiveFromApi] = React.useState<ApiOrder[]>([]);
   const [pastOrders, setPastOrders] = React.useState<ApiOrder[]>([]);
+  const [resolvedCustomerId, setResolvedCustomerId] = React.useState('');
+
+  useOrderTracking(branchId, isAuthenticated ? '' : fromNumber, customerId || resolvedCustomerId);
 
   const refreshOrders = React.useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      if (!fromNumber) {
+      if (!fromNumber && !customerId) {
         setActiveFromApi([]);
         setPastOrders([]);
+        setCustomerId('');
+        replaceActiveOrders([]);
         return;
       }
 
-      const response = await fetch(`/api/orders/history?phone=${encodeURIComponent(fromNumber)}`);
+      const historyUrl = customerId
+        ? `/api/orders/history?customerId=${encodeURIComponent(customerId)}`
+        : `/api/orders/history?phone=${encodeURIComponent(fromNumber)}`;
+
+      const response = await fetch(historyUrl);
       const data = await response.json();
 
       if (!response.ok) {
       throw new Error(typeof data.error === 'string' ? data.error : t('loadError'));
       }
 
-      setActiveFromApi(Array.isArray(data.activeOrders) ? data.activeOrders : []);
-      setPastOrders(Array.isArray(data.pastOrders) ? data.pastOrders : []);
+      const apiCustomerId = typeof data.customerId === 'string' ? data.customerId : '';
+      const shouldAdoptApiCustomerId = Boolean(apiCustomerId) && !customerId && !isAuthenticated;
+
+      if (shouldAdoptApiCustomerId) {
+        setCustomerId(apiCustomerId);
+        setResolvedCustomerId(apiCustomerId);
+      }
+      const nextActive = Array.isArray(data.activeOrders) ? data.activeOrders : [];
+      const nextPast = Array.isArray(data.pastOrders) ? data.pastOrders : [];
+
+      setActiveFromApi(nextActive);
+      setPastOrders(nextPast);
+
+      const contextOrders: OrderUpdate[] = nextActive.map((order: ApiOrder) => ({
+        orderId: order.id,
+        orderNumber: order.orderNumber || order.id,
+        previousStatus: {
+          code: order.statusCode || 'UNKNOWN',
+          label: order.statusLabel || t('inProgress')
+        },
+        newStatus: {
+          code: order.statusCode || 'UNKNOWN',
+          label: order.statusLabel || t('inProgress')
+        },
+        updatedAt: order.createdAt,
+        items: Array.isArray(order.items)
+          ? order.items.map((item: any) => ({
+              id: String(item.menu_item_id || item.id || ''),
+              name: String(item.name || 'Item'),
+              description: '',
+              price: Number(item.price || 0),
+              category: '',
+              image: '',
+              quantity: Number(item.quantity || 1),
+              notes: ''
+            }))
+          : [],
+        total: order.total,
+      }));
+
+      replaceActiveOrders(contextOrders);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : t('loadError'));
     } finally {
       setLoading(false);
     }
-  }, [fromNumber, t]);
+  }, [customerId, fromNumber, isAuthenticated, replaceActiveOrders, setCustomerId, t]);
 
   React.useEffect(() => {
     refreshOrders();
   }, [refreshOrders]);
 
   const activeFromStore = React.useMemo(() => Object.values(activeOrders), [activeOrders]);
-  const mergedActiveCount = activeFromStore.length + activeFromApi.length;
+  const filteredStoreOrders = React.useMemo(() => {
+    if (activeFromApi.length === 0) return activeFromStore;
+
+    const ids = new Set(activeFromApi.map((order) => order.id));
+    const numbers = new Set(activeFromApi.map((order) => order.orderNumber).filter(Boolean));
+
+    return activeFromStore.filter((order) =>
+      ids.has(order.orderId) || (order.orderNumber && numbers.has(order.orderNumber))
+    );
+  }, [activeFromApi, activeFromStore]);
+
+  const mergedActiveCount = filteredStoreOrders.length + activeFromApi.length;
+
+  const buildOrderUrl = React.useCallback((orderId: string, orderCustomerId?: string | null, hash?: string) => {
+    const customerIdForUrl = (orderCustomerId || resolvedCustomerId || '').trim();
+    const query = customerIdForUrl ? `?customerId=${encodeURIComponent(customerIdForUrl)}` : '';
+    const suffix = hash || '';
+    return `/orders/${encodeURIComponent(orderId)}${query}${suffix}`;
+  }, [resolvedCustomerId]);
 
   return (
     <main className="ui-page min-h-screen pb-32">
@@ -100,16 +169,16 @@ export default function OrdersPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {activeFromStore.map((order) => (
+                {filteredStoreOrders.map((order) => (
                   <article
                     key={order.orderId}
                     role="button"
                     tabIndex={0}
-                    onClick={() => router.push(`/orders/${order.orderId}`)}
+                    onClick={() => router.push(buildOrderUrl(order.orderId))}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
-                        router.push(`/orders/${order.orderId}`);
+                        router.push(buildOrderUrl(order.orderId));
                       }
                     }}
                     className="ui-chip-brand rounded-xl p-3 space-y-2 cursor-pointer"
@@ -126,11 +195,11 @@ export default function OrdersPage() {
                     key={order.id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => router.push(`/orders/${order.id}`)}
+                    onClick={() => router.push(buildOrderUrl(order.id, order.customerId))}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
-                        router.push(`/orders/${order.id}`);
+                        router.push(buildOrderUrl(order.id, order.customerId));
                       }
                     }}
                     className="ui-panel-soft rounded-xl p-3 space-y-2 cursor-pointer"
@@ -164,11 +233,11 @@ export default function OrdersPage() {
                     key={order.id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => router.push(`/orders/${order.id}`)}
+                    onClick={() => router.push(buildOrderUrl(order.id, order.customerId))}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
-                        router.push(`/orders/${order.id}`);
+                        router.push(buildOrderUrl(order.id, order.customerId));
                       }
                     }}
                     className="ui-panel-soft rounded-xl p-3 space-y-2 cursor-pointer"
@@ -187,7 +256,7 @@ export default function OrdersPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => router.push(`/orders/${order.id}#reviews`)}
+                      onClick={() => router.push(buildOrderUrl(order.id, order.customerId, '#reviews'))}
                       className="text-xs font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]"
                     >
                       {t('rateOrder')}

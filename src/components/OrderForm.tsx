@@ -10,6 +10,8 @@ interface OrderFormProps {
     fromNumber: string;
     isLocating: boolean;
     onGetLocation: () => void;
+    hasProfileLocation?: boolean;
+    profileLocationLabel?: string;
     tableQuantity?: number;
 }
 
@@ -21,6 +23,8 @@ const OrderForm: React.FC<OrderFormProps> = ({
     fromNumber,
     isLocating,
     onGetLocation,
+    hasProfileLocation = false,
+    profileLocationLabel,
     tableQuantity = 0
 }) => {
     const t = useTranslations('checkout.orderForm');
@@ -119,63 +123,76 @@ const OrderForm: React.FC<OrderFormProps> = ({
             {orderMetadata.orderType === 'delivery' && (
                 <div className="space-y-1 animate-fadeIn">
                     <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('deliveryAddress')}</label>
-                    <textarea
-                        placeholder={t('deliveryPlaceholder')}
-                        className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black placeholder:text-gray-300 focus:outline-none focus:border-[var(--color-brand)] transition-all resize-none h-20"
-                        value={orderMetadata.address}
-                        onChange={e => setOrderMetadata({ ...orderMetadata, address: e.target.value })}
-                    />
-                    <div className="flex flex-col gap-2 mt-2">
-                        {orderMetadata.gpsLocation && (
-                            <div className="flex flex-col gap-1 animate-fadeIn mt-1">
-                                <label className="text-[7px] font-black uppercase tracking-widest text-green-600 ml-1">Ubicación GPS Adjunta</label>
-                                <label className="text-[7px] font-black uppercase tracking-widest text-green-600 ml-1">{t('gpsAttached')}</label>
-                                <div className="ui-state-success flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm">
-                                    <span className="text-sm">📍</span>
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        value={orderMetadata.gpsLocation}
-                                        className="w-full bg-transparent text-xs font-bold focus:outline-none truncate"
-                                        onClick={(e) => e.currentTarget.select()}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setOrderMetadata({
-                                            ...orderMetadata,
-                                            gpsLocation: undefined,
-                                            customerLatitude: undefined,
-                                            customerLongitude: undefined,
-                                        })}
-                                        className="text-green-600 hover:text-[var(--color-brand)] font-bold px-1 py-1"
-                                    >✕</button>
-                                </div>
-                            </div>
-                        )}
 
-                        <button
-                            onClick={onGetLocation}
-                            disabled={isLocating}
-                            className="ui-state-success flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-sm active:scale-95 disabled:opacity-50"
-                        >
-                            {isLocating ? (
-                                <>
-                                    <div className="w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                                    {t('gettingGps')}
-                                </>
-                            ) : (
-                                <>
-                                    <span>📍</span>
-                                    {orderMetadata.gpsLocation ? t('updateGps') : t('shareGps')}
-                                </>
-                            )}
-                        </button>
-                        {(!Number.isFinite(orderMetadata.customerLatitude) || !Number.isFinite(orderMetadata.customerLongitude)) && (
-                            <p className="ui-state-warning text-[10px] font-bold rounded-lg px-2 py-1 inline-block">
-                                {t('gpsRequired')}
-                            </p>
-                        )}
-                    </div>
+                    {hasProfileLocation ? (
+                        <div className="ui-state-success flex items-start gap-2 px-4 py-3 rounded-xl shadow-sm">
+                            <span className="text-sm">📍</span>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-green-700">Ubicación de perfil</p>
+                                <p className="text-xs font-bold text-green-800 break-words mt-1">{profileLocationLabel || orderMetadata.gpsLocation || orderMetadata.address}</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <textarea
+                                placeholder={t('deliveryPlaceholder')}
+                                className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black placeholder:text-gray-300 focus:outline-none focus:border-[var(--color-brand)] transition-all resize-none h-20"
+                                value={orderMetadata.address}
+                                onChange={e => setOrderMetadata({ ...orderMetadata, address: e.target.value })}
+                            />
+                            <div className="flex flex-col gap-2 mt-2">
+                                {orderMetadata.gpsLocation && (
+                                    <div className="flex flex-col gap-1 animate-fadeIn mt-1">
+                                        <label className="text-[7px] font-black uppercase tracking-widest text-green-600 ml-1">Ubicación GPS Adjunta</label>
+                                        <label className="text-[7px] font-black uppercase tracking-widest text-green-600 ml-1">{t('gpsAttached')}</label>
+                                        <div className="ui-state-success flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm">
+                                            <span className="text-sm">📍</span>
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                value={orderMetadata.gpsLocation}
+                                                className="w-full bg-transparent text-xs font-bold focus:outline-none truncate"
+                                                onClick={(e) => e.currentTarget.select()}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setOrderMetadata({
+                                                    ...orderMetadata,
+                                                    gpsLocation: undefined,
+                                                    customerLatitude: undefined,
+                                                    customerLongitude: undefined,
+                                                })}
+                                                className="text-green-600 hover:text-[var(--color-brand)] font-bold px-1 py-1"
+                                            >✕</button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={onGetLocation}
+                                    disabled={isLocating}
+                                    className="ui-state-success flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                                >
+                                    {isLocating ? (
+                                        <>
+                                            <div className="w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                            {t('gettingGps')}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>📍</span>
+                                            {orderMetadata.gpsLocation ? t('updateGps') : t('shareGps')}
+                                        </>
+                                    )}
+                                </button>
+                                {(!Number.isFinite(orderMetadata.customerLatitude) || !Number.isFinite(orderMetadata.customerLongitude)) && (
+                                    <p className="ui-state-warning text-[10px] font-bold rounded-lg px-2 py-1 inline-block">
+                                        {t('gpsRequired')}
+                                    </p>
+                                )}
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
 

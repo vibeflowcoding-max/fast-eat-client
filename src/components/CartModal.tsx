@@ -25,6 +25,8 @@ interface CartModalProps {
     paymentOptions: { id: string, label: string }[];
     serviceOptions: { id: string, label: string }[];
     fromNumber: string;
+    hasProfileLocation?: boolean;
+    profileLocationLabel?: string;
     tableQuantity?: number;
 }
 
@@ -42,6 +44,8 @@ const CartModal: React.FC<CartModalProps> = ({
     paymentOptions,
     serviceOptions,
     fromNumber,
+    hasProfileLocation = false,
+    profileLocationLabel,
     tableQuantity = 0
 }) => {
     const t = useTranslations('checkout.cart');
@@ -57,11 +61,15 @@ const CartModal: React.FC<CartModalProps> = ({
     const total = subtotal + taxesAndFees;
 
     const isOrderFormValid = () => {
-        const { customerName, customerPhone, orderType, address, gpsLocation, customerLatitude, customerLongitude, tableNumber } = orderMetadata;
+        const { customerName, customerPhone, paymentMethod, orderType, address, gpsLocation, customerLatitude, customerLongitude, tableNumber } = orderMetadata;
+        const normalizedPhone = (customerPhone || fromNumber || '').trim();
+        const hasOrderType = Boolean(orderType?.trim());
+        const hasPaymentMethod = Boolean(paymentMethod?.trim());
         const hasCoordinates = Number.isFinite(customerLatitude) && Number.isFinite(customerLongitude);
-        const isDeliveryDetailsValid = orderType !== 'delivery' || ((address?.trim() || gpsLocation) && hasCoordinates);
+        const hasDeliveryReference = Boolean(address?.trim()) || Boolean(gpsLocation?.trim()) || hasCoordinates;
+        const isDeliveryDetailsValid = orderType !== 'delivery' || hasDeliveryReference;
         const isTableValid = !(orderType === 'comer_aca' || orderType === 'comer_aqui' || orderType === 'dine_in') || tableNumber;
-        return !!(customerName.trim() && customerPhone.trim() && isDeliveryDetailsValid && isTableValid);
+        return !!(customerName.trim() && normalizedPhone && hasOrderType && hasPaymentMethod && isDeliveryDetailsValid && isTableValid);
     };
 
     return (
@@ -130,6 +138,8 @@ const CartModal: React.FC<CartModalProps> = ({
                             fromNumber={fromNumber}
                             isLocating={isLocating}
                             onGetLocation={onGetLocation}
+                            hasProfileLocation={hasProfileLocation}
+                            profileLocationLabel={profileLocationLabel}
                             tableQuantity={tableQuantity}
                         />
                     )}

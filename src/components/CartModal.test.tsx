@@ -2,6 +2,10 @@ import { render, screen } from '@testing-library/react';
 import CartModal from './CartModal';
 import type { CartItem, OrderMetadata } from '@/types';
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 const baseOrderMetadata: OrderMetadata = {
   customerName: 'Test User',
   customerPhone: '88888888',
@@ -42,7 +46,7 @@ const baseProps = {
 };
 
 describe('CartModal delivery validation', () => {
-  it('disables confirm button for delivery orders without GPS coordinates', () => {
+  it('enables confirm button for delivery orders with address even without GPS coordinates', () => {
     render(
       <CartModal
         {...baseProps}
@@ -54,21 +58,22 @@ describe('CartModal delivery validation', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: /confirmar pedido/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /confirmOrder/i })).toBeEnabled();
   });
 
-  it('enables confirm button when delivery order has address and GPS coordinates', () => {
+  it('enables confirm button when customer phone comes from fromNumber fallback', () => {
     render(
       <CartModal
         {...baseProps}
         orderMetadata={{
           ...baseOrderMetadata,
-          customerLatitude: 9.9333,
-          customerLongitude: -84.0833,
+          customerPhone: '',
+          customerLatitude: undefined,
+          customerLongitude: undefined,
         }}
       />,
     );
 
-    expect(screen.getByRole('button', { name: /confirmar pedido/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /confirmOrder/i })).toBeEnabled();
   });
 });

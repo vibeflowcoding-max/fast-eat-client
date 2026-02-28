@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { getRestaurantRows, getTraceId } from '../_lib';
+import { supabase } from '@/lib/supabase';
 
 const surpriseMeSchema: Schema = {
     type: Type.OBJECT,
     properties: {
         restaurantId: { type: Type.STRING },
         itemId: { type: Type.STRING },
-        justification: { type: Type.STRING }
+        justification: { type: Type.STRING },
+        reason: { type: Type.STRING }
     },
     required: ["restaurantId", "itemId", "justification"]
 };
@@ -24,6 +26,35 @@ export async function POST(req: NextRequest) {
         const { mood, budget, location, dietary_profile } = body;
 
         const restaurants = await getRestaurantRows();
+        const restaurantIds = restaurants.map((restaurant) => restaurant.id);
+
+        const { data: menuItems, error: menuError } = await supabase
+            .from('menu_items')
+            .select('id,name,restaurant_id,is_active')
+            .eq('is_active', true)
+            .in('restaurant_id', restaurantIds.length > 0 ? restaurantIds : ['00000000-0000-0000-0000-000000000000'])
+            .limit(200);
+
+        if (menuError) {
+            throw new Error(menuError.message);
+        }
+
+        const itemCandidates = (menuItems ?? [])
+            .filter((item: any) => typeof item?.id === 'string' && typeof item?.restaurant_id === 'string')
+            .map((item: any) => ({
+                id: String(item.id),
+                restaurantId: String(item.restaurant_id),
+                name: typeof item.name === 'string' ? item.name : ''
+            }));
+
+        if (itemCandidates.length === 0) {
+            return NextResponse.json({
+                status: 'incomplete_data',
+                reason: 'no_actionable_menu_items',
+                source: 'db',
+                traceId
+            }, { status: 422 });
+        }
 
         // Format restaurants context for AI
         const restaurantContext = restaurants.map(r => ({
@@ -39,20 +70,14 @@ export async function POST(req: NextRequest) {
             rating: r.rating
         })).slice(0, 15);
 
-        // If GEMINI_API_KEY is missing, return a deterministic mock for local development
         if (!process.env.GEMINI_API_KEY) {
-            console.warn('[discovery.surprise] GEMINI_API_KEY is missing, returning mock response.');
-
-            const match = restaurantContext.find(r => r.avg_price && r.avg_price <= (budget || 10000)) || restaurantContext[0];
-
+            console.warn('[discovery.surprise] GEMINI_API_KEY is missing, returning explicit unavailable status.');
             return NextResponse.json({
-                restaurantId: match?.id ?? 'mock-id',
-                itemId: 'mock-item-id',
-                justification: isEnglish
-                    ? `Based on your mood "${mood}", ${match?.name} is a great fit for your budget.`
-                    : `¡Pura vida! Basado en tu mood "${mood}", te recomiendo ${match?.name} que queda súper bien con tu presupuesto.`,
+                status: 'provider_unavailable',
+                reason: 'ai_provider_not_configured',
+                source: 'none',
                 traceId
-            });
+            }, { status: 503 });
         }
 
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -64,10 +89,12 @@ Dietary Restrictions: ${JSON.stringify(dietary_profile || {})}
 Location: ${JSON.stringify(location || {})}
 
 Available restaurants data: ${JSON.stringify(restaurantContext)}
+Available real menu item candidates (must pick one exactly as-is): ${JSON.stringify(itemCandidates.slice(0, 120))}
 
 Choose the single best restaurant that matches the user's mood and budget.
-Since you don't have the full detailed menu, invent a plausible menu item perfectly matching the mood that this restaurant would likely sell.
-Respond with strictly the restaurant ID, the invented itemId (e.g. "burger-clasica"), and a short, energetic justification in ${isEnglish ? 'English' : 'Costa Rican Spanish'} explaining why this hits the spot.`;
+You MUST choose only one restaurantId and one itemId that already exist in the provided candidates.
+Do not invent any restaurantId or itemId.
+Respond with strictly the selected restaurantId, selected itemId, and a short, energetic justification in ${isEnglish ? 'English' : 'Costa Rican Spanish'} explaining why this hits the spot.`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -82,14 +109,46 @@ Respond with strictly the restaurant ID, the invented itemId (e.g. "burger-clasi
             throw new Error('No text returned from Gemini');
         }
 
-        const resultObject = JSON.parse(response.text);
+        const resultObject = JSON.parse(response.text) as {
+            restaurantId?: string;
+            itemId?: string;
+            justification?: string;
+            reason?: string;
+        };
+
+        const isActionable =
+            typeof resultObject.restaurantId === 'string' &&
+            typeof resultObject.itemId === 'string' &&
+            itemCandidates.some((item) => item.id === resultObject.itemId && item.restaurantId === resultObject.restaurantId);
+
+        if (!isActionable) {
+            return NextResponse.json({
+                status: 'incomplete_data',
+                reason: 'missing_or_invalid_actionable_target',
+                source: 'ai',
+                traceId
+            }, { status: 422 });
+        }
 
         return NextResponse.json({
-            ...resultObject,
+            restaurantId: resultObject.restaurantId,
+            itemId: resultObject.itemId,
+            justification: resultObject.justification,
+            status: 'actionable',
+            reason: resultObject.reason ?? 'matched_real_candidate',
+            source: 'ai',
             traceId
         });
     } catch (error) {
         console.error('[discovery.surprise.error]', { traceId, error });
-        return NextResponse.json({ error: 'Failed to process surprise me request', traceId }, { status: 500 });
+        return NextResponse.json(
+            {
+                status: 'analysis_unavailable',
+                reason: 'surprise_processing_failed',
+                source: 'none',
+                traceId
+            },
+            { status: 500 }
+        );
     }
 }

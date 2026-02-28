@@ -10,12 +10,13 @@ interface OrderTrackingModalProps {
     isOpen: boolean;
     branchId: string;
     phone: string;
+    customerId?: string;
     onClose: () => void;
 }
 
-const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchId, phone, onClose }) => {
+const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchId, phone, customerId, onClose }) => {
     const t = useTranslations('tracking');
-    const { orders, isConnected } = useOrderTracking(branchId, phone);
+    const { orders, isConnected } = useOrderTracking(branchId, phone, customerId);
     const bidsByOrderId = useCartStore((state) => state.bidsByOrderId);
     const deepLinkTarget = useCartStore((state) => state.deepLinkTarget);
     const setDeepLinkTarget = useCartStore((state) => state.setDeepLinkTarget);

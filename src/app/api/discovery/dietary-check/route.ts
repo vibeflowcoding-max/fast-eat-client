@@ -33,30 +33,23 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        // Check if GEMINI_API_KEY is missing, return a deterministic mock to avoid crashing the dev environment
         if (!process.env.GEMINI_API_KEY) {
-            console.warn('[discovery.dietary-check] GEMINI_API_KEY is missing, returning mock response.');
-            const name = typeof menu_item.name === 'string' ? menu_item.name.toLowerCase() : '';
-
-            // Simple mock heuristic 
-            let isSafe = true;
-            let reason = 'Parece seguro basado en el nombre del producto.';
-
-            const restrictions = JSON.stringify(dietary_profile).toLowerCase();
-            if (restrictions.includes('vegan') && (name.includes('pollo') || name.includes('carne') || name.includes('queso') || name.includes('leche'))) {
-                isSafe = false;
-                reason = 'Contiene ingredientes de origen animal.';
-            } else if (restrictions.includes('gluten') && (name.includes('pan') || name.includes('harina'))) {
-                isSafe = false;
-                reason = 'Contiene ingredientes con gluten.';
-            }
-
+            console.warn('[discovery.dietary-check] GEMINI_API_KEY is missing, returning explicit unavailable status.');
             return NextResponse.json({
-                is_safe: isSafe,
-                confidence: 0.8,
-                reason,
+                status: 'provider_unavailable',
+                reason: 'ai_provider_not_configured',
+                source: 'none',
                 traceId
-            });
+            }, { status: 503 });
+        }
+
+        if (!Array.isArray(menu_item.ingredients) || menu_item.ingredients.length === 0) {
+            return NextResponse.json({
+                status: 'incomplete_data',
+                reason: 'menu_item_ingredients_unavailable',
+                source: 'db',
+                traceId
+            }, { status: 422 });
         }
 
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -86,14 +79,42 @@ Analyze the item and return strictly the structured output required. All explana
             throw new Error('No text returned from Gemini');
         }
 
-        const resultObject = JSON.parse(response.text);
+        const resultObject = JSON.parse(response.text) as {
+            is_safe?: boolean;
+            confidence?: number;
+            reason?: string;
+            estimated_macros?: {
+                protein?: number;
+                carbs?: number;
+                fat?: number;
+            };
+        };
+
+        if (typeof resultObject.is_safe !== 'boolean' || typeof resultObject.confidence !== 'number' || typeof resultObject.reason !== 'string') {
+            return NextResponse.json({
+                status: 'analysis_unavailable',
+                reason: 'invalid_provider_payload',
+                source: 'ai',
+                traceId
+            }, { status: 502 });
+        }
 
         return NextResponse.json({
             ...resultObject,
+            status: 'analyzed',
+            source: 'ai',
             traceId
         });
     } catch (error) {
         console.error('[discovery.dietary-check.error]', { traceId, error });
-        return NextResponse.json({ error: 'Failed to process dietary check request', traceId }, { status: 500 });
+        return NextResponse.json(
+            {
+                status: 'analysis_unavailable',
+                reason: 'dietary_check_processing_failed',
+                source: 'none',
+                traceId
+            },
+            { status: 500 }
+        );
     }
 }

@@ -46,13 +46,14 @@ function toNumber(value: unknown): number {
 
 export async function GET(request: NextRequest) {
   try {
+    const customerIdParam = request.nextUrl.searchParams.get('customerId')?.trim() ?? '';
     const phone = request.nextUrl.searchParams.get('phone')?.trim() ?? '';
 
-    if (!phone) {
+    if (!customerIdParam && !phone) {
       return NextResponse.json({ activeOrders: [], pastOrders: [] });
     }
 
-    const customerId = await findCustomerIdByPhone(phone);
+    const customerId = customerIdParam || await findCustomerIdByPhone(phone);
     if (!customerId) {
       return NextResponse.json({ activeOrders: [], pastOrders: [] });
     }
@@ -123,6 +124,7 @@ export async function GET(request: NextRequest) {
 
       return {
         id: order.id,
+        customerId,
         orderNumber: orderNumberById.get(order.id) ?? null,
         statusCode: order.status_code,
         statusLabel: order.status_label,
@@ -140,6 +142,7 @@ export async function GET(request: NextRequest) {
     const pastOrders = normalizedOrders.filter((order) => !isActiveStatus(order.statusCode));
 
     return NextResponse.json({
+      customerId,
       activeOrders,
       pastOrders
     });

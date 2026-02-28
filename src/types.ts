@@ -84,10 +84,20 @@ export interface MCPOrderPayload {
     branchId: string;
     customerName: string;
     customerPhone: string;
+    fromNumber?: string;
+    customer?: {
+      name?: string;
+      phone?: string;
+      email?: string | null;
+      address?: string | null;
+      latitude?: number;
+      longitude?: number;
+    };
     paymentMethod: string;
     orderType: string;
     source?: 'client' | 'virtualMenu' | 'consumer_app' | string;
     address?: string;
+    tableNumber?: string;
     customerLatitude?: number;
     customerLongitude?: number;
   };

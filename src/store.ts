@@ -10,6 +10,7 @@ interface CartState {
   expirationTime: number | null;
   branchId: string;
   fromNumber: string;
+  customerId: string;
   customerName: string;
   isTestMode: boolean; // Estado para manejar el entorno de n8n
   restaurantInfo: import('./types').RestaurantInfo | null;
@@ -66,10 +67,12 @@ interface CartState {
   setExpirationTime: (time: number | null) => void;
   setBranchId: (id: string) => void;
   setFromNumber: (num: string) => void;
+  setCustomerId: (id: string) => void;
   setCustomerName: (name: string) => void;
   toggleTestMode: () => void;
   setRestaurantInfo: (info: import('./types').RestaurantInfo) => void;
   addActiveOrder: (order: OrderUpdate) => void;
+  replaceActiveOrders: (orders: OrderUpdate[]) => void;
   updateActiveOrder: (orderId: string, updates: Partial<OrderUpdate>) => void;
   setOrderBids: (orderId: string, bids: DeliveryBid[]) => void;
   addBid: (orderId: string, bid: DeliveryBid) => void;
@@ -90,6 +93,7 @@ interface CartState {
   setAuthHydrated: (value: boolean) => void;
   setLocale: (locale: AppLocale) => void;
   hydrateClientContext: (payload: {
+    customerId?: string | null;
     customerName?: string | null;
     customerPhone?: string | null;
     customerAddress?: CartState['customerAddress'];
@@ -107,6 +111,7 @@ export const useCartStore = create<CartState>()(
       expirationTime: null,
       branchId: '',
       fromNumber: '',
+      customerId: '',
       customerName: '',
       isTestMode: false,
       restaurantInfo: null,
@@ -202,6 +207,7 @@ export const useCartStore = create<CartState>()(
         return { branchId: normalizedNextBranchId };
       }),
       setFromNumber: (fromNumber) => set({ fromNumber }),
+      setCustomerId: (customerId) => set({ customerId }),
       setCustomerName: (name) => set({ customerName: name }),
       toggleTestMode: () => set((state) => ({ isTestMode: !state.isTestMode })),
       setRestaurantInfo: (info) => set({ restaurantInfo: info }),
@@ -229,6 +235,22 @@ export const useCartStore = create<CartState>()(
         } as OrderUpdate;
 
         return { activeOrders: newActiveOrders };
+      }),
+      replaceActiveOrders: (orders) => set(() => {
+        const nextActiveOrders: Record<string, OrderUpdate> = {};
+
+        for (const order of orders) {
+          if (!order?.orderId) continue;
+          nextActiveOrders[order.orderId] = order;
+        }
+
+        return {
+          activeOrders: nextActiveOrders,
+          bidsByOrderId: {},
+          bidNotifications: [],
+          deepLinkTarget: null,
+          auctionStateByOrderId: {}
+        };
       }),
       updateActiveOrder: (orderId, updates) => set((state) => {
         if (!state.activeOrders[orderId]) return {};
@@ -309,6 +331,7 @@ export const useCartStore = create<CartState>()(
         expirationTime: null,
         branchId: '',
         fromNumber: '',
+        customerId: '',
         customerName: '',
         activeOrders: {},
         bidsByOrderId: {},
@@ -335,6 +358,7 @@ export const useCartStore = create<CartState>()(
       setAuthHydrated: (value) => set({ authHydrated: value }),
       setLocale: (locale) => set({ locale: normalizeLocale(locale) }),
       hydrateClientContext: (payload) => set((state) => ({
+        customerId: payload.customerId ?? payload.customerAddress?.customerId ?? state.customerId,
         customerName: payload.customerName ?? state.customerName,
         fromNumber: payload.customerPhone ?? state.fromNumber,
         customerAddress: payload.customerAddress ?? state.customerAddress,
@@ -350,6 +374,7 @@ export const useCartStore = create<CartState>()(
       name: 'fasteat-storage',
       partialize: (state) => ({
         fromNumber: state.fromNumber,
+        customerId: state.customerId,
         customerName: state.customerName,
         activeOrders: state.activeOrders,
         bidsByOrderId: state.bidsByOrderId,

@@ -6,22 +6,34 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const phone = searchParams.get('phone');
+  const customerId = searchParams.get('customerId');
+  const branchIdFromQuery = searchParams.get('branchId');
   
   const cookieStore = await cookies();
   const sessionBranchId = cookieStore.get('session_branch_id')?.value;
   const DEFAULT_BRANCH_ID = process.env.DEFAULT_BRANCH_ID;
   const FAST_EAT_API_URL = process.env.FAST_EAT_API_URL;
 
-  const branchId = sessionBranchId || DEFAULT_BRANCH_ID;
+  const branchId = branchIdFromQuery || sessionBranchId || DEFAULT_BRANCH_ID;
 
-  console.log(`[SSE Proxy] Tracking attempt - Phone: ${phone}, Branch: ${branchId}, SessionCookie: ${!!sessionBranchId}`);
+  console.log(
+    `[SSE Proxy] Tracking attempt - Phone: ${phone || 'n/a'}, CustomerId: ${customerId || 'n/a'}, Branch: ${branchId}, SessionCookie: ${!!sessionBranchId}`,
+  );
 
-  if (!phone || !branchId || !FAST_EAT_API_URL) {
-    console.error("[SSE Proxy] Missing parameters", { phone, branchId, FAST_EAT_API_URL });
+  if ((!phone && !customerId) || !branchId || !FAST_EAT_API_URL) {
+    console.error("[SSE Proxy] Missing parameters", { phone, customerId, branchId, FAST_EAT_API_URL });
     return new Response('Missing parameters or session not initialized', { status: 400 });
   }
 
-  const targetUrl = `${FAST_EAT_API_URL}/notifications/consumer/track?branch_id=${branchId}&phone=${encodeURIComponent(phone)}`;
+  const targetParams = new URLSearchParams({ branch_id: branchId });
+  if (phone) {
+    targetParams.set('phone', phone);
+  }
+  if (customerId) {
+    targetParams.set('customer_id', customerId);
+  }
+
+  const targetUrl = `${FAST_EAT_API_URL}/notifications/consumer/track?${targetParams.toString()}`;
   console.log(`[SSE Proxy] Connecting to backend: ${targetUrl}`);
 
   try {

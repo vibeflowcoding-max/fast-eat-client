@@ -99,7 +99,7 @@ const resolveStatusObject = (data: any): { code: string; label: string } => {
   };
 };
 
-export function useOrderTracking(_branchId: string, phone: string) {
+export function useOrderTracking(branchId: string, phone: string, customerId?: string) {
   // Use global store instead of local state
   const {
     activeOrders,
@@ -119,14 +119,27 @@ export function useOrderTracking(_branchId: string, phone: string) {
   }, [activeOrders]);
 
   useEffect(() => {
-    if (!phone) {
-        console.debug("🕵️ SSE: No phone provided, skipping connection.");
+    const normalizedPhone = String(phone || '').trim();
+    const normalizedCustomerId = String(customerId || '').trim();
+
+    if (!normalizedPhone && !normalizedCustomerId) {
+        console.debug("🕵️ SSE: No phone or customerId provided, skipping connection.");
         return;
     }
 
-    console.log(`📡 SSE: Attempting connection for phone: ${phone}`);
+    console.log(`📡 SSE: Attempting connection for phone: ${normalizedPhone || 'n/a'}, customerId: ${normalizedCustomerId || 'n/a'}`);
     // Use local proxy to hide backend URL and Branch ID
-    const url = `/api/track?phone=${encodeURIComponent(phone)}`;
+    const params = new URLSearchParams();
+    if (normalizedPhone) {
+      params.set('phone', normalizedPhone);
+    }
+    if (normalizedCustomerId) {
+      params.set('customerId', normalizedCustomerId);
+    }
+    if (branchId) {
+      params.set('branchId', branchId);
+    }
+    const url = `/api/track?${params.toString()}`;
     
     // SSE connection
     const eventSource = new EventSource(url);
@@ -277,7 +290,7 @@ export function useOrderTracking(_branchId: string, phone: string) {
       eventSource.close();
       setIsConnected(false);
     };
-  }, [phone, addActiveOrder, updateActiveOrder, addBid, updateBid, addBidNotification, setAuctionState]);
+  }, [branchId, phone, customerId, addActiveOrder, updateActiveOrder, addBid, updateBid, addBidNotification, setAuctionState]);
 
   const orders = useMemo(
     () => (Object.values(activeOrders) as OrderUpdate[])

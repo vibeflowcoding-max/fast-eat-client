@@ -22,6 +22,13 @@ const PhonePrompt: React.FC<PhonePromptProps> = ({
     setPhoneBody,
     handlePhoneSubmit,
 }) => {
+    const cleanCC = countryCode.replace(/\D/g, '');
+    const cleanBody = phoneBody.replace(/\D/g, '');
+    const minLength = cleanCC === '506' ? 8 : 6;
+    const isPhoneValid = cleanBody.length >= minLength;
+    const isNameValid = initialCustomerName.trim().length >= 2;
+    const canSubmit = isPhoneValid && isNameValid;
+
     return (
         <div className="min-h-screen bg-[#fdfcf0] flex items-center justify-center p-6 japanese-pattern">
             <div className="bg-white w-full max-w-md rounded-[3rem] p-8 md:p-12 shadow-[0_50px_100px_rgba(0,0,0,0.1)] border-2 border-red-600 animate-popIn">
@@ -73,8 +80,8 @@ const PhonePrompt: React.FC<PhonePromptProps> = ({
                     </div>
                     <button
                         onClick={handlePhoneSubmit}
-                        disabled={phoneBody.length < 5 || initialCustomerName.trim().length < 2}
-                        className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-[11px] shadow-xl transition-all active:scale-95 ${phoneBody.length >= 5 && initialCustomerName.trim().length >= 2 ? 'bg-black text-white hover:bg-red-600' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
+                        disabled={!canSubmit}
+                        className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-[11px] shadow-xl transition-all active:scale-95 ${canSubmit ? 'bg-black text-white hover:bg-red-600' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
                     >
                         Entrar al Menú 🍱
                     </button>

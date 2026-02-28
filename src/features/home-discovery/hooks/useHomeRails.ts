@@ -70,7 +70,6 @@ const DEFAULT_RAIL_LABELS: HomeRailLabels = {
 };
 
 const COMBO_BUDGET_CENTS = 9000;
-const BASE_BASKET_CENTS = 6900;
 const BUDGET_PRICE_MAX = 9000;
 const MID_PRICE_MAX = 14000;
 const ETA_DEFAULT_MINUTES = 45;
@@ -82,10 +81,7 @@ export function estimateDeliveryFee(restaurant: RestaurantWithBranches) {
         return restaurant.estimated_delivery_fee;
     }
 
-    const distance = restaurant.distance ?? 6;
-    if (distance <= 2) return 700;
-    if (distance <= 5) return 1000;
-    return 1400;
+    return null;
 }
 
 function estimateEta(restaurant: RestaurantWithBranches) {
@@ -93,8 +89,7 @@ function estimateEta(restaurant: RestaurantWithBranches) {
         return restaurant.eta_min;
     }
 
-    const distance = restaurant.distance ?? 5;
-    return Math.max(15, Math.round(distance * 8));
+    return null;
 }
 
 export function estimateFinalPrice(restaurant: RestaurantWithBranches) {
@@ -102,8 +97,7 @@ export function estimateFinalPrice(restaurant: RestaurantWithBranches) {
         return restaurant.avg_price_estimate;
     }
 
-    const promoDiscount = restaurant.promo_text ? 900 : 400;
-    return BASE_BASKET_CENTS + estimateDeliveryFee(restaurant) - promoDiscount;
+    return null;
 }
 
 function matchesPriceBand(restaurant: RestaurantWithBranches, priceBand: HomeFiltersState['price_band']) {
@@ -112,6 +106,9 @@ function matchesPriceBand(restaurant: RestaurantWithBranches, priceBand: HomeFil
     }
 
     const finalPrice = estimateFinalPrice(restaurant);
+    if (finalPrice === null) {
+        return false;
+    }
 
     if (priceBand === 'budget') {
         return finalPrice <= BUDGET_PRICE_MAX;
@@ -130,7 +127,8 @@ export function applyHomeFilters(restaurants: RestaurantWithBranches[], filters:
             return false;
         }
 
-        if (typeof filters.eta_max === 'number' && estimateEta(restaurant) > filters.eta_max) {
+        const eta = estimateEta(restaurant);
+        if (typeof filters.eta_max === 'number' && (eta === null || eta > filters.eta_max)) {
             return false;
         }
 
@@ -138,7 +136,8 @@ export function applyHomeFilters(restaurants: RestaurantWithBranches[], filters:
             return false;
         }
 
-        if (typeof filters.delivery_fee_max === 'number' && estimateDeliveryFee(restaurant) > filters.delivery_fee_max) {
+        const deliveryFee = estimateDeliveryFee(restaurant);
+        if (typeof filters.delivery_fee_max === 'number' && (deliveryFee === null || deliveryFee > filters.delivery_fee_max)) {
             return false;
         }
 
@@ -155,7 +154,7 @@ export function sortRestaurants(restaurants: RestaurantWithBranches[], sortBy: H
 
     sorted.sort((left, right) => {
         if (sortBy === 'fastest') {
-            return estimateEta(left) - estimateEta(right);
+            return (estimateEta(left) ?? Number.MAX_SAFE_INTEGER) - (estimateEta(right) ?? Number.MAX_SAFE_INTEGER);
         }
 
         if (sortBy === 'top_rated') {
@@ -166,8 +165,8 @@ export function sortRestaurants(restaurants: RestaurantWithBranches[], sortBy: H
             return (left.distance ?? Number.MAX_SAFE_INTEGER) - (right.distance ?? Number.MAX_SAFE_INTEGER);
         }
 
-        const leftValueScore = estimateFinalPrice(left) - (left.rating ?? 0) * 100;
-        const rightValueScore = estimateFinalPrice(right) - (right.rating ?? 0) * 100;
+        const leftValueScore = (estimateFinalPrice(left) ?? Number.MAX_SAFE_INTEGER) - (left.rating ?? 0) * 100;
+        const rightValueScore = (estimateFinalPrice(right) ?? Number.MAX_SAFE_INTEGER) - (right.rating ?? 0) * 100;
         return leftValueScore - rightValueScore;
     });
 
@@ -184,7 +183,7 @@ export function sortByIntent(restaurants: RestaurantWithBranches[], activeIntent
     sorted.sort((left, right) => {
         switch (activeIntent) {
             case 'fast': {
-                return estimateEta(left) - estimateEta(right);
+                return (estimateEta(left) ?? Number.MAX_SAFE_INTEGER) - (estimateEta(right) ?? Number.MAX_SAFE_INTEGER);
             }
             case 'best_rated':
                 return (right.rating ?? 0) - (left.rating ?? 0);
@@ -210,10 +209,12 @@ function scoreForYouCandidate(restaurant: RestaurantWithBranches, preferenceHint
     const categoryScore = categories.reduce((score, category) => score + (preferenceHints.categoryWeights[category] ?? 0), 0);
 
     const etaBaseline = preferenceHints.preferredEtaMax ?? ETA_DEFAULT_MINUTES;
-    const etaPenalty = Math.abs(estimateEta(restaurant) - etaBaseline);
+    const etaForScore = estimateEta(restaurant) ?? ETA_DEFAULT_MINUTES;
+    const etaPenalty = Math.abs(etaForScore - etaBaseline);
 
-    const priceBaseline = preferenceHints.preferredPriceMax ?? estimateFinalPrice(restaurant);
-    const pricePenalty = Math.abs(estimateFinalPrice(restaurant) - priceBaseline) / 120;
+    const restaurantFinalPrice = estimateFinalPrice(restaurant) ?? preferenceHints.preferredPriceMax ?? MID_PRICE_MAX;
+    const priceBaseline = preferenceHints.preferredPriceMax ?? restaurantFinalPrice;
+    const pricePenalty = Math.abs(restaurantFinalPrice - priceBaseline) / 120;
 
     const ratingBonus = (restaurant.rating ?? 0) * 2;
     return categoryScore + ratingBonus - etaPenalty - pricePenalty;
@@ -301,8 +302,8 @@ export function useHomeRails({
         const filtered = applyHomeFilters(restaurants, filters);
         const orderedBySort = sortRestaurants(filtered, sortBy);
         const ordered = sortByIntent(orderedBySort, activeIntent);
-        const orderedByValue = [...ordered].sort((left, right) => estimateFinalPrice(left) - estimateFinalPrice(right));
-        const orderedByFee = [...ordered].sort((left, right) => estimateDeliveryFee(left) - estimateDeliveryFee(right));
+        const orderedByValue = [...ordered].sort((left, right) => (estimateFinalPrice(left) ?? Number.MAX_SAFE_INTEGER) - (estimateFinalPrice(right) ?? Number.MAX_SAFE_INTEGER));
+        const orderedByFee = [...ordered].sort((left, right) => (estimateDeliveryFee(left) ?? Number.MAX_SAFE_INTEGER) - (estimateDeliveryFee(right) ?? Number.MAX_SAFE_INTEGER));
         const orderedByDistance = [...ordered].sort(
             (left, right) => (left.distance ?? Number.MAX_SAFE_INTEGER) - (right.distance ?? Number.MAX_SAFE_INTEGER)
         );
@@ -379,7 +380,10 @@ export function useHomeRails({
             });
         }
 
-        const combosUnderBudget = orderedByValue.filter((restaurant) => estimateFinalPrice(restaurant) <= COMBO_BUDGET_CENTS);
+        const combosUnderBudget = orderedByValue.filter((restaurant) => {
+            const finalPrice = estimateFinalPrice(restaurant);
+            return finalPrice !== null && finalPrice <= COMBO_BUDGET_CENTS;
+        });
         additionalRails.push({
             railId: 'combos-under-budget',
             title: railLabels.combosUnderBudgetTitle,
@@ -387,7 +391,10 @@ export function useHomeRails({
             items: combosUnderBudget.slice(0, 8)
         });
 
-        const lowDeliveryFee = orderedByFee.filter((restaurant) => estimateDeliveryFee(restaurant) <= 1000);
+        const lowDeliveryFee = orderedByFee.filter((restaurant) => {
+            const deliveryFee = estimateDeliveryFee(restaurant);
+            return deliveryFee !== null && deliveryFee <= 1000;
+        });
         additionalRails.push({
             railId: 'low-delivery-fee',
             title: railLabels.lowDeliveryFeeTitle,

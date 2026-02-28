@@ -9,7 +9,8 @@ const predictiveReorderSchema: Schema = {
         confidence: { type: Type.NUMBER, description: 'A score between 0 and 1 indicating certainty' },
         restaurantId: { type: Type.STRING },
         itemId: { type: Type.STRING },
-        prompt_message: { type: Type.STRING, description: 'Actionable short prompt, e.g., "¡Hora de tu café usual!"' }
+        prompt_message: { type: Type.STRING, description: 'Actionable short prompt, e.g., "¡Hora de tu café usual!"' },
+        reason: { type: Type.STRING }
     },
     required: ["should_prompt", "confidence"]
 };
@@ -25,29 +26,27 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { order_history, current_time, location } = body;
 
-        // If GEMINI_API_KEY is missing or if we just want a simple local dev mock
-        if (!process.env.GEMINI_API_KEY) {
-            console.warn('[discovery.predictive-reorder] GEMINI_API_KEY is missing, returning mock response.');
-
-            // Simple mock: if we pass a specific mock history, trigger it
-            if (order_history && order_history.length > 0) {
-                return NextResponse.json({
-                    should_prompt: true,
-                    confidence: 0.9,
-                    restaurantId: order_history[0].restaurantId || 'mock-resta',
-                    itemId: order_history[0].itemId || 'mock-item',
-                    prompt_message: isEnglish
-                        ? 'Your usual order? Reorder in one tap!'
-                        : '¿Lo de siempre? ¡Pídelo con 1 clic!',
-                    traceId
-                });
-            }
-
+        if (!Array.isArray(order_history) || order_history.length === 0) {
             return NextResponse.json({
                 should_prompt: false,
                 confidence: 0,
+                status: 'incomplete_data',
+                reason: 'order_history_unavailable',
+                source: 'db',
                 traceId
             });
+        }
+
+        if (!process.env.GEMINI_API_KEY) {
+            console.warn('[discovery.predictive-reorder] GEMINI_API_KEY is missing, returning explicit unavailable status.');
+            return NextResponse.json({
+                should_prompt: false,
+                confidence: 0,
+                status: 'provider_unavailable',
+                reason: 'ai_provider_not_configured',
+                source: 'none',
+                traceId
+            }, { status: 503 });
         }
 
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -76,14 +75,66 @@ Be conservative: only prompt if confidence is high (>0.7).`;
             throw new Error('No text returned from Gemini');
         }
 
-        const resultObject = JSON.parse(response.text);
+        const resultObject = JSON.parse(response.text) as {
+            should_prompt?: boolean;
+            confidence?: number;
+            restaurantId?: string;
+            itemId?: string;
+            prompt_message?: string;
+            reason?: string;
+        };
+
+        const shouldPrompt = Boolean(resultObject.should_prompt);
+        const confidence = typeof resultObject.confidence === 'number' ? resultObject.confidence : 0;
+        const hasActionableTarget =
+            typeof resultObject.restaurantId === 'string' && resultObject.restaurantId.trim().length > 0 &&
+            typeof resultObject.itemId === 'string' && resultObject.itemId.trim().length > 0;
+
+        if (!shouldPrompt) {
+            return NextResponse.json({
+                should_prompt: false,
+                confidence,
+                status: 'no_pattern',
+                reason: resultObject.reason ?? 'no_strong_pattern',
+                source: 'ai',
+                traceId
+            });
+        }
+
+        if (!hasActionableTarget) {
+            return NextResponse.json({
+                should_prompt: false,
+                confidence,
+                status: 'incomplete_data',
+                reason: 'missing_actionable_target',
+                source: 'ai',
+                traceId
+            });
+        }
 
         return NextResponse.json({
-            ...resultObject,
+            should_prompt: true,
+            confidence,
+            restaurantId: resultObject.restaurantId,
+            itemId: resultObject.itemId,
+            prompt_message: resultObject.prompt_message,
+            status: 'actionable',
+            reason: resultObject.reason ?? 'pattern_match',
+            source: 'ai',
             traceId
         });
     } catch (error) {
         console.error('[discovery.predictive-reorder.error]', { traceId, error });
-        return NextResponse.json({ error: 'Failed to process predictive reorder request', traceId }, { status: 500 });
+        return NextResponse.json(
+            {
+                should_prompt: false,
+                confidence: 0,
+                status: 'analysis_unavailable',
+                reason: 'predictive_reorder_processing_failed',
+                source: 'none',
+                traceId
+            },
+            { status: 500 }
+        );
     }
 }

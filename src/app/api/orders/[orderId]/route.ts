@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { findCustomerIdByPhone } from '@/app/api/customer/_lib';
 import { getSupabaseServer } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
@@ -22,54 +21,72 @@ function toNumber(value: unknown): number {
 export async function GET(request: NextRequest, context: { params: Promise<{ orderId: string }> }) {
   try {
     const { orderId } = await context.params;
-    const phone = request.nextUrl.searchParams.get('phone')?.trim() ?? '';
+    const normalizedOrderId = decodeURIComponent(orderId || '').trim();
+    const customerId = request.nextUrl.searchParams.get('customerId')?.trim() ?? '';
 
-    if (!orderId) {
+    if (!normalizedOrderId) {
       return NextResponse.json({ error: 'orderId is required' }, { status: 400 });
     }
 
-    if (!phone) {
-      return NextResponse.json({ error: 'phone is required' }, { status: 400 });
-    }
-
-    const customerId = await findCustomerIdByPhone(phone);
     if (!customerId) {
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+      return NextResponse.json({ error: 'customerId is required' }, { status: 400 });
     }
 
     const supabaseServer = getSupabaseServer();
+    const selectOrderFields = 'id,order_number,branch_id,restaurant_id,status_id,delivery_address,notes,estimated_time,payment_method,total,created_at';
 
-    const { data: orderView, error: orderViewError } = await (supabaseServer as any)
-      .from('orders_with_details')
-      .select('id,restaurant_id,status_code,status_label,total,created_at,items')
-      .eq('id', orderId)
+    let { data: orderRaw, error: orderByIdError } = await (supabaseServer as any)
+      .from('orders')
+      .select(selectOrderFields)
+      .eq('id', normalizedOrderId)
       .eq('customer_id', customerId)
       .maybeSingle();
 
-    if (orderViewError) {
-      throw new Error(orderViewError.message);
+    if (orderByIdError) {
+      throw new Error(orderByIdError.message);
     }
 
-    if (!orderView) {
+    if (!orderRaw) {
+      const { data: orderByNumber, error: orderByNumberError } = await (supabaseServer as any)
+        .from('orders')
+        .select(selectOrderFields)
+        .eq('order_number', normalizedOrderId)
+        .eq('customer_id', customerId)
+        .maybeSingle();
+
+      if (orderByNumberError) {
+        throw new Error(orderByNumberError.message);
+      }
+
+      orderRaw = orderByNumber;
+    }
+
+    if (!orderRaw) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    const [{ data: orderRaw }, { data: bids }, { data: restaurant }] = await Promise.all([
+    const [{ data: orderStatus }, { data: orderItems }, { data: bids }, { data: restaurant }] = await Promise.all([
+      orderRaw?.status_id
+        ? (supabaseServer as any)
+            .from('order_statuses')
+            .select('code,label')
+            .eq('id', orderRaw.status_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
       (supabaseServer as any)
-        .from('orders')
-        .select('id,order_number,branch_id,delivery_address,notes,estimated_time,payment_method,total,created_at')
-        .eq('id', orderId)
-        .maybeSingle(),
+        .from('order_items')
+        .select('name,quantity,price,special_instructions,subtotal')
+        .eq('order_id', orderRaw.id),
       (supabaseServer as any)
         .from('delivery_bids')
         .select('id,order_id,driver_id,status,driver_offer,base_price,final_price,estimated_time_minutes,driver_notes,driver_rating_snapshot,created_at,expires_at,accepted_at,rejected_at')
-        .eq('order_id', orderId)
+        .eq('order_id', orderRaw.id)
         .order('created_at', { ascending: false }),
-      orderView.restaurant_id
+      orderRaw?.restaurant_id
         ? (supabaseServer as any)
             .from('restaurants')
             .select('id,name,logo_url')
-            .eq('id', orderView.restaurant_id)
+            .eq('id', orderRaw.restaurant_id)
             .maybeSingle()
         : Promise.resolve({ data: null })
     ]);
@@ -98,13 +115,21 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ord
 
     return NextResponse.json({
       order: {
-        id: String(orderView.id),
+        id: String(orderRaw.id),
         orderNumber: typeof orderRaw?.order_number === 'string' ? orderRaw.order_number : null,
-        statusCode: orderView.status_code ? String(orderView.status_code) : null,
-        statusLabel: orderView.status_label ? String(orderView.status_label) : null,
-        total: toNumber(orderView.total ?? orderRaw?.total),
-        createdAt: String(orderView.created_at ?? orderRaw?.created_at ?? ''),
-        items: Array.isArray(orderView.items) ? orderView.items : [],
+        statusCode: typeof orderStatus?.code === 'string' ? String(orderStatus.code) : null,
+        statusLabel: typeof orderStatus?.label === 'string' ? String(orderStatus.label) : null,
+        total: toNumber(orderRaw?.total),
+        createdAt: String(orderRaw?.created_at ?? ''),
+        items: Array.isArray(orderItems)
+          ? orderItems.map((item: any) => ({
+              name: item?.name,
+              quantity: item?.quantity,
+              price: toNumber(item?.price),
+              notes: item?.special_instructions ?? null,
+              subtotal: toNumber(item?.subtotal),
+            }))
+          : [],
         branchId: orderRaw?.branch_id ? String(orderRaw.branch_id) : null,
         deliveryAddress: typeof orderRaw?.delivery_address === 'string' ? orderRaw.delivery_address : null,
         notes: typeof orderRaw?.notes === 'string' ? orderRaw.notes : null,

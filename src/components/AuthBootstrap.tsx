@@ -20,9 +20,44 @@ export default function AuthBootstrap() {
   useEffect(() => {
     let isMounted = true;
 
+    function parseCoordsFromGoogleMapsUrl(url: string): { lat?: number; lng?: number } {
+      const match = url.match(/q=([-\d.]+),([-\d.]+)/i);
+      if (!match) {
+        return {};
+      }
+
+      const lat = Number(match[1]);
+      const lng = Number(match[2]);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return {};
+      }
+
+      return { lat, lng };
+    }
+
+    function extractGoogleMapsUrl(input: string): string | null {
+      const found = input.match(/https:\/\/www\.google\.com\/maps\?q=[^\s]+/i);
+      return found?.[0] ?? null;
+    }
+
+    async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs: number = 10000) {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        return await fetch(input, {
+          ...init,
+          signal: controller.signal,
+        });
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    }
+
     async function hydrateAuthenticatedContext(accessToken: string) {
       try {
-        await fetch('/api/auth/client/bootstrap', {
+        void fetchWithTimeout('/api/auth/client/bootstrap', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -30,15 +65,15 @@ export default function AuthBootstrap() {
           },
           body: JSON.stringify({}),
           cache: 'no-store',
-        });
+        }).catch(() => undefined);
 
-        const contextResponse = await fetch('/api/consumer/me/context', {
+        const contextResponse = await fetchWithTimeout('/api/consumer/me/context', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
           cache: 'no-store',
-        });
+        }, 10000);
 
         if (!contextResponse.ok) {
           return;
@@ -46,8 +81,15 @@ export default function AuthBootstrap() {
 
         const contextData = await contextResponse.json();
         const payload = contextData?.data;
+        const customerAddressRaw =
+          typeof payload?.profile?.customer?.address === 'string'
+            ? payload.profile.customer.address.trim()
+            : '';
+        const customerMapsUrl = customerAddressRaw ? extractGoogleMapsUrl(customerAddressRaw) : null;
+        const customerCoords = customerMapsUrl ? parseCoordsFromGoogleMapsUrl(customerMapsUrl) : {};
 
         hydrateClientContext({
+          customerId: payload?.profile?.customer?.id ?? null,
           customerName: payload?.profile?.customer?.name ?? payload?.profile?.userProfile?.full_name ?? null,
           customerPhone: payload?.profile?.customer?.phone ?? payload?.profile?.userProfile?.phone ?? null,
           customerAddress: payload?.profile?.primaryAddress
@@ -57,7 +99,28 @@ export default function AuthBootstrap() {
                 buildingType: payload.profile.primaryAddress.building_type,
                 unitDetails: payload.profile.primaryAddress.unit_details,
                 deliveryNotes: payload.profile.primaryAddress.delivery_notes,
+                lat: typeof payload.profile.primaryAddress.lat === 'number' ? payload.profile.primaryAddress.lat : undefined,
+                lng: typeof payload.profile.primaryAddress.lng === 'number' ? payload.profile.primaryAddress.lng : undefined,
+                formattedAddress:
+                  typeof payload.profile.primaryAddress.formatted_address === 'string'
+                    ? payload.profile.primaryAddress.formatted_address
+                    : undefined,
+                placeId:
+                  typeof payload.profile.primaryAddress.place_id === 'string'
+                    ? payload.profile.primaryAddress.place_id
+                    : undefined,
               }
+            : customerMapsUrl || customerAddressRaw
+              ? {
+                  customerId: payload?.profile?.customer?.id ?? undefined,
+                  urlAddress: customerMapsUrl ?? customerAddressRaw,
+                  buildingType: 'Other',
+                  unitDetails: undefined,
+                  deliveryNotes: 'Meet at door',
+                  lat: customerCoords.lat,
+                  lng: customerCoords.lng,
+                  formattedAddress: customerAddressRaw,
+                }
             : null,
           favorites: Array.isArray(payload?.favorites) ? payload.favorites : [],
           recentSearches: Array.isArray(payload?.recentSearches) ? payload.recentSearches : [],

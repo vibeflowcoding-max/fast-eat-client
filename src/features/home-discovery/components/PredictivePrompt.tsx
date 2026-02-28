@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, X } from 'lucide-react';
 import { emitHomeEvent } from '@/features/home-discovery/analytics';
 import { useLocale, useTranslations } from 'next-intl';
+import { HomeBannerFallbackType } from '@/features/home-discovery/types';
 
 interface PredictiveReorderResponse {
     should_prompt: boolean;
@@ -11,6 +12,9 @@ interface PredictiveReorderResponse {
     restaurantId?: string;
     itemId?: string;
     prompt_message?: string;
+    status?: 'actionable' | 'no_pattern' | 'provider_unavailable' | 'incomplete_data' | 'analysis_unavailable';
+    reason?: string;
+    source?: 'ai' | 'db' | 'none';
 }
 
 interface PredictivePromptProps {
@@ -20,6 +24,16 @@ interface PredictivePromptProps {
 
 const PREDICTIVE_DISMISS_SESSION_KEY = 'home_banner_predictive_dismissed_v1';
 
+type PredictiveFallbackType = 'offline' | 'api_error' | 'provider_unavailable' | 'incomplete_data' | null;
+
+function toTrackedFallbackType(type: Exclude<PredictiveFallbackType, null> | 'missing_target'): HomeBannerFallbackType {
+    if (type === 'provider_unavailable' || type === 'incomplete_data') {
+        return 'api_error';
+    }
+
+    return type;
+}
+
 export default function PredictivePrompt({ onReorderClick, onFallbackClick }: PredictivePromptProps) {
     const t = useTranslations('home.predictivePrompt');
     const locale = useLocale();
@@ -28,7 +42,7 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
     const [isDismissed, setIsDismissed] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isActing, setIsActing] = useState(false);
-    const [fallbackType, setFallbackType] = useState<'offline' | 'api_error' | null>(null);
+    const [fallbackType, setFallbackType] = useState<PredictiveFallbackType>(null);
     const [hasTrackedImpression, setHasTrackedImpression] = useState(false);
 
     useEffect(() => {
@@ -49,7 +63,6 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
     }, []);
 
     useEffect(() => {
-        // If already dismissed in this session, don't check again
         if (isDismissed) {
             return;
         }
@@ -68,11 +81,6 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
 
         const checkPrediction = async () => {
             try {
-                // In a real app, you would pass the actual user's order history from the database/store
-                const mockOrderHistory = [
-                    { restaurantId: '123', itemId: 'coffee-latte', timestamp: Date.now() - 86400000 } // yesterday
-                ];
-
                 const response = await fetch('/api/discovery/predictive-reorder', {
                     method: 'POST',
                     headers: {
@@ -80,35 +88,55 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
                         'x-locale': locale,
                     },
                     body: JSON.stringify({
-                        order_history: mockOrderHistory,
-                        current_time: new Date().toISOString(),
-                        location: { lat: 9.9281, lng: -84.0907 }
+                        current_time: new Date().toISOString()
                     })
                 });
 
+                const data: PredictiveReorderResponse = await response.json();
+
                 if (!response.ok) {
-                    setFallbackType('api_error');
+                    const resolvedFallback: Exclude<PredictiveFallbackType, null> = data.status === 'provider_unavailable'
+                        ? 'provider_unavailable'
+                        : data.status === 'incomplete_data'
+                            ? 'incomplete_data'
+                            : 'api_error';
+
+                    setFallbackType(resolvedFallback);
+                    setPrediction(null);
                     setIsVisible(true);
                     setIsLoading(false);
                     emitHomeEvent({
                         name: 'home_banner_fallback_shown',
                         banner_id: 'predictive',
-                        fallback_type: 'api_error'
+                        fallback_type: toTrackedFallbackType(resolvedFallback)
                     });
                     return;
                 }
 
-                const data: PredictiveReorderResponse = await response.json();
-
-                if (data.should_prompt && data.confidence > 0.7) {
+                if (data.status === 'actionable' && data.should_prompt && data.confidence > 0.7) {
                     setPrediction(data);
                     setIsVisible(true);
                     setFallbackType(null);
-                } else {
-                    setPrediction(null);
-                    setIsVisible(false);
+                    setIsLoading(false);
+                    return;
                 }
 
+                if (data.status === 'provider_unavailable' || data.status === 'incomplete_data') {
+                    const resolvedFallback = data.status;
+                    setFallbackType(resolvedFallback);
+                    setPrediction(null);
+                    setIsVisible(true);
+                    setIsLoading(false);
+                    emitHomeEvent({
+                        name: 'home_banner_fallback_shown',
+                        banner_id: 'predictive',
+                        fallback_type: toTrackedFallbackType(resolvedFallback)
+                    });
+                    return;
+                }
+
+                setPrediction(null);
+                setIsVisible(false);
                 setIsLoading(false);
             } catch (error) {
                 console.error('[PredictivePrompt] Failed to fetch prediction:', error);
@@ -154,7 +182,7 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
         });
     };
 
-    const handleFallbackAction = (type: 'offline' | 'api_error' | 'missing_target') => {
+    const handleFallbackAction = (type: 'offline' | 'api_error' | 'missing_target' | 'provider_unavailable' | 'incomplete_data') => {
         setIsActing(true);
         emitHomeEvent({
             name: 'home_banner_click',
@@ -165,7 +193,7 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
         emitHomeEvent({
             name: 'home_banner_fallback_shown',
             banner_id: 'predictive',
-            fallback_type: type
+            fallback_type: toTrackedFallbackType(type)
         });
         onFallbackClick?.();
 
@@ -225,7 +253,7 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
 
     const message = fallbackType === 'offline'
         ? t('offlineMessage')
-        : fallbackType === 'api_error'
+        : fallbackType === 'api_error' || fallbackType === 'provider_unavailable' || fallbackType === 'incomplete_data'
             ? t('apiErrorMessage')
             : predictionMessage;
 
@@ -234,7 +262,6 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
     return (
         <div className="mx-4 mt-6 mb-5 animate-in slide-in-from-top-4 fade-in duration-500">
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-4 pr-12 shadow-lg shadow-blue-900/20 relative overflow-hidden group">
-                {/* Decorative background circle */}
                 <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700" />
 
                 <button

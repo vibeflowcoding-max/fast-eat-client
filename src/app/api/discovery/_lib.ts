@@ -160,47 +160,6 @@ function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
     return earthRadiusKm * c;
 }
 
-function estimateBasePrice(intent?: DiscoveryIntent) {
-    switch (intent) {
-        case 'cheap':
-            return 3500;
-        case 'family_combo':
-            return 9000;
-        case 'healthy':
-            return 5200;
-        case 'promotions':
-            return 4200;
-        default:
-            return 5000;
-    }
-}
-
-function estimateDiscount(intent?: DiscoveryIntent) {
-    switch (intent) {
-        case 'promotions':
-            return 1200;
-        case 'cheap':
-            return 700;
-        case 'family_combo':
-            return 900;
-        default:
-            return 450;
-    }
-}
-
-function estimateEta(distanceKm: number | null, intent?: DiscoveryIntent) {
-    if (intent === 'fast') {
-        return distanceKm !== null ? Math.max(15, Math.round(15 + distanceKm * 2)) : 24;
-    }
-
-    return distanceKm !== null ? Math.max(20, Math.round(20 + distanceKm * 3)) : 28;
-}
-
-function estimateRating(restaurantId: string) {
-    const hash = restaurantId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return 3.6 + (hash % 15) / 10;
-}
-
 function getRankingWeights(): RankingWeights {
     const envWeights = {
         intentRelevance: Number(process.env.DISCOVERY_WEIGHT_INTENT_RELEVANCE),
@@ -307,7 +266,7 @@ function getReasonTags(intent: DiscoveryIntent | undefined, distanceKm: number |
     }
 
     if (intent === 'fast') {
-        reasons.push('Entrega rápida estimada');
+        reasons.push('Entrega rápida');
     }
 
     if (distanceKm !== null && distanceKm <= 4) {
@@ -323,11 +282,11 @@ function getReasonTags(intent: DiscoveryIntent | undefined, distanceKm: number |
     }
 
     if (rating >= 4.4) {
-        reasons.push('Alta valoración estimada');
+        reasons.push('Alta valoración');
     }
 
     if (confidenceScore < MIN_CONFIDENCE_THRESHOLD) {
-        reasons.push('Estimación basada en datos parciales');
+        reasons.push('Datos parciales en la recomendación');
     }
 
     if (reasons.length === 0) {
@@ -404,6 +363,7 @@ export function isCompareOption(value: unknown): value is {
     discount: number;
     finalPrice: number;
     etaMin?: number;
+    dataCompleteness?: 'complete';
 } {
     if (!isObject(value)) return false;
 
@@ -417,6 +377,7 @@ export function isCompareOption(value: unknown): value is {
         typeof value.platformFee === 'number' &&
         typeof value.discount === 'number' &&
         typeof value.finalPrice === 'number' &&
+        (value.dataCompleteness === undefined || value.dataCompleteness === 'complete') &&
         etaValid
     );
 }
@@ -497,6 +458,7 @@ export function sanitizeCompareOptions(options: unknown): Array<{
     discount: number;
     finalPrice: number;
     etaMin?: number;
+    dataCompleteness?: 'complete';
 }> {
     if (!Array.isArray(options)) {
         return [];
@@ -648,11 +610,9 @@ export function buildRecommendationItems(params: {
     constraints?: UserConstraints;
     limit?: number;
 }) {
-    const basePriceSeed = estimateBasePrice(params.intent);
-    const discountSeed = estimateDiscount(params.intent);
     const rankingWeights = getRankingWeights();
 
-    const recommendations = params.restaurants.map((restaurant, index) => {
+    const recommendations = params.restaurants.flatMap((restaurant, index) => {
         const firstBranch = restaurant.branches[0];
 
         let distanceKm: number | null = null;
@@ -670,22 +630,26 @@ export function buildRecommendationItems(params: {
             );
         }
 
-        const basePrice = toNumber(restaurant.avg_price_estimate) ?? (basePriceSeed + index * 250);
-        const deliveryFee = toNumber(restaurant.estimated_delivery_fee)
-            ?? (distanceKm !== null ? Math.max(300, Math.round(distanceKm * 180)) : 650);
+        const basePrice = toNumber(restaurant.avg_price_estimate);
+        const deliveryFee = toNumber(restaurant.estimated_delivery_fee);
+        const etaMinRaw = toNumber(restaurant.eta_min);
+        const ratingRaw = toNumber(restaurant.rating);
+
+        if (basePrice === null || deliveryFee === null || etaMinRaw === null || ratingRaw === null) {
+            return [];
+        }
+
         let discountAmount = 0;
 
         if (restaurant.promo_discount_type === 'percentage' && typeof restaurant.promo_discount_value === 'number') {
             discountAmount = Math.round(basePrice * (restaurant.promo_discount_value / 100));
         } else if (restaurant.promo_discount_type === 'fixed' && typeof restaurant.promo_discount_value === 'number') {
             discountAmount = Math.round(restaurant.promo_discount_value);
-        } else if (restaurant.promo_text) {
-            discountAmount = Math.max(0, discountSeed - index * 80);
         }
 
         const finalPrice = basePrice + deliveryFee - discountAmount;
-        const etaMin = toNumber(restaurant.eta_min) ?? estimateEta(distanceKm, params.intent);
-        const rating = toNumber(restaurant.rating) ?? estimateRating(restaurant.id);
+        const etaMin = etaMinRaw;
+        const rating = ratingRaw;
         const categoryTags = (restaurant.restaurant_restaurant_categories ?? [])
             .flatMap((categoryRow) => {
                 const categories = categoryRow.restaurant_categories;
@@ -709,7 +673,7 @@ export function buildRecommendationItems(params: {
             hasCategoryTags: categoryTags.length > 0
         });
 
-        return {
+        return [{
             kind: 'restaurant' as const,
             id: `rec-${restaurant.id}`,
             restaurantId: restaurant.id,
@@ -735,7 +699,7 @@ export function buildRecommendationItems(params: {
             confidenceScore,
             openStatusScore: restaurant.is_active ? 1 : 0,
             freshnessScore: Math.max(0, 1 - index / Math.max(1, params.restaurants.length))
-        };
+        }];
     });
 
     const filtered = recommendations.filter((recommendation) => {

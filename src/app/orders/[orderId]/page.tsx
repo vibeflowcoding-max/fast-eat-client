@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Clock3, Store, MapPin, Wallet, ClipboardList, Gavel, Loader2 } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
@@ -85,8 +85,11 @@ function normalizeItems(items: unknown[]): Array<{ name: string; quantity: numbe
 export default function OrderDetailPage() {
   const t = useTranslations('orders.orderDetail');
   const params = useParams<{ orderId: string }>();
+  const searchParams = useSearchParams();
   const router = useAppRouter();
-  const { fromNumber } = useCartStore();
+  const { fromNumber, customerId } = useCartStore();
+  const customerIdFromUrl = (searchParams.get('customerId') || '').trim();
+  const effectiveCustomerId = customerIdFromUrl || customerId;
   const reviewsEnabled = process.env.NEXT_PUBLIC_REVIEWS_ENABLED !== 'false';
   const deliveryReviewsEnabled = process.env.NEXT_PUBLIC_DELIVERY_REVIEWS_ENABLED !== 'false';
   const reviewsRef = React.useRef<HTMLElement | null>(null);
@@ -102,8 +105,8 @@ export default function OrderDetailPage() {
     refresh: refreshEligibility
   } = useOrderReviewEligibility({
     orderId: params?.orderId,
-    phone: fromNumber,
-    enabled: reviewsEnabled && Boolean(params?.orderId) && Boolean(fromNumber)
+    customerId: effectiveCustomerId,
+    enabled: reviewsEnabled && Boolean(params?.orderId) && Boolean(effectiveCustomerId)
   });
 
   const { submitting: submittingRestaurant, error: restaurantSubmitError, submit: submitRestaurantReview } =
@@ -121,12 +124,12 @@ export default function OrderDetailPage() {
           throw new Error(t('invalidOrder'));
         }
 
-        if (!fromNumber) {
-          throw new Error(t('missingPhone'));
+        if (!effectiveCustomerId) {
+          throw new Error(t('reviews.missingData'));
         }
 
         const response = await fetch(
-          `/api/orders/${encodeURIComponent(params.orderId)}?phone=${encodeURIComponent(fromNumber)}`
+          `/api/orders/${encodeURIComponent(params.orderId)}?customerId=${encodeURIComponent(effectiveCustomerId)}`
         );
         const data = await response.json();
 
@@ -143,7 +146,7 @@ export default function OrderDetailPage() {
     }
 
     fetchDetail();
-  }, [fromNumber, params?.orderId, t]);
+  }, [effectiveCustomerId, params?.orderId, t]);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') {

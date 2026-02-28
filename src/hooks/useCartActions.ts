@@ -14,7 +14,9 @@ export const useCartActions = () => {
     updateItem,
     removeItem,
     clearCart,
-    addActiveOrder
+    addActiveOrder,
+    customerAddress,
+    setCustomerAddress
   } = useCartStore();
 
   const [isSyncing, setIsSyncing] = useState(false);
@@ -132,14 +134,71 @@ export const useCartActions = () => {
     if (isOrdering) return false;
     setIsOrdering(true);
     try {
+      const normalizedCustomerPhone = String(orderMetadata.customerPhone || fromNumber || '').trim();
+      const deliveryLocationReference = String(orderMetadata.gpsLocation || orderMetadata.address || '').trim();
+
+      if (orderMetadata.orderType === 'delivery' && !deliveryLocationReference) {
+        setChefNotification({ content: 'Debes proporcionar una ubicación para pedidos a domicilio. 📍' });
+        return false;
+      }
+
       const finalMetadata = {
         ...orderMetadata,
+        customerPhone: normalizedCustomerPhone,
         address: orderMetadata.gpsLocation
           ? `${orderMetadata.address?.trim() || ''}\n\n📍 Ubicación GPS (Link):\n${orderMetadata.gpsLocation}`
           : orderMetadata.address
       };
 
-      const orderResult = await submitOrderToMCP(effectiveCart, finalMetadata, branchId);
+      const hasPersistedProfileLocation = Boolean(customerAddress?.urlAddress && customerAddress.urlAddress.trim());
+
+      if (orderMetadata.orderType === 'delivery' && !hasPersistedProfileLocation) {
+        const urlAddress = String(orderMetadata.gpsLocation || orderMetadata.address || '').trim();
+
+        if (!urlAddress) {
+          setChefNotification({ content: 'Debes proporcionar una ubicación para pedidos a domicilio. 📍' });
+          return false;
+        }
+
+        const saveAddressResponse = await fetch('/api/customer/address', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phone: normalizedCustomerPhone,
+            fullName: String(orderMetadata.customerName || '').trim(),
+            urlAddress,
+            buildingType: 'Other',
+            unitDetails: null,
+            deliveryNotes: String(orderMetadata.address || '').trim() || 'Meet at door',
+            lat: typeof orderMetadata.customerLatitude === 'number' ? orderMetadata.customerLatitude : undefined,
+            lng: typeof orderMetadata.customerLongitude === 'number' ? orderMetadata.customerLongitude : undefined,
+            formattedAddress: String(orderMetadata.address || '').trim() || undefined,
+          }),
+        });
+
+        if (saveAddressResponse.ok) {
+          const saveAddressPayload = await saveAddressResponse.json();
+          const savedAddress = saveAddressPayload?.address;
+
+          if (savedAddress && typeof savedAddress === 'object' && typeof savedAddress.url_address === 'string') {
+            setCustomerAddress({
+              customerId: typeof savedAddress.customer_id === 'string' ? savedAddress.customer_id : undefined,
+              urlAddress: savedAddress.url_address,
+              buildingType: savedAddress.building_type,
+              unitDetails: typeof savedAddress.unit_details === 'string' ? savedAddress.unit_details : undefined,
+              deliveryNotes: typeof savedAddress.delivery_notes === 'string' ? savedAddress.delivery_notes : 'Meet at door',
+              lat: typeof savedAddress.lat === 'number' ? savedAddress.lat : undefined,
+              lng: typeof savedAddress.lng === 'number' ? savedAddress.lng : undefined,
+              formattedAddress: typeof savedAddress.formatted_address === 'string' ? savedAddress.formatted_address : undefined,
+              placeId: typeof savedAddress.place_id === 'string' ? savedAddress.place_id : undefined,
+            });
+          }
+        }
+      }
+
+      const orderResult = await submitOrderToMCP(effectiveCart, finalMetadata, branchId, fromNumber);
       const orderId = orderResult?.order_id || orderResult?.orderId || orderResult?.data?.order_id || orderResult?.data?.orderId;
       const orderNumber =
         orderResult?.order_number ||

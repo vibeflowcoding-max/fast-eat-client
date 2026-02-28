@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/supabase-server';
-import { findCustomerIdByPhone } from '@/app/api/customer/_lib';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,23 +14,17 @@ function isReviewableOrderStatus(code: string): boolean {
 export async function GET(request: NextRequest) {
   try {
     const orderId = request.nextUrl.searchParams.get('orderId')?.trim() ?? '';
-    const phone = request.nextUrl.searchParams.get('phone')?.trim() ?? '';
+    const customerId = request.nextUrl.searchParams.get('customerId')?.trim() ?? '';
 
     if (!orderId) {
       return NextResponse.json({ error: 'orderId is required' }, { status: 400 });
     }
 
-    if (!phone) {
-      return NextResponse.json({ error: 'phone is required' }, { status: 400 });
-    }
-
-    const customerId = await findCustomerIdByPhone(phone);
     if (!customerId) {
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+      return NextResponse.json({ error: 'customerId is required' }, { status: 400 });
     }
 
     const supabaseServer = getSupabaseServer();
-
     const { data: order, error: orderError } = await (supabaseServer as any)
       .from('orders')
       .select('id,customer_id,branch_id,status_id,completed_at')

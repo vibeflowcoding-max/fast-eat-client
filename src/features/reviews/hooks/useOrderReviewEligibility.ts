@@ -3,13 +3,13 @@ import type { ReviewEligibility } from '@/features/reviews/types';
 
 type UseOrderReviewEligibilityArgs = {
   orderId?: string | null;
-  phone?: string | null;
+  customerId?: string | null;
   enabled?: boolean;
 };
 
 export function useOrderReviewEligibility({
   orderId,
-  phone,
+  customerId,
   enabled = true
 }: UseOrderReviewEligibilityArgs) {
   const [loading, setLoading] = React.useState(false);
@@ -17,7 +17,7 @@ export function useOrderReviewEligibility({
   const [data, setData] = React.useState<ReviewEligibility | null>(null);
 
   const refresh = React.useCallback(async () => {
-    if (!enabled || !orderId || !phone) {
+    if (!enabled || !orderId || !customerId) {
       setData(null);
       return;
     }
@@ -27,7 +27,7 @@ export function useOrderReviewEligibility({
 
     try {
       const response = await fetch(
-        `/api/reviews/eligibility?orderId=${encodeURIComponent(orderId)}&phone=${encodeURIComponent(phone)}`
+        `/api/reviews/eligibility?orderId=${encodeURIComponent(orderId)}&customerId=${encodeURIComponent(customerId)}`
       );
 
       const payload = await response.json();
@@ -43,7 +43,7 @@ export function useOrderReviewEligibility({
     } finally {
       setLoading(false);
     }
-  }, [enabled, orderId, phone]);
+  }, [customerId, enabled, orderId]);
 
   React.useEffect(() => {
     refresh();
