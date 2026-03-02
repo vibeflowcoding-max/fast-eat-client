@@ -84,10 +84,20 @@ export interface MCPOrderPayload {
     branchId: string;
     customerName: string;
     customerPhone: string;
+    fromNumber?: string;
+    customer?: {
+      name?: string;
+      phone?: string;
+      email?: string | null;
+      address?: string | null;
+      latitude?: number;
+      longitude?: number;
+    };
     paymentMethod: string;
     orderType: string;
     source?: 'client' | 'virtualMenu' | 'consumer_app' | string;
     address?: string;
+    tableNumber?: string;
     customerLatitude?: number;
     customerLongitude?: number;
   };
@@ -144,6 +154,12 @@ export interface Branch {
   delivery_radius_km: number | null;
   is_accepting_orders: boolean;
   code: string | null;
+  rating?: number | null;
+  review_count?: number | null;
+  eta_min?: number | null;
+  avg_price_estimate?: number | null;
+  estimated_delivery_fee?: number | null;
+  promo_text?: string | null;
 }
 
 export interface Restaurant {

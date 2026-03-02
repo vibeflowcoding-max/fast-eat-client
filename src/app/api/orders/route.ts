@@ -53,6 +53,15 @@ export async function POST(req: NextRequest) {
 
     if (isToolPayload && finalBody.tool === 'create_branch_order' && finalBody.arguments) {
       const args = finalBody.arguments;
+      const normalizedCustomerPhone = String(
+        args.customer?.phone ||
+        args.customer?.fromNumber ||
+        args.customerPhone ||
+        args.customer_phone ||
+        args.phone ||
+        args.fromNumber ||
+        ''
+      ).trim();
       const paymentMethodRaw = String(args.payment_method_code || args.paymentMethod || 'CASH').toLowerCase();
       const paymentMethodCode =
         paymentMethodRaw === 'cash' ? 'CASH' :
@@ -70,7 +79,7 @@ export async function POST(req: NextRequest) {
         branch_id: args.branch_id || args.branchId,
         customer: {
           name: args.customer?.name || args.customerName,
-          phone: args.customer?.phone || args.customerPhone,
+          phone: normalizedCustomerPhone,
           email: args.customer?.email || args.customerEmail || null,
           address: args.customer?.address || args.address || null,
           latitude: args.customerLatitude ?? args.customer_latitude ?? args.customer?.latitude ?? null,

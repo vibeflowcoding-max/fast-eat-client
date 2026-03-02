@@ -210,15 +210,31 @@ export const sendChatToN8N = async (
   }
 };
 
-export const submitOrderToMCP = async (cart: CartItem[], orderMetadata: OrderMetadata, branchId: string) => {
+export const submitOrderToMCP = async (
+  cart: CartItem[],
+  orderMetadata: OrderMetadata,
+  branchId: string,
+  fallbackPhone?: string,
+) => {
   const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const normalizedCustomerName = String(orderMetadata.customerName || '').trim();
+  const normalizedCustomerPhone = String(orderMetadata.customerPhone || fallbackPhone || '').trim();
+
   const payload: MCPOrderPayload = {
     tool: 'create_branch_order',
     arguments: {
       branchId: branchId,
       totalAmount: total,
-      customerName: orderMetadata.customerName,
-      customerPhone: orderMetadata.customerPhone,
+      customerName: normalizedCustomerName,
+      customerPhone: normalizedCustomerPhone,
+      fromNumber: normalizedCustomerPhone,
+      customer: {
+        name: normalizedCustomerName,
+        phone: normalizedCustomerPhone,
+        address: orderMetadata.address || null,
+        latitude: orderMetadata.customerLatitude,
+        longitude: orderMetadata.customerLongitude,
+      },
       paymentMethod: orderMetadata.paymentMethod,
       orderType: orderMetadata.orderType,
       source: 'client',

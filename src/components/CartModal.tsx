@@ -9,6 +9,7 @@ import BillSplitterModal from '../features/payments/components/BillSplitterModal
 import SinpeRequestUI from '../features/payments/components/SinpeRequestUI';
 import { SplitResult } from '../features/payments/utils/splitStrategies';
 import { useCartStore } from '../store';
+import { useTranslations } from 'next-intl';
 
 interface CartModalProps {
     cart: CartItem[];
@@ -24,6 +25,8 @@ interface CartModalProps {
     paymentOptions: { id: string, label: string }[];
     serviceOptions: { id: string, label: string }[];
     fromNumber: string;
+    hasProfileLocation?: boolean;
+    profileLocationLabel?: string;
     tableQuantity?: number;
 }
 
@@ -41,8 +44,11 @@ const CartModal: React.FC<CartModalProps> = ({
     paymentOptions,
     serviceOptions,
     fromNumber,
+    hasProfileLocation = false,
+    profileLocationLabel,
     tableQuantity = 0
 }) => {
+    const t = useTranslations('checkout.cart');
     const groupSessionId = useCartStore(state => state.groupSessionId);
     const groupParticipants = useCartStore(state => state.groupParticipants);
     const currentParticipantId = useCartStore(state => state.participantId);
@@ -55,11 +61,15 @@ const CartModal: React.FC<CartModalProps> = ({
     const total = subtotal + taxesAndFees;
 
     const isOrderFormValid = () => {
-        const { customerName, customerPhone, orderType, address, gpsLocation, customerLatitude, customerLongitude, tableNumber } = orderMetadata;
+        const { customerName, customerPhone, paymentMethod, orderType, address, gpsLocation, customerLatitude, customerLongitude, tableNumber } = orderMetadata;
+        const normalizedPhone = (customerPhone || fromNumber || '').trim();
+        const hasOrderType = Boolean(orderType?.trim());
+        const hasPaymentMethod = Boolean(paymentMethod?.trim());
         const hasCoordinates = Number.isFinite(customerLatitude) && Number.isFinite(customerLongitude);
-        const isDeliveryDetailsValid = orderType !== 'delivery' || ((address?.trim() || gpsLocation) && hasCoordinates);
+        const hasDeliveryReference = Boolean(address?.trim()) || Boolean(gpsLocation?.trim()) || hasCoordinates;
+        const isDeliveryDetailsValid = orderType !== 'delivery' || hasDeliveryReference;
         const isTableValid = !(orderType === 'comer_aca' || orderType === 'comer_aqui' || orderType === 'dine_in') || tableNumber;
-        return !!(customerName.trim() && customerPhone.trim() && isDeliveryDetailsValid && isTableValid);
+        return !!(customerName.trim() && normalizedPhone && hasOrderType && hasPaymentMethod && isDeliveryDetailsValid && isTableValid);
     };
 
     return (
@@ -71,7 +81,7 @@ const CartModal: React.FC<CartModalProps> = ({
                     </div>
                 )}
                 <div className="ui-panel p-5 md:p-8 border-b-4 flex justify-between items-center">
-                    <h3 className="text-xl font-black uppercase tracking-tighter">Finalizar Pedido</h3>
+                    <h3 className="text-xl font-black uppercase tracking-tighter">{t('title')}</h3>
                     <button onClick={onClose} className="ui-btn-secondary w-10 h-10 rounded-full flex items-center justify-center font-black transition-colors">✕</button>
                 </div>
                 <div className="flex-grow overflow-y-auto p-5 md:p-8 space-y-4">
@@ -79,14 +89,14 @@ const CartModal: React.FC<CartModalProps> = ({
                     {cart.length === 0 && (!groupSessionId || groupParticipants.length === 0) ? (
                         <div className="flex flex-col items-center py-20">
                             <span className="text-6xl mb-4">🍱</span>
-                            <p className="ui-text-muted font-black uppercase tracking-widest text-xs">Tu pedido está vacío</p>
+                            <p className="ui-text-muted font-black uppercase tracking-widest text-xs">{t('empty')}</p>
                         </div>
                     ) : groupSessionId && groupParticipants.length > 0 ? (
                         <div className="space-y-6">
                             {groupParticipants.map(participant => (
                                 <div key={participant.id} className="space-y-2">
                                     <h4 className="ui-text-muted font-bold text-sm uppercase tracking-wider border-b pb-1">
-                                        {participant.name} {participant.isHost ? '(Organizador)' : ''}
+                                        {participant.name} {participant.isHost ? `(${t('host')})` : ''}
                                     </h4>
                                     {participant.items.map((item, idx) => (
                                         <CartItemRow
@@ -97,12 +107,12 @@ const CartModal: React.FC<CartModalProps> = ({
                                                 if (participant.id === currentParticipantId) {
                                                     onSyncCartAction(item, action, qt);
                                                 } else {
-                                                    alert("Solo puedes modificar tus propios productos.");
+                                                    alert(t('cantEditOthers'));
                                                 }
                                             }}
                                         />
                                     ))}
-                                    {participant.items.length === 0 && <p className="ui-text-muted text-xs italic">No ha agregado productos</p>}
+                                    {participant.items.length === 0 && <p className="ui-text-muted text-xs italic">{t('participantNoItems')}</p>}
                                 </div>
                             ))}
                         </div>
@@ -128,6 +138,8 @@ const CartModal: React.FC<CartModalProps> = ({
                             fromNumber={fromNumber}
                             isLocating={isLocating}
                             onGetLocation={onGetLocation}
+                            hasProfileLocation={hasProfileLocation}
+                            profileLocationLabel={profileLocationLabel}
                             tableQuantity={tableQuantity}
                         />
                     )}
@@ -139,7 +151,7 @@ const CartModal: React.FC<CartModalProps> = ({
                             disabled={cart.length === 0}
                             className={`w-full py-4 rounded-2xl font-bold uppercase tracking-wider text-xs border-2 transition-all active:scale-95 ${cart.length > 0 ? 'ui-btn-secondary' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}
                         >
-                            Dividir Cuenta 🧮
+                            {t('splitBill')} 🧮
                         </button>
                     )}
                     <button
@@ -147,7 +159,7 @@ const CartModal: React.FC<CartModalProps> = ({
                         disabled={cart.length === 0 || !isOrderFormValid() || isOrdering}
                         className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-2xl transition-all active:scale-95 ${cart.length > 0 && isOrderFormValid() ? 'ui-btn-primary' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
                     >
-                        {isOrdering ? 'Procesando...' : 'Confirmar Pedido ⛩️'}
+                        {isOrdering ? t('processing') : `${t('confirmOrder')} ⛩️`}
                     </button>
                 </div>
             </div>
@@ -170,7 +182,7 @@ const CartModal: React.FC<CartModalProps> = ({
                 <SinpeRequestUI
                     splitResults={sinpeResults}
                     hostPhone={fromNumber || ''}
-                    hostName={useCartStore.getState().customerName || 'Organizador'}
+                    hostName={useCartStore.getState().customerName || t('host')}
                     onBack={() => {
                         setSinpeResults(null);
                         setShowBillSplitter(true);

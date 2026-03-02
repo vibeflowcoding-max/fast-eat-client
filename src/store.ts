@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AuctionState, BidNotification, CartItem, DeliveryBid, UserLocation } from './types';
+import { AppLocale, DEFAULT_LOCALE, normalizeLocale } from '@/i18n/config';
 
 import { OrderUpdate } from './hooks/useOrderTracking';
 
@@ -9,6 +10,7 @@ interface CartState {
   expirationTime: number | null;
   branchId: string;
   fromNumber: string;
+  customerId: string;
   customerName: string;
   isTestMode: boolean; // Estado para manejar el entorno de n8n
   restaurantInfo: import('./types').RestaurantInfo | null;
@@ -32,6 +34,17 @@ interface CartState {
   } | null;
   profilePromptDismissedAt: number | null;
   dietaryProfile: import('./types').DietaryProfile | null;
+  authUserId: string | null;
+  authEmail: string | null;
+  isAuthenticated: boolean;
+  authHydrated: boolean;
+  locale: AppLocale;
+  clientContext: {
+    favorites: string[];
+    recentSearches: Array<{ id: string; query: string; created_at: string }>;
+    orderHistorySummary: { total: number; recent: any[] } | null;
+    settings: { shareActivity: boolean; dietaryProfile: any } | null;
+  } | null;
 
   // Group Cart State
   groupSessionId: string | null;
@@ -54,10 +67,12 @@ interface CartState {
   setExpirationTime: (time: number | null) => void;
   setBranchId: (id: string) => void;
   setFromNumber: (num: string) => void;
+  setCustomerId: (id: string) => void;
   setCustomerName: (name: string) => void;
   toggleTestMode: () => void;
   setRestaurantInfo: (info: import('./types').RestaurantInfo) => void;
   addActiveOrder: (order: OrderUpdate) => void;
+  replaceActiveOrders: (orders: OrderUpdate[]) => void;
   updateActiveOrder: (orderId: string, updates: Partial<OrderUpdate>) => void;
   setOrderBids: (orderId: string, bids: DeliveryBid[]) => void;
   addBid: (orderId: string, bid: DeliveryBid) => void;
@@ -73,6 +88,20 @@ interface CartState {
   setCustomerAddress: (address: CartState['customerAddress']) => void;
   setProfilePromptDismissedAt: (value: number | null) => void;
   setDietaryProfile: (profile: import('./types').DietaryProfile | null) => void;
+  setAuthSession: (payload: { userId: string; email: string | null }) => void;
+  clearAuthSession: () => void;
+  setAuthHydrated: (value: boolean) => void;
+  setLocale: (locale: AppLocale) => void;
+  hydrateClientContext: (payload: {
+    customerId?: string | null;
+    customerName?: string | null;
+    customerPhone?: string | null;
+    customerAddress?: CartState['customerAddress'];
+    favorites?: string[];
+    recentSearches?: Array<{ id: string; query: string; created_at: string }>;
+    orderHistorySummary?: { total: number; recent: any[] } | null;
+    settings?: { shareActivity: boolean; dietaryProfile: any } | null;
+  }) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -82,6 +111,7 @@ export const useCartStore = create<CartState>()(
       expirationTime: null,
       branchId: '',
       fromNumber: '',
+      customerId: '',
       customerName: '',
       isTestMode: false,
       restaurantInfo: null,
@@ -95,6 +125,12 @@ export const useCartStore = create<CartState>()(
       customerAddress: null,
       profilePromptDismissedAt: null,
       dietaryProfile: null,
+      authUserId: null,
+      authEmail: null,
+      isAuthenticated: false,
+      authHydrated: false,
+      locale: DEFAULT_LOCALE,
+      clientContext: null,
 
       // Group Cart Initial State
       groupSessionId: null,
@@ -171,6 +207,7 @@ export const useCartStore = create<CartState>()(
         return { branchId: normalizedNextBranchId };
       }),
       setFromNumber: (fromNumber) => set({ fromNumber }),
+      setCustomerId: (customerId) => set({ customerId }),
       setCustomerName: (name) => set({ customerName: name }),
       toggleTestMode: () => set((state) => ({ isTestMode: !state.isTestMode })),
       setRestaurantInfo: (info) => set({ restaurantInfo: info }),
@@ -198,6 +235,22 @@ export const useCartStore = create<CartState>()(
         } as OrderUpdate;
 
         return { activeOrders: newActiveOrders };
+      }),
+      replaceActiveOrders: (orders) => set(() => {
+        const nextActiveOrders: Record<string, OrderUpdate> = {};
+
+        for (const order of orders) {
+          if (!order?.orderId) continue;
+          nextActiveOrders[order.orderId] = order;
+        }
+
+        return {
+          activeOrders: nextActiveOrders,
+          bidsByOrderId: {},
+          bidNotifications: [],
+          deepLinkTarget: null,
+          auctionStateByOrderId: {}
+        };
       }),
       updateActiveOrder: (orderId, updates) => set((state) => {
         if (!state.activeOrders[orderId]) return {};
@@ -278,6 +331,7 @@ export const useCartStore = create<CartState>()(
         expirationTime: null,
         branchId: '',
         fromNumber: '',
+        customerId: '',
         customerName: '',
         activeOrders: {},
         bidsByOrderId: {},
@@ -289,12 +343,38 @@ export const useCartStore = create<CartState>()(
       setOnboarded: (value) => set({ isOnboarded: value }),
       setCustomerAddress: (address) => set({ customerAddress: address }),
       setProfilePromptDismissedAt: (value) => set({ profilePromptDismissedAt: value }),
-      setDietaryProfile: (profile) => set({ dietaryProfile: profile })
+      setDietaryProfile: (profile) => set({ dietaryProfile: profile }),
+      setAuthSession: ({ userId, email }) => set({
+        authUserId: userId,
+        authEmail: email,
+        isAuthenticated: true,
+      }),
+      clearAuthSession: () => set({
+        authUserId: null,
+        authEmail: null,
+        isAuthenticated: false,
+        clientContext: null,
+      }),
+      setAuthHydrated: (value) => set({ authHydrated: value }),
+      setLocale: (locale) => set({ locale: normalizeLocale(locale) }),
+      hydrateClientContext: (payload) => set((state) => ({
+        customerId: payload.customerId ?? payload.customerAddress?.customerId ?? state.customerId,
+        customerName: payload.customerName ?? state.customerName,
+        fromNumber: payload.customerPhone ?? state.fromNumber,
+        customerAddress: payload.customerAddress ?? state.customerAddress,
+        clientContext: {
+          favorites: payload.favorites ?? state.clientContext?.favorites ?? [],
+          recentSearches: payload.recentSearches ?? state.clientContext?.recentSearches ?? [],
+          orderHistorySummary: payload.orderHistorySummary ?? state.clientContext?.orderHistorySummary ?? null,
+          settings: payload.settings ?? state.clientContext?.settings ?? null,
+        },
+      })),
     }),
     {
       name: 'fasteat-storage',
       partialize: (state) => ({
         fromNumber: state.fromNumber,
+        customerId: state.customerId,
         customerName: state.customerName,
         activeOrders: state.activeOrders,
         bidsByOrderId: state.bidsByOrderId,
@@ -307,7 +387,12 @@ export const useCartStore = create<CartState>()(
         userLocation: state.userLocation,
         isOnboarded: state.isOnboarded,
         customerAddress: state.customerAddress,
-        profilePromptDismissedAt: state.profilePromptDismissedAt
+        profilePromptDismissedAt: state.profilePromptDismissedAt,
+        authUserId: state.authUserId,
+        authEmail: state.authEmail,
+        isAuthenticated: state.isAuthenticated,
+        locale: state.locale,
+        clientContext: state.clientContext
       }),
     }
   )

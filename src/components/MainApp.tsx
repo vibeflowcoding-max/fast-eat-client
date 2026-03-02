@@ -31,20 +31,56 @@ interface MainAppProps {
 }
 
 export default function MainApp({ initialBranchId }: MainAppProps) {
+    const normalizePhone = (value: string): string => String(value || '').replace(/\D/g, '');
+
+    const isValidPhone = (value: string): boolean => {
+        const digits = normalizePhone(value);
+        if (!digits) return false;
+
+        if (digits.startsWith('506')) {
+            return digits.length === 11;
+        }
+
+        return digits.length >= 8 && digits.length <= 15;
+    };
+
+    const extractGoogleMapsUrl = (input: string): string | null => {
+        const found = input.match(/https:\/\/www\.google\.com\/maps\?q=[^\s]+/i);
+        return found?.[0] ?? null;
+    };
+
+    const parseCoordsFromGoogleMapsUrl = (url: string): { lat?: number; lng?: number } => {
+        const match = url.match(/q=([-\d.]+),([-\d.]+)/i);
+        if (!match) {
+            return {};
+        }
+
+        const lat = Number(match[1]);
+        const lng = Number(match[2]);
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            return {};
+        }
+
+        return { lat, lng };
+    };
+
     // Store
     const {
         items: cart,
         expirationTime,
         branchId,
         fromNumber,
+        customerId,
+        customerAddress,
         isTestMode,
         restaurantInfo,
         setBranchId,
         setFromNumber,
         toggleTestMode,
-        resetSession,
         customerName
     } = useCartStore();
+    const setCustomerId = useCartStore(state => state.setCustomerId);
 
     // Data Loading Hook
     const {
@@ -90,7 +126,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
     const [isConfirming, setIsConfirming] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
-    const [showUserChangeConfirm, setShowUserChangeConfirm] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     // Resolution State - Blocks rendering until we know what branch we are on
@@ -101,6 +136,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     // Refs
     const tabsRef = useRef<HTMLDivElement>(null);
     const modalScrollRef = useRef<HTMLDivElement>(null);
+    const categorySectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
     const [orderMetadata, setOrderMetadata] = useState<OrderMetadata>({
         customerName: '',
@@ -111,6 +147,24 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         address: '',
         gpsLocation: ''
     });
+
+    const profileLocation = useMemo(() => {
+        const raw = String(customerAddress?.urlAddress || customerAddress?.formattedAddress || '').trim();
+        if (!raw) {
+            return null;
+        }
+
+        const googleMapsUrl = extractGoogleMapsUrl(raw);
+        const coords = googleMapsUrl ? parseCoordsFromGoogleMapsUrl(googleMapsUrl) : {};
+
+        return {
+            raw,
+            googleMapsUrl,
+            lat: typeof customerAddress?.lat === 'number' ? customerAddress.lat : coords.lat,
+            lng: typeof customerAddress?.lng === 'number' ? customerAddress.lng : coords.lng,
+            label: customerAddress?.formattedAddress || raw,
+        };
+    }, [customerAddress]);
 
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -243,10 +297,22 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         resolveBranch();
 
         if (urlPhone) {
-            setFromNumber(urlPhone);
-            setOrderMetadata(prev => ({ ...prev, customerPhone: urlPhone }));
-        } else if (!useCartStore.getState().fromNumber) {
-            setShowPhonePrompt(true);
+            const normalizedUrlPhone = normalizePhone(urlPhone);
+            if (isValidPhone(normalizedUrlPhone)) {
+                setFromNumber(normalizedUrlPhone);
+                setOrderMetadata(prev => ({ ...prev, customerPhone: normalizedUrlPhone }));
+            } else {
+                setFromNumber('');
+                setCustomerId('');
+                setShowPhonePrompt(true);
+            }
+        } else {
+            const storedPhone = normalizePhone(useCartStore.getState().fromNumber || '');
+            if (!isValidPhone(storedPhone)) {
+                setFromNumber('');
+                setCustomerId('');
+                setShowPhonePrompt(true);
+            }
         }
     }, [searchParams, pathname, initialBranchId]);
 
@@ -264,6 +330,39 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             localStorage.setItem('izakaya_metadata', JSON.stringify(orderMetadata));
         }
     }, [orderMetadata]);
+
+    useEffect(() => {
+        if (!profileLocation) {
+            return;
+        }
+
+        setOrderMetadata((previous) => {
+            const next = { ...previous };
+            let changed = false;
+
+            if (!String(previous.address || '').trim()) {
+                next.address = profileLocation.label;
+                changed = true;
+            }
+
+            if (!String(previous.gpsLocation || '').trim() && profileLocation.googleMapsUrl) {
+                next.gpsLocation = profileLocation.googleMapsUrl;
+                changed = true;
+            }
+
+            if (!Number.isFinite(previous.customerLatitude) && typeof profileLocation.lat === 'number') {
+                next.customerLatitude = profileLocation.lat;
+                changed = true;
+            }
+
+            if (!Number.isFinite(previous.customerLongitude) && typeof profileLocation.lng === 'number') {
+                next.customerLongitude = profileLocation.lng;
+                changed = true;
+            }
+
+            return changed ? next : previous;
+        });
+    }, [profileLocation]);
 
     // Expiration Timer Effect
     useEffect(() => {
@@ -310,10 +409,14 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         const cleanBody = phoneBody.replace(/\D/g, '');
         const cleanName = initialCustomerName.trim();
 
-        if (cleanBody.length < 5 || cleanName.length < 2) return;
+        const expectedLocalLength = cleanCC === '506' ? 8 : 6;
+        if (cleanBody.length < expectedLocalLength || cleanName.length < 2) return;
 
         const fullNum = `${cleanCC}${cleanBody}`;
+        if (!isValidPhone(fullNum)) return;
+
         setFromNumber(fullNum);
+        setCustomerId('');
         useCartStore.getState().setCustomerName(cleanName);
         setOrderMetadata(prev => ({ ...prev, customerPhone: fullNum, customerName: cleanName }));
         setShowPhonePrompt(false);
@@ -389,6 +492,69 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         return items;
     }, [activeCategory, menuItems, searchQuery]);
 
+    const categorySections = useMemo(() => {
+        if (searchQuery.trim()) {
+            return [] as Array<{ category: string; items: MenuItem[] }>;
+        }
+
+        const grouped = new Map<string, MenuItem[]>();
+        for (const item of menuItems) {
+            const category = item.category.trim();
+            const previous = grouped.get(category) || [];
+            grouped.set(category, [...previous, item]);
+        }
+
+        const orderedCategories = categories.filter((category) => category !== 'Todos' && grouped.has(category));
+        return orderedCategories.map((category) => ({
+            category,
+            items: grouped.get(category) || []
+        }));
+    }, [categories, menuItems, searchQuery]);
+
+    const handleCategoryChange = (category: string) => {
+        setActiveCategory(category);
+
+        if (searchQuery.trim()) {
+            return;
+        }
+
+        if (category === 'Todos') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        const section = categorySectionRefs.current[category];
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    useEffect(() => {
+        if (searchQuery.trim() || categorySections.length === 0) {
+            return;
+        }
+
+        const handleScroll = () => {
+            const threshold = 180;
+            const active = categorySections.find((section) => {
+                const element = categorySectionRefs.current[section.category];
+                if (!element) {
+                    return false;
+                }
+
+                const rect = element.getBoundingClientRect();
+                return rect.top <= threshold && rect.bottom > threshold;
+            });
+
+            if (active && active.category !== activeCategory) {
+                setActiveCategory(active.category);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [activeCategory, categorySections, searchQuery, setActiveCategory]);
+
     const groupSessionId = useCartStore(state => state.groupSessionId);
     const groupParticipants = useCartStore(state => state.groupParticipants);
 
@@ -408,11 +574,15 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     }, [effectiveCart]);
 
     const isOrderFormValid = useMemo(() => {
-        const { customerName, customerPhone, orderType, address, gpsLocation, customerLatitude, customerLongitude } = orderMetadata;
+        const { customerName, customerPhone, paymentMethod, orderType, address, gpsLocation, customerLatitude, customerLongitude } = orderMetadata;
+        const normalizedPhone = (customerPhone || fromNumber || '').trim();
+        const hasOrderType = Boolean(orderType?.trim());
+        const hasPaymentMethod = Boolean(paymentMethod?.trim());
         const hasCoordinates = Number.isFinite(customerLatitude) && Number.isFinite(customerLongitude);
-        const isDeliveryDetailsValid = orderType !== 'delivery' || ((address?.trim() || gpsLocation) && hasCoordinates);
-        return !!(customerName.trim() && customerPhone.trim() && isDeliveryDetailsValid);
-    }, [orderMetadata]);
+        const hasDeliveryReference = Boolean(address?.trim()) || Boolean(gpsLocation?.trim()) || hasCoordinates;
+        const isDeliveryDetailsValid = orderType !== 'delivery' || hasDeliveryReference;
+        return !!(customerName.trim() && normalizedPhone && hasOrderType && hasPaymentMethod && isDeliveryDetailsValid);
+    }, [fromNumber, orderMetadata]);
 
     const onHandlePlaceOrder = async () => {
         if (effectiveCart.length === 0 || !isOrderFormValid) return;
@@ -456,32 +626,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         );
     };
 
-    const handleChangeUser = () => {
-        setShowUserChangeConfirm(true);
-    };
-
-    const executeUserChange = () => {
-        resetSession();
-        setChefNotification(null);
-        localStorage.removeItem('izakaya_chat_history');
-        localStorage.removeItem('izakaya_metadata');
-        localStorage.removeItem('izakaya_active_orders');
-        localStorage.removeItem('izakaya_user_name');
-
-        setOrderMetadata({
-            customerName: '',
-            customerPhone: '',
-            paymentMethod: '',
-            orderType: '',
-            source: 'client',
-            address: '',
-            gpsLocation: ''
-        });
-        setPhoneBody('');
-        setShowPhonePrompt(true);
-        setShowUserChangeConfirm(false);
-    };
-
     if (showPhonePrompt) return (
         <PhonePrompt
             restaurantInfo={restaurantInfo}
@@ -512,16 +656,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
 
     return (
         <div className="min-h-screen relative japanese-pattern pb-24">
-            {showUserChangeConfirm && (
-                <ConfirmModal
-                    title="⚠️ ¿Cambiar de Usuario?"
-                    description="Si cambias de usuario, perderás todos los datos del pedido actual y el historial de rastreo en este dispositivo para comenzar una nueva orden. ¿Deseas continuar?"
-                    confirmText="Sí, Limpiar y Cambiar 👤"
-                    cancelText="No, Mantener Actual"
-                    onConfirm={executeUserChange}
-                    onCancel={() => setShowUserChangeConfirm(false)}
-                />
-            )}
             {expirationTime && cart.length > 0 && (
                 <ExpirationTimer timeLeftStr={timeLeftStr} />
             )}
@@ -550,14 +684,25 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                 cartLength={cart.length}
                 categories={categories}
                 activeCategory={activeCategory}
-                setActiveCategory={setActiveCategory}
+                setActiveCategory={handleCategoryChange}
                 tabsRef={tabsRef}
                 canScrollLeft={canScrollLeft}
                 canScrollRight={canScrollRight}
                 scrollTabs={scrollTabs}
                 onScroll={checkScroll}
                 isLoading={loading}
-                onChangeUser={handleChangeUser}
+                onOpenReviews={() => {
+                    if (branchId && branchId !== ':branchId') {
+                        router.push(`/reviews/${encodeURIComponent(branchId)}`);
+                    }
+                }}
+                onGoBack={() => {
+                    if (typeof window !== 'undefined' && window.history.length > 1) {
+                        router.back();
+                    } else {
+                        router.push('/');
+                    }
+                }}
                 customerName={customerName}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
@@ -587,7 +732,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                                 Limpiar Búsqueda
                             </button>
                         </div>
-                    ) : (
+                    ) : searchQuery.trim() ? (
                         filteredItems.map(item => (
                             <MenuItemCard
                                 key={item.id}
@@ -597,6 +742,27 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                                 isHighlighted={highlightedItemId === String(item.id)}
                             />
                         ))
+                    ) : (
+                        categorySections.flatMap((section) => [
+                            <div
+                                key={`heading-${section.category}`}
+                                ref={(element) => {
+                                    categorySectionRefs.current[section.category] = element;
+                                }}
+                                className="col-span-full pt-2"
+                            >
+                                <h2 className="text-lg md:text-xl font-black">{section.category}</h2>
+                            </div>,
+                            ...section.items.map((item) => (
+                                <MenuItemCard
+                                    key={item.id}
+                                    item={item}
+                                    onAddToCart={(newItem) => addToCart(newItem, orderMetadata)}
+                                    currentQuantity={itemQuantities[item.id] || 0}
+                                    isHighlighted={highlightedItemId === String(item.id)}
+                                />
+                            ))
+                        ])
                     )}
                 </div>
             </main>
@@ -642,6 +808,8 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                     paymentOptions={paymentOptions}
                     serviceOptions={serviceOptions}
                     fromNumber={fromNumber}
+                    hasProfileLocation={Boolean(profileLocation)}
+                    profileLocationLabel={profileLocation?.label}
                     tableQuantity={tableQuantity}
                 />
             )}
@@ -659,6 +827,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                 isOpen={showHistory}
                 onClose={() => setShowHistory(false)}
                 phone={fromNumber}
+                customerId={customerId}
                 branchId={branchId}
             />
         </div>

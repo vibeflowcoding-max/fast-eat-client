@@ -3,10 +3,12 @@ import { Suspense } from "react";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import RouteTransitionIndicator from "@/components/RouteTransitionIndicator";
+import AuthBootstrap from "@/components/AuthBootstrap";
+import I18nProvider from '@/components/providers/I18nProvider';
 
 export const metadata: Metadata = {
-    title: "FastEat - Ordena comida rápido",
-    description: "Ordena comida de tus restaurantes favoritos cerca de ti.",
+    title: "FastEat - Order food fast",
+    description: "Order food from your favorite restaurants near you.",
     manifest: "/manifest.json",
     appleWebApp: {
         capable: true,
@@ -29,17 +31,20 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="es">
+        <html lang="en">
             <head>
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-                <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+                <link rel="apple-touch-icon" href="/placeholder-restaurant.svg" />
             </head>
             <body>
-                <Suspense fallback={null}>
-                    <RouteTransitionIndicator />
-                </Suspense>
-                {children}
-                <ServiceWorkerRegistration />
+                <I18nProvider>
+                    <Suspense fallback={null}>
+                        <RouteTransitionIndicator />
+                    </Suspense>
+                    <AuthBootstrap />
+                    {children}
+                    <ServiceWorkerRegistration />
+                </I18nProvider>
             </body>
         </html>
     );

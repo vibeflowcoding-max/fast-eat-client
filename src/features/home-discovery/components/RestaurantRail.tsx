@@ -5,6 +5,7 @@ import HomeErrorState from './HomeErrorState';
 import HomeRailSkeleton from './HomeRailSkeleton';
 import { emitHomeEvent } from '../analytics';
 import { HOME_VISUAL_TOKENS } from './homeVisualTokens';
+import { useTranslations } from 'next-intl';
 
 type RailEmptyVariant = 'default' | 'query' | 'intent_or_filter' | 'nearby';
 
@@ -47,31 +48,31 @@ function getRailState(params: { loading?: boolean; error?: string | null; hasDat
     return 'success' as const;
 }
 
-function getEmptyStateConfig(variant: RailEmptyVariant): { message: string; action?: Omit<RailAction, 'onClick'> } {
+function getEmptyStateConfig(variant: RailEmptyVariant, t: ReturnType<typeof useTranslations>): { message: string; action?: Omit<RailAction, 'onClick'> } {
     if (variant === 'query') {
         return {
-            message: 'No encontramos resultados para tu búsqueda actual.',
-            action: { label: 'Limpiar búsqueda', analyticsAction: 'clear_search' }
+            message: t('empty.query'),
+            action: { label: t('empty.queryAction'), analyticsAction: 'clear_search' }
         };
     }
 
     if (variant === 'intent_or_filter') {
         return {
-            message: 'No hay resultados con los filtros o intención seleccionados.',
-            action: { label: 'Quitar filtros', analyticsAction: 'clear_filters' }
+            message: t('empty.intent'),
+            action: { label: t('empty.intentAction'), analyticsAction: 'clear_filters' }
         };
     }
 
     if (variant === 'nearby') {
         return {
-            message: 'No encontramos restaurantes cercanos por ahora.',
-            action: { label: 'Ampliar búsqueda', analyticsAction: 'broaden_radius' }
+            message: t('empty.nearby'),
+            action: { label: t('empty.nearbyAction'), analyticsAction: 'broaden_radius' }
         };
     }
 
     return {
-        message: 'No hay resultados para esta sección.',
-        action: { label: 'Reintentar', analyticsAction: 'retry' }
+        message: t('empty.default'),
+        action: { label: t('empty.defaultAction'), analyticsAction: 'retry' }
     };
 }
 
@@ -91,6 +92,7 @@ export default function RestaurantRail({
     onEmptyAction,
     onErrorFallback
 }: RestaurantRailProps) {
+    const t = useTranslations('home.restaurantRail');
     React.useEffect(() => {
         if (restaurants.length === 0) {
             return;
@@ -117,7 +119,7 @@ export default function RestaurantRail({
         hasData: restaurants.length > 0
     });
 
-    const emptyStateConfig = getEmptyStateConfig(emptyVariant);
+    const emptyStateConfig = getEmptyStateConfig(emptyVariant, t);
 
     const handleRetry = () => {
         emitHomeEvent({
@@ -153,7 +155,7 @@ export default function RestaurantRail({
         if (!statePolishV1) {
             return (
                 <div className="text-center py-8 border border-dashed border-gray-200 rounded-2xl bg-white">
-                    <p className="text-sm text-gray-500">No hay resultados para esta sección.</p>
+                    <p className="text-sm text-gray-500">{t('empty.default')}</p>
                 </div>
             );
         }
@@ -181,15 +183,15 @@ export default function RestaurantRail({
 
         if (railState === 'error') {
             if (!statePolishV1) {
-                return <HomeErrorState message={error || 'No pudimos cargar esta sección.'} onRetry={onRetry} />;
+                return <HomeErrorState message={error || t('error.loadSection')} onRetry={onRetry} />;
             }
 
             return (
                 <HomeErrorState
-                    title="No pudimos actualizar esta sección"
-                    message={error || 'Inténtalo de nuevo en unos segundos.'}
+                    title={t('error.title')}
+                    message={error || t('error.retryInSeconds')}
                     onRetry={onRetry ? handleRetry : undefined}
-                    fallbackLabel={onErrorFallback ? 'Quitar filtros' : undefined}
+                    fallbackLabel={onErrorFallback ? t('error.clearFilters') : undefined}
                     onFallback={onErrorFallback ? handleErrorFallback : undefined}
                 />
             );

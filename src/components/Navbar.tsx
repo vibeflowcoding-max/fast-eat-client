@@ -5,7 +5,9 @@ import { RestaurantInfo } from '../types';
 import SearchBar from './SearchBar';
 import OrderNotificationsTray from './OrderNotificationsTray';
 import { useCartStore } from '@/store';
-import { Package, User, ShoppingCart, Zap } from 'lucide-react';
+import { Package, ShoppingCart, Zap, Heart, Star, ArrowLeft } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { supabase } from '@/lib/supabase';
 
 interface NavbarProps {
     restaurantInfo: RestaurantInfo | null;
@@ -24,13 +26,15 @@ interface NavbarProps {
     scrollTabs: (direction: 'left' | 'right') => void;
     onScroll: () => void;
     isLoading?: boolean;
-    onChangeUser: () => void;
+    onOpenReviews: () => void;
+    onGoBack: () => void;
     customerName: string;
     searchQuery: string;
     setSearchQuery: (val: string) => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({
+    restaurantInfo,
     isTestMode,
     toggleTestMode,
     onShowHistory,
@@ -46,17 +50,126 @@ const Navbar: React.FC<NavbarProps> = ({
     scrollTabs,
     onScroll,
     isLoading,
-    onChangeUser,
+    onOpenReviews,
+    onGoBack,
     customerName,
     searchQuery,
     setSearchQuery,
 }) => {
     const [isTrayOpen, setIsTrayOpen] = useState(false);
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
+    const t = useTranslations('nav');
     const bidNotifications = useCartStore((state) => state.bidNotifications);
     const unreadCount = useMemo(
         () => bidNotifications.filter((notification) => !notification.read).length,
         [bidNotifications]
     );
+
+    const ratingLabel =
+        typeof restaurantInfo?.rating === 'number' && restaurantInfo.rating > 0
+            ? restaurantInfo.rating.toFixed(1)
+            : t('ratingNotAvailable');
+
+    const resolveAccessToken = async () => {
+        const { data } = await supabase.auth.getSession();
+        return data.session?.access_token || null;
+    };
+
+    React.useEffect(() => {
+        let mounted = true;
+
+        async function loadFavoriteState() {
+            if (!restaurantInfo?.id) {
+                if (mounted) {
+                    setIsFavorite(false);
+                }
+                return;
+            }
+
+            try {
+                const token = await resolveAccessToken();
+                if (!token) {
+                    if (mounted) {
+                        setIsFavorite(false);
+                    }
+                    return;
+                }
+
+                const response = await fetch(`/api/favorites?restaurantId=${encodeURIComponent(restaurantInfo.id)}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const payload = await response.json();
+                if (mounted) {
+                    setIsFavorite(Boolean(payload?.isFavorite));
+                }
+            } catch {
+                if (mounted) {
+                    setIsFavorite(false);
+                }
+            }
+        }
+
+        loadFavoriteState();
+
+        return () => {
+            mounted = false;
+        };
+    }, [restaurantInfo?.id]);
+
+    const handleToggleFavorite = async () => {
+        if (!restaurantInfo?.id || isFavoriteLoading) {
+            return;
+        }
+
+        const token = await resolveAccessToken();
+        if (!token) {
+            return;
+        }
+
+        const optimisticValue = !isFavorite;
+        setIsFavorite(optimisticValue);
+        setIsFavoriteLoading(true);
+
+        try {
+            if (optimisticValue) {
+                const response = await fetch('/api/favorites', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ restaurantId: restaurantInfo.id })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Could not favorite restaurant');
+                }
+            } else {
+                const response = await fetch(`/api/favorites?restaurantId=${encodeURIComponent(restaurantInfo.id)}`, {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Could not unfavorite restaurant');
+                }
+            }
+        } catch {
+            setIsFavorite(!optimisticValue);
+        } finally {
+            setIsFavoriteLoading(false);
+        }
+    };
 
     return (
         <div className="sticky top-0 ui-panel shadow-2xl z-50 border-b">
@@ -64,26 +177,26 @@ const Navbar: React.FC<NavbarProps> = ({
                 <div className="flex items-center justify-between py-3 md:py-4">
                     <div className="flex items-center gap-3 md:gap-4 overflow-visible no-scrollbar scroll-smooth flex-nowrap pr-4 -mr-4 md:pr-0 md:mr-0">
                         <button
-                            onClick={onShowHistory}
+                            type="button"
+                            onClick={onGoBack}
                             className="ui-btn-secondary flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all shrink-0 focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
-                            aria-label="Rastreo de pedidos"
+                            aria-label={t('back')}
                         >
-                            <Package className="w-5 h-5" strokeWidth={2.5} />
+                            <ArrowLeft className="w-5 h-5" strokeWidth={2.5} />
                         </button>
                         <button
-                            type="button"
-                            onClick={onChangeUser}
+                            onClick={onShowHistory}
                             className="ui-btn-secondary flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all shrink-0 focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
-                            aria-label="Cambiar usuario"
+                            aria-label={t('trackOrders')}
                         >
-                            <User className="w-5 h-5" strokeWidth={2.5} fill="currentColor" />
+                            <Package className="w-5 h-5" strokeWidth={2.5} />
                         </button>
                         <div className="relative shrink-0">
                             <button
                                 type="button"
-                                onClick={() => setIsTrayOpen((current) => !current)}
                                 className="ui-btn-secondary relative flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
-                                aria-label="Abrir notificaciones de ofertas"
+                                onClick={() => setIsTrayOpen((current) => !current)}
+                                aria-label={t('openOfferNotifications')}
                             >
                                 <Zap className="w-5 h-5" strokeWidth={2.5} fill="currentColor" />
                                 {unreadCount > 0 && (
@@ -103,6 +216,26 @@ const Navbar: React.FC<NavbarProps> = ({
                                 </div>
                             )}
                         </div>
+                        <div className="relative shrink-0">
+                            <button
+                                type="button"
+                                onClick={onOpenReviews}
+                                className="ui-btn-secondary inline-flex items-center justify-center gap-1 px-3 h-10 md:h-11 rounded-full transition-all shrink-0 focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
+                                aria-label={t('openRestaurantReviews')}
+                            >
+                                <Star className="w-4 h-4" strokeWidth={2.5} fill="currentColor" />
+                                <span className="text-xs font-black">{ratingLabel}</span>
+                            </button>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleToggleFavorite}
+                            disabled={isFavoriteLoading || !restaurantInfo?.id}
+                            className="ui-btn-secondary flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all shrink-0 focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm disabled:opacity-60"
+                            aria-label={isFavorite ? t('removeFavoriteRestaurant') : t('addFavoriteRestaurant')}
+                        >
+                            <Heart className="w-5 h-5" strokeWidth={2.5} fill={isFavorite ? 'currentColor' : 'none'} />
+                        </button>
                     </div>
 
                     <div className="hidden md:flex flex-grow justify-center px-8">
@@ -112,7 +245,7 @@ const Navbar: React.FC<NavbarProps> = ({
                     <button
                         onClick={onOpenCart}
                         className={`relative flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-full transition-all shrink-0 ml-4 md:ml-0 shadow-sm ${cartLength > 0 ? 'ui-btn-primary shadow-red-200 shadow-lg hover:scale-105 active:scale-95' : 'ui-btn-secondary'}`}
-                        aria-label="Mi Pedido"
+                        aria-label={t('myOrder')}
                     >
                         <ShoppingCart className="w-6 h-6" strokeWidth={2.5} fill={cartLength > 0 ? "currentColor" : "none"} />
                         {totalItemsCount > 0 && (

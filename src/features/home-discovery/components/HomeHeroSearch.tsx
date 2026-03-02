@@ -2,6 +2,7 @@ import React from 'react';
 import { MapPin, Search } from 'lucide-react';
 import { HOME_VISUAL_TOKENS } from './homeVisualTokens';
 import VoiceSearchButton from './VoiceSearchButton';
+import { useTranslations } from 'next-intl';
 
 export interface HomeSearchSuggestionItem {
     id: string;
@@ -57,6 +58,7 @@ export default function HomeHeroSearch({
     visualHierarchyV2 = false
 }: HomeHeroSearchProps) {
     const searchInputId = 'home-search-input';
+    const t = useTranslations('home.heroSearch');
 
     return (
         <div className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.heroContainer : 'px-4 py-4'}>
@@ -69,7 +71,7 @@ export default function HomeHeroSearch({
                             : 'flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-xs text-green-600'}
                     >
                         <MapPin size={12} />
-                        <span>Ubicación activa</span>
+                        <span>{t('activeLocation')}</span>
                     </div>
                 )}
             </div>
@@ -77,14 +79,14 @@ export default function HomeHeroSearch({
             {profilePrompt}
 
             <div className="relative">
-                <label htmlFor={searchInputId} className="sr-only">Buscar restaurantes o comida</label>
+                <label htmlFor={searchInputId} className="sr-only">{t('searchLabel')}</label>
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
                     id={searchInputId}
                     type="text"
                     value={searchQuery}
                     onChange={(event) => onSearchQueryChange(event.target.value)}
-                    placeholder="Buscar restaurantes o comida..."
+                    placeholder={t('searchPlaceholder')}
                     className={visualHierarchyV2
                         ? HOME_VISUAL_TOKENS.searchInputStyle + ' pr-14'
                         : 'w-full rounded-xl bg-gray-100 py-3 pl-10 pr-14 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-orange-500'}
@@ -96,15 +98,15 @@ export default function HomeHeroSearch({
                 {showSuggestions && (
                     <div className="absolute z-50 mt-2 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
                         {suggestionsLoading && (
-                            <p className="px-2 py-1.5 text-sm text-gray-500">Buscando sugerencias...</p>
+                            <p className="px-2 py-1.5 text-sm text-gray-500">{t('searchingSuggestions')}</p>
                         )}
 
                         {!suggestionsLoading && suggestions.length === 0 && (
-                            <p className="px-2 py-1.5 text-sm text-gray-500">No hay sugerencias disponibles.</p>
+                            <p className="px-2 py-1.5 text-sm text-gray-500">{t('noSuggestions')}</p>
                         )}
 
                         {!suggestionsLoading && suggestions.length > 0 && (
-                            <ul className="flex flex-col gap-1" aria-label="Sugerencias de búsqueda">
+                            <ul className="flex flex-col gap-1" aria-label={t('suggestionsAria')}>
                                 {suggestions.map((suggestion) => (
                                     <li key={suggestion.id}>
                                         <button
@@ -114,7 +116,7 @@ export default function HomeHeroSearch({
                                         >
                                             <span>{suggestion.label}</span>
                                             <span className="text-xs text-gray-400">
-                                                {suggestion.kind === 'restaurant' ? 'Restaurante' : 'Categoría'}
+                                                {suggestion.kind === 'restaurant' ? t('suggestionKind.restaurant') : t('suggestionKind.category')}
                                             </span>
                                         </button>
                                     </li>
@@ -127,11 +129,11 @@ export default function HomeHeroSearch({
 
             {showRecovery && (
                 <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
-                    <p className="text-sm font-medium text-gray-800">No encontramos resultados para esa búsqueda.</p>
+                    <p className="text-sm font-medium text-gray-800">{t('noResults')}</p>
 
                     {recoveryAlternatives.length > 0 && (
                         <div className="mt-2">
-                            <p className="text-xs text-gray-500">Restaurantes cercanos</p>
+                            <p className="text-xs text-gray-500">{t('nearbyRestaurants')}</p>
                             <div className="mt-1 flex flex-wrap gap-2">
                                 {recoveryAlternatives.map((alternative) => (
                                     <button
@@ -149,7 +151,7 @@ export default function HomeHeroSearch({
 
                     {recoveryCategories.length > 0 && (
                         <div className="mt-3">
-                            <p className="text-xs text-gray-500">Categorías populares</p>
+                            <p className="text-xs text-gray-500">{t('popularCategories')}</p>
                             <div className="mt-1 flex flex-wrap gap-2">
                                 {recoveryCategories.map((category) => (
                                     <button
@@ -170,7 +172,7 @@ export default function HomeHeroSearch({
                         onClick={onClearSearch}
                         className="mt-3 text-sm font-medium text-orange-600"
                     >
-                        Limpiar búsqueda
+                        {t('clearSearch')}
                     </button>
                 </div>
             )}

@@ -17,6 +17,7 @@ type CompareRequestBody = {
 interface BranchRow {
     id: string;
     estimated_delivery_fee: number | null;
+    eta_min?: number | null;
 }
 
 interface RestaurantRow {
@@ -24,6 +25,7 @@ interface RestaurantRow {
     name: string;
     avg_price_estimate: number | null;
     estimated_delivery_fee: number | null;
+    eta_min?: number | null;
     promo_text: string | null;
     branches: BranchRow[];
 }
@@ -112,10 +114,12 @@ export async function POST(request: NextRequest) {
                 name,
                 avg_price_estimate,
                 estimated_delivery_fee,
+                eta_min,
                 promo_text,
                 branches!inner (
                     id,
-                    estimated_delivery_fee
+                    estimated_delivery_fee,
+                    eta_min
                 )
             `)
             .in('id', ids);
@@ -177,12 +181,13 @@ export async function POST(request: NextRequest) {
 
         const restaurantMap = new Map(restaurantRows.map((row) => [row.id, row]));
 
-        const options = body.items.map((item, index) => {
+        const options = body.items.flatMap((item) => {
             const row = restaurantMap.get(item.restaurantId);
-            const itemCount = Math.max(1, item.itemIds.length);
+            const basePrice = toNumber(row?.avg_price_estimate);
 
-            const basePriceSeed = 4200 + itemCount * 700;
-            const basePrice = toNumber(row?.avg_price_estimate) ?? basePriceSeed;
+            if (!row || basePrice === null) {
+                return [];
+            }
 
             const branchFees = (row?.branches || [])
                 .map((branch) => toNumber(branch.estimated_delivery_fee) ?? feeByBranch.get(branch.id) ?? null)
@@ -190,7 +195,23 @@ export async function POST(request: NextRequest) {
 
             const deliveryFee = branchFees.length > 0
                 ? Math.min(...branchFees)
-                : 650;
+                : toNumber(row.estimated_delivery_fee);
+
+            if (deliveryFee === null || deliveryFee === undefined) {
+                return [];
+            }
+
+            const etaCandidates = (row.branches || [])
+                .map((branch) => toNumber(branch.eta_min))
+                .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+
+            const etaMin = etaCandidates.length > 0
+                ? Math.min(...etaCandidates)
+                : toNumber(row.eta_min);
+
+            if (etaMin === null || etaMin === undefined) {
+                return [];
+            }
 
             const promoDeal = (row?.branches || [])
                 .map((branch) => dealByBranch.get(branch.id))
@@ -210,17 +231,30 @@ export async function POST(request: NextRequest) {
             const platformFee = Math.round(basePrice * 0.04);
             const finalPrice = basePrice + deliveryFee + platformFee - discount;
 
-            return {
+            return [{
                 restaurantId: item.restaurantId,
-                label: row?.name ?? `Restaurant ${index + 1}`,
+                label: row.name,
                 basePrice,
                 deliveryFee,
                 platformFee,
                 discount,
                 finalPrice,
-                etaMin: 20 + index * 4
-            };
+                etaMin,
+                dataCompleteness: 'complete' as const
+            }];
         }).sort((left, right) => left.finalPrice - right.finalPrice);
+
+        if (options.length === 0) {
+            return NextResponse.json(
+                {
+                    error: 'No comparable options with complete data',
+                    code: 'incomplete_data',
+                    traceId,
+                    strategyVersion: getStrategyVersion()
+                },
+                { status: 422 }
+            );
+        }
 
         const responseBody = {
             comparison: {

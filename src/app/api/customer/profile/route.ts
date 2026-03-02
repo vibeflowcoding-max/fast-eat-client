@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     const customerId = String(customer.id);
 
-    const [{ data: addressData }, { data: dietaryData }, { data: favoriteData }] = await Promise.all([
+    const [{ data: addressData }, { data: dietaryData }, { data: persistedFavorites }, { data: favoriteData }] = await Promise.all([
       (supabaseServer as any)
         .from('customer_address')
         .select('url_address,building_type,unit_details,delivery_notes,updated_at')
@@ -39,6 +39,12 @@ export async function GET(request: NextRequest) {
         .limit(1)
         .maybeSingle(),
       (supabaseServer as any)
+        .from('customer_favorite_restaurants')
+        .select('restaurant_id,created_at')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      (supabaseServer as any)
         .from('orders_with_details')
         .select('restaurant_id')
         .eq('customer_id', customerId)
@@ -46,19 +52,26 @@ export async function GET(request: NextRequest) {
         .limit(50)
     ]);
 
-    const restaurantFrequency = new Map<string, number>();
-    for (const row of (favoriteData ?? []) as Array<{ restaurant_id: string | null }>) {
-      if (!row.restaurant_id) {
-        continue;
+    let topRestaurantIds = ((persistedFavorites ?? []) as Array<{ restaurant_id: string | null }>)
+      .map((row) => row.restaurant_id)
+      .filter((restaurantId): restaurantId is string => typeof restaurantId === 'string' && restaurantId.length > 0)
+      .slice(0, 6);
+
+    if (topRestaurantIds.length === 0) {
+      const restaurantFrequency = new Map<string, number>();
+      for (const row of (favoriteData ?? []) as Array<{ restaurant_id: string | null }>) {
+        if (!row.restaurant_id) {
+          continue;
+        }
+
+        restaurantFrequency.set(row.restaurant_id, (restaurantFrequency.get(row.restaurant_id) ?? 0) + 1);
       }
 
-      restaurantFrequency.set(row.restaurant_id, (restaurantFrequency.get(row.restaurant_id) ?? 0) + 1);
+      topRestaurantIds = [...restaurantFrequency.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6)
+        .map(([restaurantId]) => restaurantId);
     }
-
-    const topRestaurantIds = [...restaurantFrequency.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([restaurantId]) => restaurantId);
 
     let favoriteRestaurants: Array<{ id: string; name: string; logo_url: string | null }> = [];
 

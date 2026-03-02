@@ -3,43 +3,129 @@
 import React, { useState, useRef, useEffect } from 'react';
 import StoryVideoPlayer, { StoryVideoItem } from './StoryVideoPlayer';
 import { Clapperboard } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
-const MOCK_STORIES: StoryVideoItem[] = [
-    {
-        id: 's1',
-        restaurantId: 'r1',
-        restaurantName: 'La Casona',
-        itemName: 'Casado con Carne',
-        price: 3500,
-        videoUrl: 'https://cdn.pixabay.com/video/2015/08/08/212-135732709_tiny.mp4', // Placeholder food video
-        description: 'Nuestro plato estrella: arroz, frijoles, plátano maduro, ensalada y una jugosa carne arreglada. ¡Sabor casero!'
-    },
-    {
-        id: 's2',
-        restaurantId: 'r2',
-        restaurantName: 'Sushi Go',
-        itemName: 'Volcano Roll',
-        price: 4500,
-        videoUrl: 'https://cdn.pixabay.com/video/2020/05/11/38600-422849504_tiny.mp4',
-        description: 'Bañado en salsa anguila y mayonesa spicy. Cubierto con flakes de tempura. ¡Explosión de sabor!'
-    },
-    {
-        id: 's3',
-        restaurantId: 'r3',
-        restaurantName: 'La Pizzería del Barrio',
-        itemName: 'Pizza Suprema',
-        price: 6000,
-        videoUrl: 'https://cdn.pixabay.com/video/2024/02/21/201402-915494200_tiny.mp4',
-        description: 'Queso mozzarella derretido, pepperoni crujiente, hongos frescos y extra salsa de tomate artesanal.'
+interface StoryApiItem {
+    id?: string;
+    restaurantId?: string | null;
+    restaurantName?: string | null;
+    itemName?: string | null;
+    price?: number | null;
+    videoUrl?: string | null;
+    description?: string | null;
+}
+
+function normalizeStories(payload: unknown): StoryVideoItem[] {
+    if (!Array.isArray(payload)) {
+        return [];
     }
-];
+
+    return payload
+        .map((raw) => {
+            const item = raw as StoryApiItem;
+            if (
+                typeof item?.id !== 'string' ||
+                typeof item?.restaurantId !== 'string' ||
+                typeof item?.restaurantName !== 'string' ||
+                typeof item?.itemName !== 'string' ||
+                typeof item?.videoUrl !== 'string' ||
+                typeof item?.description !== 'string' ||
+                typeof item?.price !== 'number'
+            ) {
+                return null;
+            }
+
+            if (!Number.isFinite(item.price) || item.price < 0) {
+                return null;
+            }
+
+            return {
+                id: item.id,
+                restaurantId: item.restaurantId,
+                restaurantName: item.restaurantName,
+                itemName: item.itemName,
+                price: item.price,
+                videoUrl: item.videoUrl,
+                description: item.description
+            } satisfies StoryVideoItem;
+        })
+        .filter((item): item is StoryVideoItem => item !== null);
+}
 
 export default function StoryMenuFeed() {
-    const [activeStoryId, setActiveStoryId] = useState<string>(MOCK_STORIES[0].id);
+    const [stories, setStories] = useState<StoryVideoItem[]>([]);
+    const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
     const [isMuted, setIsMuted] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [reloadToken, setReloadToken] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        const abortController = new AbortController();
+
+        async function loadStories() {
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                const { data } = await supabase.auth.getSession();
+                const accessToken = data.session?.access_token;
+
+                if (!accessToken) {
+                    throw new Error('Debes iniciar sesión para ver Story Menus.');
+                }
+
+                const response = await fetch('/api/consumer/content/stories', {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`
+                    },
+                    cache: 'no-store',
+                    signal: abortController.signal
+                });
+
+                const payload: unknown = await response.json();
+                if (!response.ok) {
+                    throw new Error('No se pudo cargar Story Menus.');
+                }
+
+                const list = normalizeStories((payload as { data?: unknown })?.data);
+                setStories(list);
+                setActiveStoryId((prev) => {
+                    if (prev && list.some((story) => story.id === prev)) {
+                        return prev;
+                    }
+
+                    return list[0]?.id ?? null;
+                });
+            } catch (fetchError) {
+                if (abortController.signal.aborted) {
+                    return;
+                }
+
+                setStories([]);
+                setActiveStoryId(null);
+                setError(fetchError instanceof Error ? fetchError.message : 'No se pudo cargar Story Menus.');
+            } finally {
+                if (!abortController.signal.aborted) {
+                    setIsLoading(false);
+                }
+            }
+        }
+
+        loadStories();
+
+        return () => {
+            abortController.abort();
+        };
+    }, [reloadToken]);
+
+    useEffect(() => {
+        if (!stories.length) {
+            return;
+        }
+
         const container = containerRef.current;
         if (!container) return;
 
@@ -67,7 +153,7 @@ export default function StoryMenuFeed() {
         return () => {
             children.forEach((child) => observer.unobserve(child));
         };
-    }, [activeStoryId]);
+    }, [activeStoryId, stories]);
 
     return (
         <div className="w-full mb-8">
@@ -76,27 +162,50 @@ export default function StoryMenuFeed() {
                 <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Story Menus</h3>
             </div>
 
-            {/* Snap Scrolling Container */}
-            <div
-                ref={containerRef}
-                className="flex overflow-x-auto gap-4 snap-x snap-mandatory hide-scrollbar px-1 pb-4"
-                style={{ scrollBehavior: 'smooth' }}
-            >
-                {MOCK_STORIES.map((story) => (
-                    <div
-                        key={story.id}
-                        data-story-id={story.id}
-                        className="story-container w-[280px] h-[450px] sm:w-[320px] sm:h-[500px] flex-shrink-0 snap-center rounded-3xl overflow-hidden shadow-lg relative"
+            {isLoading && (
+                <div className="px-1 py-6 text-sm text-gray-500">Cargando historias...</div>
+            )}
+
+            {!isLoading && error && (
+                <div className="px-1 py-3">
+                    <p className="text-sm text-red-600">{error}</p>
+                    <button
+                        type="button"
+                        onClick={() => setReloadToken((prev) => prev + 1)}
+                        className="mt-2 text-xs font-bold text-red-600 underline"
                     >
-                        <StoryVideoPlayer
-                            item={story}
-                            isActive={story.id === activeStoryId}
-                            isMuted={isMuted}
-                            onToggleMute={() => setIsMuted(prev => !prev)}
-                        />
-                    </div>
-                ))}
-            </div>
+                        Reintentar
+                    </button>
+                </div>
+            )}
+
+            {!isLoading && !error && stories.length === 0 && (
+                <div className="px-1 py-6 text-sm text-gray-500">No hay Story Menus activos por ahora.</div>
+            )}
+
+            {/* Snap Scrolling Container */}
+            {!isLoading && !error && stories.length > 0 && (
+                <div
+                    ref={containerRef}
+                    className="flex overflow-x-auto gap-4 snap-x snap-mandatory hide-scrollbar px-1 pb-4"
+                    style={{ scrollBehavior: 'smooth' }}
+                >
+                    {stories.map((story) => (
+                        <div
+                            key={story.id}
+                            data-story-id={story.id}
+                            className="story-container w-[280px] h-[450px] sm:w-[320px] sm:h-[500px] flex-shrink-0 snap-center rounded-3xl overflow-hidden shadow-lg relative"
+                        >
+                            <StoryVideoPlayer
+                                item={story}
+                                isActive={story.id === activeStoryId}
+                                isMuted={isMuted}
+                                onToggleMute={() => setIsMuted(prev => !prev)}
+                            />
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

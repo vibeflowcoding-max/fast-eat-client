@@ -1,5 +1,6 @@
 import React from 'react';
 import { OrderMetadata } from '../types';
+import { useTranslations } from 'next-intl';
 
 interface OrderFormProps {
     orderMetadata: OrderMetadata;
@@ -9,6 +10,8 @@ interface OrderFormProps {
     fromNumber: string;
     isLocating: boolean;
     onGetLocation: () => void;
+    hasProfileLocation?: boolean;
+    profileLocationLabel?: string;
     tableQuantity?: number;
 }
 
@@ -20,27 +23,31 @@ const OrderForm: React.FC<OrderFormProps> = ({
     fromNumber,
     isLocating,
     onGetLocation,
+    hasProfileLocation = false,
+    profileLocationLabel,
     tableQuantity = 0
 }) => {
+    const t = useTranslations('checkout.orderForm');
+
     return (
         <div className="ui-panel p-6 rounded-3xl border-2 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Customer Info */}
                 <div className="space-y-4">
                     <div className="space-y-1">
-                        <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">Nombre Completo</label>
+                        <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('fullName')}</label>
                         <input
                             type="text"
-                            placeholder="Ej: Macarena..."
+                            placeholder={t('fullNamePlaceholder')}
                             className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black placeholder:text-gray-300 focus:outline-none focus:border-[var(--color-brand)] transition-all"
                             value={orderMetadata.customerName}
                             onChange={e => setOrderMetadata({ ...orderMetadata, customerName: e.target.value })}
                         />
                     </div>
                     <div className="space-y-1 opacity-60">
-                        <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">Teléfono de Contacto</label>
+                        <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('phone')}</label>
                         <div className="px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black ui-text-muted">
-                            {fromNumber ? `+${fromNumber}` : 'No disponible'}
+                            {fromNumber ? `+${fromNumber}` : t('phoneUnavailable')}
                         </div>
                     </div>
                 </div>
@@ -48,7 +55,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                 {/* Order Options */}
                 <div className="space-y-4">
                     <div className="space-y-1">
-                        <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">Forma de Pago</label>
+                        <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('paymentMethod')}</label>
                         <select
                             className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black focus:outline-none focus:border-[var(--color-brand)] appearance-none cursor-pointer disabled:bg-gray-100 disabled:text-gray-400"
                             value={orderMetadata.paymentMethod}
@@ -56,13 +63,13 @@ const OrderForm: React.FC<OrderFormProps> = ({
                             disabled={paymentOptions.length === 0}
                         >
                             <option value="" disabled>
-                                {paymentOptions.length > 0 ? "Seleccionar método de pago" : "No hay opciones disponibles"}
+                                {paymentOptions.length > 0 ? t('selectPayment') : t('noPaymentOptions')}
                             </option>
                             {paymentOptions.map(opt => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
                         </select>
                     </div>
                     <div className="space-y-1">
-                        <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">Tipo de Servicio</label>
+                        <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('serviceType')}</label>
                         <select
                             className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black focus:outline-none focus:border-[var(--color-brand)] appearance-none cursor-pointer disabled:bg-gray-100 disabled:text-gray-400"
                             value={orderMetadata.orderType}
@@ -81,7 +88,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                             disabled={serviceOptions.length === 0}
                         >
                             <option value="" disabled>
-                                {serviceOptions.length > 0 ? "Seleccionar tipo de entrega" : "No hay tipos de servicio disponibles"}
+                                {serviceOptions.length > 0 ? t('selectServiceType') : t('noServiceTypes')}
                             </option>
                             {serviceOptions.filter(opt => {
                                 // Only show dine-in option if tables are available
@@ -98,15 +105,15 @@ const OrderForm: React.FC<OrderFormProps> = ({
             {/* Table Selection (only for dine-in) */}
             {(orderMetadata.orderType === 'comer_aca' || orderMetadata.orderType === 'comer_aqui' || orderMetadata.orderType === 'dine_in') && tableQuantity > 0 && (
                 <div className="space-y-1 animate-fadeIn">
-                    <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">Número de Mesa</label>
+                    <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('tableNumber')}</label>
                     <select
                         className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black focus:outline-none focus:border-[var(--color-brand)] appearance-none cursor-pointer"
                         value={orderMetadata.tableNumber || ''}
                         onChange={e => setOrderMetadata({ ...orderMetadata, tableNumber: e.target.value })}
                     >
-                        <option value="" disabled>Seleccionar mesa</option>
+                        <option value="" disabled>{t('selectTable')}</option>
                         {Array.from({ length: tableQuantity }, (_, i) => i + 1).map(num => (
-                            <option key={num} value={String(num)}>Mesa #{num}</option>
+                            <option key={num} value={String(num)}>{t('table')} #{num}</option>
                         ))}
                     </select>
                 </div>
@@ -115,63 +122,77 @@ const OrderForm: React.FC<OrderFormProps> = ({
             {/* Delivery Address (only if applicable) */}
             {orderMetadata.orderType === 'delivery' && (
                 <div className="space-y-1 animate-fadeIn">
-                    <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">Dirección de Envío</label>
-                    <textarea
-                        placeholder="Calle, número de casa, referencias..."
-                        className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black placeholder:text-gray-300 focus:outline-none focus:border-[var(--color-brand)] transition-all resize-none h-20"
-                        value={orderMetadata.address}
-                        onChange={e => setOrderMetadata({ ...orderMetadata, address: e.target.value })}
-                    />
-                    <div className="flex flex-col gap-2 mt-2">
-                        {orderMetadata.gpsLocation && (
-                            <div className="flex flex-col gap-1 animate-fadeIn mt-1">
-                                <label className="text-[7px] font-black uppercase tracking-widest text-green-600 ml-1">Ubicación GPS Adjunta</label>
-                                <div className="ui-state-success flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm">
-                                    <span className="text-sm">📍</span>
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        value={orderMetadata.gpsLocation}
-                                        className="w-full bg-transparent text-xs font-bold focus:outline-none truncate"
-                                        onClick={(e) => e.currentTarget.select()}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setOrderMetadata({
-                                            ...orderMetadata,
-                                            gpsLocation: undefined,
-                                            customerLatitude: undefined,
-                                            customerLongitude: undefined,
-                                        })}
-                                        className="text-green-600 hover:text-[var(--color-brand)] font-bold px-1 py-1"
-                                    >✕</button>
-                                </div>
-                            </div>
-                        )}
+                    <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('deliveryAddress')}</label>
 
-                        <button
-                            onClick={onGetLocation}
-                            disabled={isLocating}
-                            className="ui-state-success flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-sm active:scale-95 disabled:opacity-50"
-                        >
-                            {isLocating ? (
-                                <>
-                                    <div className="w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                                    Obteniendo GPS...
-                                </>
-                            ) : (
-                                <>
-                                    <span>📍</span>
-                                    {orderMetadata.gpsLocation ? 'Actualizar Ubicación GPS' : 'Compartir mi Ubicación (GPS)'}
-                                </>
-                            )}
-                        </button>
-                        {(!Number.isFinite(orderMetadata.customerLatitude) || !Number.isFinite(orderMetadata.customerLongitude)) && (
-                            <p className="ui-state-warning text-[10px] font-bold rounded-lg px-2 py-1 inline-block">
-                                Debes compartir tu ubicación GPS para confirmar pedidos a domicilio.
-                            </p>
-                        )}
-                    </div>
+                    {hasProfileLocation ? (
+                        <div className="ui-state-success flex items-start gap-2 px-4 py-3 rounded-xl shadow-sm">
+                            <span className="text-sm">📍</span>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-green-700">Ubicación de perfil</p>
+                                <p className="text-xs font-bold text-green-800 break-words mt-1">{profileLocationLabel || orderMetadata.gpsLocation || orderMetadata.address}</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <textarea
+                                placeholder={t('deliveryPlaceholder')}
+                                className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black placeholder:text-gray-300 focus:outline-none focus:border-[var(--color-brand)] transition-all resize-none h-20"
+                                value={orderMetadata.address}
+                                onChange={e => setOrderMetadata({ ...orderMetadata, address: e.target.value })}
+                            />
+                            <div className="flex flex-col gap-2 mt-2">
+                                {orderMetadata.gpsLocation && (
+                                    <div className="flex flex-col gap-1 animate-fadeIn mt-1">
+                                        <label className="text-[7px] font-black uppercase tracking-widest text-green-600 ml-1">Ubicación GPS Adjunta</label>
+                                        <label className="text-[7px] font-black uppercase tracking-widest text-green-600 ml-1">{t('gpsAttached')}</label>
+                                        <div className="ui-state-success flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm">
+                                            <span className="text-sm">📍</span>
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                value={orderMetadata.gpsLocation}
+                                                className="w-full bg-transparent text-xs font-bold focus:outline-none truncate"
+                                                onClick={(e) => e.currentTarget.select()}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setOrderMetadata({
+                                                    ...orderMetadata,
+                                                    gpsLocation: undefined,
+                                                    customerLatitude: undefined,
+                                                    customerLongitude: undefined,
+                                                })}
+                                                className="text-green-600 hover:text-[var(--color-brand)] font-bold px-1 py-1"
+                                            >✕</button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={onGetLocation}
+                                    disabled={isLocating}
+                                    className="ui-state-success flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                                >
+                                    {isLocating ? (
+                                        <>
+                                            <div className="w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                            {t('gettingGps')}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>📍</span>
+                                            {orderMetadata.gpsLocation ? t('updateGps') : t('shareGps')}
+                                        </>
+                                    )}
+                                </button>
+                                {(!Number.isFinite(orderMetadata.customerLatitude) || !Number.isFinite(orderMetadata.customerLongitude)) && (
+                                    <p className="ui-state-warning text-[10px] font-bold rounded-lg px-2 py-1 inline-block">
+                                        {t('gpsRequired')}
+                                    </p>
+                                )}
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
 
@@ -190,9 +211,9 @@ const OrderForm: React.FC<OrderFormProps> = ({
                     </div>
                     <div className="flex flex-col">
                         <span className="text-sm font-bold group-hover:text-[var(--color-brand)] transition-colors flex items-center gap-1.5">
-                            🌱 Sin Cubiertos ni Servilletas
+                            🌱 {t('ecoTitle')}
                         </span>
-                        <span className="ui-text-muted text-[10px] font-medium">Opción Eco-Amigable. ¡Ayuda al planeta!</span>
+                        <span className="ui-text-muted text-[10px] font-medium">{t('ecoSubtitle')}</span>
                     </div>
                 </label>
 
@@ -213,9 +234,9 @@ const OrderForm: React.FC<OrderFormProps> = ({
                         </div>
                         <div className="flex flex-col">
                             <span className="text-sm font-bold group-hover:text-[var(--color-brand)] transition-colors flex items-center gap-1.5">
-                                🕒 Programar para más tarde
+                                🕒 {t('scheduleTitle')}
                             </span>
-                            <span className="ui-text-muted text-[10px] font-medium">Elige a qué hora quieres recibir tu pedido</span>
+                            <span className="ui-text-muted text-[10px] font-medium">{t('scheduleSubtitle')}</span>
                         </div>
                     </label>
 
