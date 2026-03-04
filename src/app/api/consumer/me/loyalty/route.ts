@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { constructSecureUrl } from '@/lib/url-utils';
 
 function parseBearerHeader(request: NextRequest): string | null {
   const header = request.headers.get('authorization') || request.headers.get('Authorization');
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
     }
 
-    const response = await fetch(`${apiUrl}/api/consumer/me/loyalty`, {
+    const response = await fetch(constructSecureUrl(apiUrl, '/api/consumer/me/loyalty'), {
       method: 'GET',
       headers: {
         Authorization: authHeader,

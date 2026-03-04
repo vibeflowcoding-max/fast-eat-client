@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { constructSecureUrl } from '@/lib/url-utils';
 
 export async function POST(
   _req: NextRequest,
@@ -12,7 +13,7 @@ export async function POST(
       return NextResponse.json({ success: false, message: 'FAST_EAT_API_URL is not configured' }, { status: 500 });
     }
 
-    const response = await fetch(`${FAST_EAT_API_URL}/api/consumer/v1/orders/${orderId}/confirm-delivery`, {
+    const response = await fetch(constructSecureUrl(FAST_EAT_API_URL, `/api/consumer/v1/orders/${orderId}/confirm-delivery`), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

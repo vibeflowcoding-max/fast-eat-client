@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { constructSecureUrl } from '@/lib/url-utils';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}));
 
-    const response = await fetch(`${apiUrl}/api/auth/client/bootstrap`, {
+    const response = await fetch(constructSecureUrl(apiUrl, '/api/auth/client/bootstrap'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
+import { constructSecureUrl } from '@/lib/url-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
     targetParams.set('customer_id', customerId);
   }
 
-  const targetUrl = `${FAST_EAT_API_URL}/notifications/consumer/track?${targetParams.toString()}`;
+  const targetUrl = `${constructSecureUrl(FAST_EAT_API_URL, '/notifications/consumer/track')}?${targetParams.toString()}`;
   console.log(`[SSE Proxy] Connecting to backend: ${targetUrl}`);
 
   try {

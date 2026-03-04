@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { constructSecureUrl } from '@/lib/url-utils';
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,8 +23,8 @@ export async function POST(req: NextRequest) {
     if (target === 'n8n') {
       const N8N_BASE_URL = process.env.N8N_BASE_URL;
       const N8N_TEST_BASE_URL = process.env.N8N_TEST_BASE_URL;
-      const WEBHOOK_ID = process.env.N8N_WEBHOOK_ID;
-      const url = `${isTest ? N8N_TEST_BASE_URL : N8N_BASE_URL}/${WEBHOOK_ID}`;
+      const WEBHOOK_ID = process.env.N8N_WEBHOOK_ID || '';
+      const url = constructSecureUrl(isTest ? N8N_TEST_BASE_URL : N8N_BASE_URL, WEBHOOK_ID);
       
       console.log(`[API/Orders] Generating order via n8n: ${url}`);
       const response = await fetch(url, {
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     const FAST_EAT_API_URL = process.env.FAST_EAT_API_URL;
     const ORDER_PATH = '/mcp/order';
-    const url = `${FAST_EAT_API_URL}${ORDER_PATH}`;
+    const url = constructSecureUrl(FAST_EAT_API_URL, ORDER_PATH);
 
     // Ensure branchId is correctly set in arguments if missing
     let finalBody = body;
