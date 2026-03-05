@@ -5,13 +5,14 @@
  * @param baseUrl - The base URL, typically from an environment variable.
  * @param path - The path to append to the base URL.
  * @returns The fully constructed secure URL.
- * @throws Error if the baseUrl is missing or is not secure.
+ * @throws Error if the baseUrl is missing, invalid, or is not secure.
  */
 export function constructSecureUrl(baseUrl: string | undefined, path: string): string {
   if (!baseUrl) {
     throw new Error('Base URL is required for URL construction');
   }
 
+  // Enforce secure protocol on the base URL
   const isLocalhost = baseUrl.startsWith('http://localhost') || baseUrl.startsWith('http://127.0.0.1');
   const isHttps = baseUrl.startsWith('https://');
 
@@ -19,11 +20,22 @@ export function constructSecureUrl(baseUrl: string | undefined, path: string): s
     throw new Error(`Insecure connection: Base URL must start with https://. Received: ${baseUrl}`);
   }
 
-  // Use the native URL API for safe construction and normalization as recommended.
-  // We ensure the base is clean and the path is treated as relative
-  // to prevent SSRF (e.g., if path is an absolute URL or protocol-relative).
-  const cleanBase = baseUrl.replace(/\/+$/, '');
-  const relativePath = './' + path.replace(/^\/+/, '');
+  try {
+    const url = new URL(path, baseUrl);
+    const baseOrigin = new URL(baseUrl).origin;
 
-  return new URL(relativePath, `${cleanBase}/`).toString();
+    // SSRF Protection: Ensure the path didn't override the base URL's origin.
+    // This prevents absolute paths (e.g. "https://attacker.com") or
+    // protocol-relative paths (e.g. "//attacker.com") from working.
+    if (url.origin !== baseOrigin) {
+      throw new Error(`Invalid path: Path must not change the URL origin. Received: ${path}`);
+    }
+
+    return url.toString();
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Invalid path')) {
+      throw error;
+    }
+    throw new Error(`URL construction failed for base "${baseUrl}" and path "${path}"`);
+  }
 }
