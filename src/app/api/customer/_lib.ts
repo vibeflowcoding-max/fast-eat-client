@@ -69,19 +69,38 @@ function hasId(value: unknown): value is { id: string | number } {
   );
 }
 
+function sanitizePostgrestValue(value: string): string {
+  // PostgREST or() filter requires double quotes for values that contain special characters.
+  // We should also escape any double quotes within the value by doubling them.
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
 export async function findCustomerIdByPhone(phone: string): Promise<string | null> {
   const supabaseServer = getSupabaseServer();
+  const candidates = Array.from(buildPhoneCandidates(phone));
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const orCondition = CUSTOMER_PHONE_COLUMNS.map((column) => {
+    return candidates.map((c) => `${column}.eq.${sanitizePostgrestValue(c)}`).join(',');
+  }).join(',');
+
+  const { data, error } = await (supabaseServer as any)
+    .from('customers')
+    .select(`id,${CUSTOMER_PHONE_COLUMNS.join(',')}`)
+    .or(orCondition)
+    // TODO: Consider removing or justifying the 2000-row limit in the future.
+    // As the dataset grows, this could lead to false negatives.
+    // Potential improvements: better indexing or exact-match query paths.
+    .limit(2000);
+
+  if (error || !Array.isArray(data)) {
+    return null;
+  }
 
   for (const column of CUSTOMER_PHONE_COLUMNS) {
-    const { data, error } = await (supabaseServer as any)
-      .from('customers')
-      .select(`id,${column}`)
-      .limit(2000);
-
-    if (error || !Array.isArray(data)) {
-      continue;
-    }
-
     const found = data.find((row) => hasId(row) && phoneMatches(phone, (row as Record<string, unknown>)[column]));
     if (found && hasId(found)) {
       return String(found.id);
@@ -93,17 +112,30 @@ export async function findCustomerIdByPhone(phone: string): Promise<string | nul
 
 export async function findCustomerByPhone(phone: string): Promise<Record<string, unknown> | null> {
   const supabaseServer = getSupabaseServer();
+  const candidates = Array.from(buildPhoneCandidates(phone));
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const orCondition = CUSTOMER_PHONE_COLUMNS.map((column) => {
+    return candidates.map((c) => `${column}.eq.${sanitizePostgrestValue(c)}`).join(',');
+  }).join(',');
+
+  const { data, error } = await (supabaseServer as any)
+    .from('customers')
+    .select('*')
+    .or(orCondition)
+    // TODO: Consider removing or justifying the 2000-row limit in the future.
+    // As the dataset grows, this could lead to false negatives.
+    // Potential improvements: better indexing or exact-match query paths.
+    .limit(2000);
+
+  if (error || !Array.isArray(data)) {
+    return null;
+  }
 
   for (const column of CUSTOMER_PHONE_COLUMNS) {
-    const { data, error } = await (supabaseServer as any)
-      .from('customers')
-      .select('*')
-      .limit(2000);
-
-    if (error || !Array.isArray(data)) {
-      continue;
-    }
-
     const found = data.find((row) => phoneMatches(phone, (row as Record<string, unknown>)[column]));
     if (found && typeof found === 'object') {
       return found as Record<string, unknown>;
