@@ -91,6 +91,9 @@ export async function findCustomerIdByPhone(phone: string): Promise<string | nul
     .from('customers')
     .select(`id,${CUSTOMER_PHONE_COLUMNS.join(',')}`)
     .or(orCondition)
+    // TODO: Consider removing or justifying the 2000-row limit in the future.
+    // As the dataset grows, this could lead to false negatives.
+    // Potential improvements: better indexing or exact-match query paths.
     .limit(2000);
 
   if (error || !Array.isArray(data)) {
@@ -123,6 +126,9 @@ export async function findCustomerByPhone(phone: string): Promise<Record<string,
     .from('customers')
     .select('*')
     .or(orCondition)
+    // TODO: Consider removing or justifying the 2000-row limit in the future.
+    // As the dataset grows, this could lead to false negatives.
+    // Potential improvements: better indexing or exact-match query paths.
     .limit(2000);
 
   if (error || !Array.isArray(data)) {

@@ -71,4 +71,26 @@ describe('Customer discovery performance benchmark and query correctness', () =>
     await findCustomerByPhone('12345678');
     expect(callCount).toBe(1);
   });
+
+  it('correctly picks the customer from multiple returned rows based on column priority', async () => {
+    const phone = '12345678';
+    mockSupabase.from = vi.fn().mockImplementation(() => ({
+      select: vi.fn().mockImplementation(() => ({
+        or: vi.fn().mockImplementation(() => ({
+          limit: vi.fn().mockResolvedValue({
+            data: [
+              { id: 'wrong-match', phone: '00000000', customer_phone: phone }, // Match in lower priority column
+              { id: 'right-match', phone: phone }, // Match in higher priority column
+            ],
+            error: null,
+          }),
+        })),
+      })),
+    }));
+
+    const result = await findCustomerByPhone(phone);
+    // Even though 'wrong-match' is first in the array, 'right-match' should be picked
+    // because it matches on the 'phone' column which is checked first in the loop.
+    expect(result?.id).toBe('right-match');
+  });
 });
