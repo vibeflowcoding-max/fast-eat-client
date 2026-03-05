@@ -71,17 +71,27 @@ function hasId(value: unknown): value is { id: string | number } {
 
 export async function findCustomerIdByPhone(phone: string): Promise<string | null> {
   const supabaseServer = getSupabaseServer();
+  const candidates = Array.from(buildPhoneCandidates(phone));
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const orCondition = CUSTOMER_PHONE_COLUMNS.map((column) => {
+    return candidates.map((c) => `${column}.eq."${c}"`).join(',');
+  }).join(',');
+
+  const { data, error } = await (supabaseServer as any)
+    .from('customers')
+    .select(`id,${CUSTOMER_PHONE_COLUMNS.join(',')}`)
+    .or(orCondition)
+    .limit(2000);
+
+  if (error || !Array.isArray(data)) {
+    return null;
+  }
 
   for (const column of CUSTOMER_PHONE_COLUMNS) {
-    const { data, error } = await (supabaseServer as any)
-      .from('customers')
-      .select(`id,${column}`)
-      .limit(2000);
-
-    if (error || !Array.isArray(data)) {
-      continue;
-    }
-
     const found = data.find((row) => hasId(row) && phoneMatches(phone, (row as Record<string, unknown>)[column]));
     if (found && hasId(found)) {
       return String(found.id);
@@ -93,17 +103,27 @@ export async function findCustomerIdByPhone(phone: string): Promise<string | nul
 
 export async function findCustomerByPhone(phone: string): Promise<Record<string, unknown> | null> {
   const supabaseServer = getSupabaseServer();
+  const candidates = Array.from(buildPhoneCandidates(phone));
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const orCondition = CUSTOMER_PHONE_COLUMNS.map((column) => {
+    return candidates.map((c) => `${column}.eq."${c}"`).join(',');
+  }).join(',');
+
+  const { data, error } = await (supabaseServer as any)
+    .from('customers')
+    .select('*')
+    .or(orCondition)
+    .limit(2000);
+
+  if (error || !Array.isArray(data)) {
+    return null;
+  }
 
   for (const column of CUSTOMER_PHONE_COLUMNS) {
-    const { data, error } = await (supabaseServer as any)
-      .from('customers')
-      .select('*')
-      .limit(2000);
-
-    if (error || !Array.isArray(data)) {
-      continue;
-    }
-
     const found = data.find((row) => phoneMatches(phone, (row as Record<string, unknown>)[column]));
     if (found && typeof found === 'object') {
       return found as Record<string, unknown>;
