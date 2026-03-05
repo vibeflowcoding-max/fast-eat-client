@@ -85,6 +85,14 @@ const MIN_SCORE_THRESHOLD = Number(process.env.DISCOVERY_MIN_SCORE ?? 0.3);
 
 const recommendationsCache = new Map<string, CachedRecommendations>();
 
+interface CachedDietaryCheck {
+    payload: any;
+    expiresAt: number;
+}
+
+const dietaryCheckCache = new Map<string, CachedDietaryCheck>();
+const DIETARY_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
 interface DealRow {
     branch_id: string;
     title: string;
@@ -821,4 +829,28 @@ export function getStrategyVersion() {
 
 export function getGeneratedAt() {
     return nowIso();
+}
+
+export function getCachedDietaryCheck(menuItemId: string, dietaryProfile: any) {
+    const key = `${menuItemId}-${JSON.stringify(dietaryProfile)}`;
+    const cached = dietaryCheckCache.get(key);
+
+    if (!cached) {
+        return null;
+    }
+
+    if (cached.expiresAt < Date.now()) {
+        dietaryCheckCache.delete(key);
+        return null;
+    }
+
+    return cached.payload;
+}
+
+export function setCachedDietaryCheck(menuItemId: string, dietaryProfile: any, payload: any) {
+    const key = `${menuItemId}-${JSON.stringify(dietaryProfile)}`;
+    dietaryCheckCache.set(key, {
+        payload,
+        expiresAt: Date.now() + DIETARY_CACHE_TTL_MS
+    });
 }

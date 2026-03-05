@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
-import { getTraceId } from '../_lib';
+import { getTraceId, getCachedDietaryCheck, setCachedDietaryCheck } from '../_lib';
 
 const dietaryCheckSchema: Schema = {
     type: Type.OBJECT,
@@ -31,6 +31,16 @@ export async function POST(req: NextRequest) {
 
         if (!menu_item || !dietary_profile) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
+
+        const cachedResult = getCachedDietaryCheck(menu_item.id, dietary_profile);
+        if (cachedResult) {
+            return NextResponse.json({
+                ...cachedResult,
+                status: 'analyzed',
+                source: 'cache',
+                traceId
+            });
         }
 
         if (!process.env.GEMINI_API_KEY) {
@@ -98,6 +108,8 @@ Analyze the item and return strictly the structured output required. All explana
                 traceId
             }, { status: 502 });
         }
+
+        setCachedDietaryCheck(menu_item.id, dietary_profile, resultObject);
 
         return NextResponse.json({
             ...resultObject,
