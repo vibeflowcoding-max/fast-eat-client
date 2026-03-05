@@ -64,8 +64,8 @@ describe('GoogleMapsAddressPicker', () => {
   let originalGeolocation: Geolocation | undefined;
 
   beforeEach(() => {
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = 'test-key';
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID = 'test-map-id';
+    vi.stubEnv('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY', 'test-key');
+    vi.stubEnv('NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID', 'test-map-id');
     originalGeolocation = navigator.geolocation;
 
     reverseGeocodeMock.mockReset().mockResolvedValue({
@@ -100,6 +100,7 @@ describe('GoogleMapsAddressPicker', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     delete (globalThis as any).google;
     if (originalGeolocation) {
       Object.defineProperty(navigator, 'geolocation', {
@@ -129,6 +130,8 @@ describe('GoogleMapsAddressPicker', () => {
     render(
       <GoogleMapsAddressPicker
         onChange={onChange}
+        apiKey="test-key"
+        mapId="test-map-id"
       />
     );
 
@@ -147,6 +150,8 @@ describe('GoogleMapsAddressPicker', () => {
       <GoogleMapsAddressPicker
         initialPosition={{ lat: 9.935, lng: -84.091 }}
         onChange={onChange}
+        apiKey="test-key"
+        mapId="test-map-id"
       />
     );
 
@@ -175,6 +180,8 @@ describe('GoogleMapsAddressPicker', () => {
       <GoogleMapsAddressPicker
         initialPosition={{ lat: 9.935, lng: -84.091 }}
         onChange={onChange}
+        apiKey="test-key"
+        mapId="test-map-id"
       />
     );
 
