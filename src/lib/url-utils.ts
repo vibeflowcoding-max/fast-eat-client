@@ -19,10 +19,11 @@ export function constructSecureUrl(baseUrl: string | undefined, path: string): s
     throw new Error(`Insecure connection: Base URL must start with https://. Received: ${baseUrl}`);
   }
 
-  // Remove trailing slashes from base URL
-  const base = baseUrl.replace(/\/+$/, '');
-  // Ensure path starts with exactly one slash
-  const normalizedPath = '/' + path.replace(/^\/+/, '');
+  // Use the native URL API for safe construction and normalization as recommended.
+  // We ensure the base is clean and the path is treated as relative
+  // to prevent SSRF (e.g., if path is an absolute URL or protocol-relative).
+  const cleanBase = baseUrl.replace(/\/+$/, '');
+  const relativePath = './' + path.replace(/^\/+/, '');
 
-  return `${base}${normalizedPath}`;
+  return new URL(relativePath, `${cleanBase}/`).toString();
 }
