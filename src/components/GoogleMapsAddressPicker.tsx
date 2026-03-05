@@ -26,6 +26,8 @@ interface GoogleMapsAddressPickerProps {
   onPermissionDenied?: () => void;
   onPermissionGranted?: () => void;
   onPermissionRequested?: () => void;
+  apiKey?: string;
+  mapId?: string;
 }
 
 const DEFAULT_CENTER: LatLng = { lat: 9.935, lng: -84.091 };
@@ -81,7 +83,9 @@ export default function GoogleMapsAddressPicker({
   onChange,
   onPermissionDenied,
   onPermissionGranted,
-  onPermissionRequested
+  onPermissionRequested,
+  apiKey: propsApiKey,
+  mapId: propsMapId
 }: GoogleMapsAddressPickerProps) {
   const mapRef = React.useRef<any>(null);
   const markerRef = React.useRef<any>(null);
@@ -102,7 +106,7 @@ export default function GoogleMapsAddressPicker({
   const lastAppliedInitialPositionRef = React.useRef<LatLng | null>(null);
   const lastAppliedInitialUrlRef = React.useRef<string | undefined>(undefined);
 
-  const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
+  const mapId = propsMapId || process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 
   React.useEffect(() => {
     onPermissionRequestedRef.current = onPermissionRequested;
@@ -224,7 +228,7 @@ export default function GoogleMapsAddressPicker({
         setMapLoading(true);
         setMapError(null);
 
-        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+        const apiKey = propsApiKey || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
         if (!apiKey) {
           setMapError('Google Maps API key missing. You can still paste an URL manually.');
           setMapLoading(false);
