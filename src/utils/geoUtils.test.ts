@@ -51,5 +51,42 @@ describe('geoUtils', () => {
             // New York to London
             expect(isWithinRadius(40.7128, -74.0060, 51.5074, -0.1278, 100)).toBe(false);
         });
+
+        it('returns true when point is exactly on the boundary', () => {
+            const dist = calculateDistance(0, 0, 0, 1);
+            expect(isWithinRadius(0, 0, 0, 1, dist)).toBe(true);
+        });
+
+        it('returns true when point is slightly inside the boundary', () => {
+            const dist = calculateDistance(0, 0, 0, 1);
+            expect(isWithinRadius(0, 0, 0, 1, dist + 0.0001)).toBe(true);
+        });
+
+        it('returns false when point is slightly outside the boundary', () => {
+            const dist = calculateDistance(0, 0, 0, 1);
+            expect(isWithinRadius(0, 0, 0, 1, dist - 0.0001)).toBe(false);
+        });
+
+        it('returns true when radius is 0 and points are identical', () => {
+            expect(isWithinRadius(10, 10, 10, 10, 0)).toBe(true);
+        });
+
+        it('returns false when radius is 0 and points are different', () => {
+            expect(isWithinRadius(10, 10, 10.0001, 10, 0)).toBe(false);
+        });
+
+        it('returns false when radius is negative', () => {
+            expect(isWithinRadius(10, 10, 10, 10, -1)).toBe(false);
+        });
+
+        it('handles points across the 180th meridian', () => {
+            // 179.9 and -179.9 are very close
+            expect(isWithinRadius(0, 179.9, 0, -179.9, 50)).toBe(true);
+        });
+
+        it('handles points near the North Pole', () => {
+            // Near North Pole (lat 90), longitude lines converge
+            expect(isWithinRadius(89, 0, 89, 1, 10)).toBe(true);
+        });
     });
 });
