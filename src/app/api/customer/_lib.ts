@@ -69,6 +69,12 @@ function hasId(value: unknown): value is { id: string | number } {
   );
 }
 
+function sanitizePostgrestValue(value: string): string {
+  // PostgREST or() filter requires double quotes for values that contain special characters.
+  // We should also escape any double quotes within the value by doubling them.
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
 export async function findCustomerIdByPhone(phone: string): Promise<string | null> {
   const supabaseServer = getSupabaseServer();
   const candidates = Array.from(buildPhoneCandidates(phone));
@@ -78,7 +84,7 @@ export async function findCustomerIdByPhone(phone: string): Promise<string | nul
   }
 
   const orCondition = CUSTOMER_PHONE_COLUMNS.map((column) => {
-    return candidates.map((c) => `${column}.eq."${c}"`).join(',');
+    return candidates.map((c) => `${column}.eq.${sanitizePostgrestValue(c)}`).join(',');
   }).join(',');
 
   const { data, error } = await (supabaseServer as any)
@@ -110,7 +116,7 @@ export async function findCustomerByPhone(phone: string): Promise<Record<string,
   }
 
   const orCondition = CUSTOMER_PHONE_COLUMNS.map((column) => {
-    return candidates.map((c) => `${column}.eq."${c}"`).join(',');
+    return candidates.map((c) => `${column}.eq.${sanitizePostgrestValue(c)}`).join(',');
   }).join(',');
 
   const { data, error } = await (supabaseServer as any)

@@ -6,32 +6,68 @@ vi.mock('@/lib/supabase-server', () => ({
   getSupabaseServer: vi.fn(),
 }));
 
-describe('Customer discovery performance benchmark', () => {
+describe('Customer discovery performance benchmark and query correctness', () => {
   let mockSupabase: any;
-  let callCount = 0;
+  let lastOrCondition = '';
+  let lastSelectColumns = '';
 
   beforeEach(() => {
-    callCount = 0;
+    lastOrCondition = '';
+    lastSelectColumns = '';
     mockSupabase = {
       from: vi.fn().mockReturnThis(),
-      select: vi.fn().mockImplementation(() => {
-        callCount++;
+      select: vi.fn().mockImplementation((columns) => {
+        lastSelectColumns = columns;
         return {
-          or: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockImplementation(() => Promise.resolve({ data: [], error: null })),
+          or: vi.fn().mockImplementation((condition) => {
+            lastOrCondition = condition;
+            return {
+              limit: vi.fn().mockImplementation(() => Promise.resolve({ data: [], error: null })),
+            };
+          }),
         };
       }),
     };
     (getSupabaseServer as any).mockReturnValue(mockSupabase);
   });
 
-  it('findCustomerIdByPhone makes a single optimized query', async () => {
-    await findCustomerIdByPhone('12345678');
-    // Now it should make only 1 call using .or()
-    expect(callCount).toBe(1);
+  it('findCustomerIdByPhone makes a single optimized query with correct columns and escaping', async () => {
+    // A phone number with a double quote to test escaping
+    const specialPhone = '123"456';
+    await findCustomerIdByPhone(specialPhone);
+
+    // Verify select columns
+    expect(lastSelectColumns).toBe('id,phone,phone_number,from_number,customer_phone');
+
+    // Verify or condition escaping
+    // buildPhoneCandidates('123"456') should include '123"456' and '123456'
+    // sanitizePostgrestValue('123"456') -> '"123""456"'
+    // sanitizePostgrestValue('123456') -> '"123456"'
+    expect(lastOrCondition).toContain('phone.eq."123""456"');
+    expect(lastOrCondition).toContain('phone.eq."123456"');
+    expect(lastOrCondition).toContain('phone_number.eq."123""456"');
   });
 
-  it('findCustomerByPhone makes a single optimized query', async () => {
+  it('findCustomerByPhone selects all columns', async () => {
+    await findCustomerByPhone('12345678');
+    expect(lastSelectColumns).toBe('*');
+  });
+
+  it('both functions make only one database call', async () => {
+    let callCount = 0;
+    mockSupabase.from = vi.fn().mockImplementation(() => {
+      callCount++;
+      return {
+        select: vi.fn().mockReturnThis(),
+        or: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+      };
+    });
+
+    await findCustomerIdByPhone('12345678');
+    expect(callCount).toBe(1);
+
+    callCount = 0;
     await findCustomerByPhone('12345678');
     expect(callCount).toBe(1);
   });
