@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useCartStore } from '../store';
 import { sendChatToN8N, submitOrderToMCP, CartAction } from '../services/api';
 import { CartItem, OrderMetadata } from '../types';
+import { normalizePhoneWithSinglePlus } from '@/lib/phone';
 
 export const useCartActions = () => {
   const {
@@ -16,7 +17,9 @@ export const useCartActions = () => {
     clearCart,
     addActiveOrder,
     customerAddress,
-    setCustomerAddress
+    setCustomerAddress,
+    setCustomerId,
+    customerName
   } = useCartStore();
 
   const [isSyncing, setIsSyncing] = useState(false);
@@ -134,7 +137,8 @@ export const useCartActions = () => {
     if (isOrdering) return false;
     setIsOrdering(true);
     try {
-      const normalizedCustomerPhone = String(orderMetadata.customerPhone || fromNumber || '').trim();
+      const normalizedCustomerPhone = normalizePhoneWithSinglePlus(fromNumber || orderMetadata.customerPhone || '');
+      const canonicalCustomerName = String(customerName || orderMetadata.customerName || '').trim();
       const deliveryLocationReference = String(orderMetadata.gpsLocation || orderMetadata.address || '').trim();
 
       if (orderMetadata.orderType === 'delivery' && !deliveryLocationReference) {
@@ -144,6 +148,7 @@ export const useCartActions = () => {
 
       const finalMetadata = {
         ...orderMetadata,
+        customerName: canonicalCustomerName,
         customerPhone: normalizedCustomerPhone,
         address: orderMetadata.gpsLocation
           ? `${orderMetadata.address?.trim() || ''}\n\n📍 Ubicación GPS (Link):\n${orderMetadata.gpsLocation}`
@@ -167,7 +172,7 @@ export const useCartActions = () => {
           },
           body: JSON.stringify({
             phone: normalizedCustomerPhone,
-            fullName: String(orderMetadata.customerName || '').trim(),
+            fullName: canonicalCustomerName,
             urlAddress,
             buildingType: 'Other',
             unitDetails: null,
@@ -200,14 +205,40 @@ export const useCartActions = () => {
 
       const orderResult = await submitOrderToMCP(effectiveCart, finalMetadata, branchId, fromNumber);
       const orderId = orderResult?.order_id || orderResult?.orderId || orderResult?.data?.order_id || orderResult?.data?.orderId;
+      const resolvedCustomerId =
+        orderResult?.customer_id ||
+        orderResult?.customerId ||
+        orderResult?.customer?.id ||
+        orderResult?.data?.customer_id ||
+        orderResult?.data?.customerId ||
+        orderResult?.data?.customer?.id ||
+        orderResult?.data?.order?.customer_id ||
+        orderResult?.data?.order?.customerId;
       const orderNumber =
         orderResult?.order_number ||
         orderResult?.orderNumber ||
         orderResult?.data?.order_number ||
         orderResult?.data?.orderNumber ||
         `ORD-${Date.now().toString().slice(-4)}`;
+      const resolvedCustomerTotal =
+        orderResult?.customer_total ||
+        orderResult?.customerTotal ||
+        orderResult?.financials?.customer_total ||
+        orderResult?.financials?.customerTotal ||
+        orderResult?.data?.customer_total ||
+        orderResult?.data?.customerTotal ||
+        orderResult?.data?.financials?.customer_total ||
+        orderResult?.data?.financials?.customerTotal;
+      const normalizedCustomerTotal =
+        Number.isFinite(Number(resolvedCustomerTotal))
+          ? Number(resolvedCustomerTotal)
+          : cartTotal;
 
       if (orderId) {
+        if (typeof resolvedCustomerId === 'string' && resolvedCustomerId.trim()) {
+          setCustomerId(resolvedCustomerId.trim());
+        }
+
         addActiveOrder({
           orderId,
           orderNumber,
@@ -215,7 +246,7 @@ export const useCartActions = () => {
           newStatus: { code: 'PENDING', label: 'Enviado a Cocina' },
           updatedAt: new Date().toISOString(),
           items: [...effectiveCart],
-          total: cartTotal
+          total: normalizedCustomerTotal
         });
 
         setChefNotification({ content: "¡Tu pedido ha sido creado con éxito! 🍣✨" });

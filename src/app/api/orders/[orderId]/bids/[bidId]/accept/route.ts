@@ -8,66 +8,40 @@ export async function POST(
   try {
     const { orderId, bidId } = await params;
     const supabase = getSupabaseServer();
-    const deliveryBidsTable = supabase.from('delivery_bids') as any;
-    const ordersTable = supabase.from('orders') as any;
+    const { data: acceptResult, error: acceptError } = await (supabase as any).rpc('accept_delivery_bid', {
+      p_order_id: orderId,
+      p_bid_id: bidId,
+    });
 
-    // 1. Get the bid to be accepted
-    const { data: bid, error: bidError } = await deliveryBidsTable
-      .select('*')
-      .eq('id', bidId)
-      .single();
-
-    if (bidError || !bid) {
-      return NextResponse.json({ success: false, message: 'Bid not found' }, { status: 404 });
+    if (acceptError) {
+      return NextResponse.json({ success: false, message: acceptError.message || 'Unable to accept bid' }, { status: 400 });
     }
 
-    // 2. Accept the bid (final_price should be driver_offer or customer_counter_offer or base_price)
-    const bidRow = bid as {
-      customer_counter_offer?: number | null;
-      driver_offer?: number | null;
-      base_price?: number | null;
-    };
-    const finalPrice = bidRow.customer_counter_offer ?? bidRow.driver_offer ?? bidRow.base_price ?? 0;
+    const { data: orderRow, error: orderError } = await (supabase as any)
+      .from('orders')
+      .select('id,total,customer_total,delivery_fee,delivery_final_price')
+      .eq('id', orderId)
+      .maybeSingle();
 
-    const { error: updateBidError } = await deliveryBidsTable
-      .update({
-        status: 'accepted',
-        final_price: finalPrice,
-        accepted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', bidId);
-
-    if (updateBidError) {
-      return NextResponse.json({ success: false, message: updateBidError.message }, { status: 400 });
+    if (orderError || !orderRow) {
+      return NextResponse.json({ success: false, message: orderError?.message || 'Order not found after accepting bid' }, { status: 400 });
     }
 
-    // 3. Update the order status to DRIVER_ASSIGNED (8)
-    const { error: updateOrderError } = await ordersTable
-      .update({
-        status_id: 8,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', orderId);
-
-    if (updateOrderError) {
-      return NextResponse.json({ success: false, message: updateOrderError.message }, { status: 400 });
-    }
-
-    // 4. Reject all other bids for this order
-    await deliveryBidsTable
-      .update({ status: 'rejected', updated_at: new Date().toISOString() })
-      .eq('order_id', orderId)
-      .neq('id', bidId)
-      .in('status', ['pending', 'countered']);
+    const subtotal = Number(orderRow.total ?? 0);
+    const customerTotal = Number(orderRow.customer_total ?? subtotal);
+    const deliveryPrice = Number(orderRow.delivery_final_price ?? orderRow.delivery_fee ?? 0);
+    const feesTotal = Math.max(0, customerTotal - subtotal - deliveryPrice);
 
     return NextResponse.json({
       success: true,
       data: {
         orderId,
-        status: 'accepted',
+        status: String(acceptResult?.status || 'DRIVER_ASSIGNED'),
         label: 'Repartidor asignado',
-        deliveryFinalPrice: finalPrice
+        deliveryFinalPrice: deliveryPrice,
+        subtotal,
+        feesTotal,
+        customerTotal,
       }
     });
 

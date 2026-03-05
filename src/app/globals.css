@@ -1,9 +1,31 @@
 @import "tailwindcss";
 @source "../**/*.{js,ts,jsx,tsx,mdx}";
 
-@theme {
-  --background: #fdfcf0;
+/* Force dark mode to class-based — OS preference never auto-activates dark: variants.
+   Since the Stitch designs are light-only, we keep the app always in light mode.
+   Add class="dark" to <html> only if a theme toggle is introduced in the future. */
+@variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --background: #f8f6f6;
+  --color-brand: #ec5b13;
+  --color-brand-hover: rgba(236, 91, 19, 0.9);
+  --color-bg-light: #f8f6f6;
+  --color-bg-dark: #221610;
+  --color-surface-light: #ffffff;
+  --color-surface-dark: #2c1d15;
+  --color-surface-hover-dark: #3d2a1e;
+  --color-surface-nested-dark: #352319;
+  --color-border-light: #e2e8f0;
+  --color-border-dark: #1e293b;
+  --color-text-light: #0f172a;
+  --color-text-dark: #f1f5f9;
+
+  /* Custom shadows */
+  --shadow-container: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-action-bar: 0 -4px 10px rgba(0, 0, 0, 0.05);
+
+  /* Animation Overrides */
   --animate-pop-in: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
   --animate-fade-in: fadeIn 0.4s ease-out forwards;
   --animate-zen-bounce: zenBounce 2s ease-in-out infinite;
@@ -73,9 +95,11 @@
     0% {
       transform: translateX(-120%);
     }
+
     50% {
       transform: translateX(90%);
     }
+
     100% {
       transform: translateX(320%);
     }
@@ -87,16 +111,16 @@
 }
 
 :root {
-  --background: #fdfcf0;
-  --color-bg: #fdfcf0;
+  --background: #f8f6f6;
+  --color-bg: #f8f6f6;
+  --color-brand: #ec5b13;
   --color-surface: #ffffff;
-  --color-surface-muted: #f8f6ee;
-  --color-text: #111827;
-  --color-text-muted: #6b7280;
-  --color-border: #e5e7eb;
-  --color-brand: #dc2626;
-  --color-brand-strong: #b91c1c;
-  --color-brand-soft: #fef2f2;
+  --color-surface-muted: #f1f5f9;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-brand-strong: #c2410c;
+  --color-brand-soft: #ffedd5;
   --color-info-soft: #eff6ff;
   --color-info-text: #1e40af;
   --color-success-soft: #ecfdf5;

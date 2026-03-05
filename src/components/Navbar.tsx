@@ -1,13 +1,37 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { RestaurantInfo } from '../types';
 import SearchBar from './SearchBar';
 import OrderNotificationsTray from './OrderNotificationsTray';
 import { useCartStore } from '@/store';
-import { Package, ShoppingCart, Zap, Heart, Star, ArrowLeft } from 'lucide-react';
+import { Package, ShoppingCart, Zap, Heart, Star, ArrowLeft, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
+import { audioManager } from '@/lib/audio';
+import { BidNotification } from '@/types';
+
+type OrderStatusCue = {
+    orderId: string;
+    statusCode: string;
+    statusLabel: string;
+    description: string;
+};
+
+const STATUS_CUE_DESCRIPTION_KEY_BY_CODE: Record<string, string> = {
+    PENDING: 'statusCueDescriptions.pending',
+    CONFIRMED: 'statusCueDescriptions.confirmed',
+    AUCTION_ACTIVE: 'statusCueDescriptions.auctionActive',
+    DRIVER_ASSIGNED: 'statusCueDescriptions.driverAssigned',
+    PREPARING: 'statusCueDescriptions.preparing',
+    READY: 'statusCueDescriptions.ready',
+    DELIVERING: 'statusCueDescriptions.delivering',
+    DELIVERED: 'statusCueDescriptions.delivered',
+    COMPLETED: 'statusCueDescriptions.completed',
+    PICKED_UP: 'statusCueDescriptions.pickedUp',
+    CANCELLED: 'statusCueDescriptions.cancelled',
+    REFUNDED: 'statusCueDescriptions.refunded',
+};
 
 interface NavbarProps {
     restaurantInfo: RestaurantInfo | null;
@@ -59,12 +83,21 @@ const Navbar: React.FC<NavbarProps> = ({
     const [isTrayOpen, setIsTrayOpen] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
+    const [activeCue, setActiveCue] = useState<BidNotification | null>(null);
+    const [activeStatusCue, setActiveStatusCue] = useState<OrderStatusCue | null>(null);
+    const cueTimeoutRef = useRef<number | null>(null);
+    const statusCueTimeoutRef = useRef<number | null>(null);
+    const lastUnreadIdRef = useRef<string | null>(null);
     const t = useTranslations('nav');
+    const tTracking = useTranslations('tracking');
     const bidNotifications = useCartStore((state) => state.bidNotifications);
-    const unreadCount = useMemo(
-        () => bidNotifications.filter((notification) => !notification.read).length,
+    const markBidNotificationRead = useCartStore((state) => state.markBidNotificationRead);
+    const setDeepLinkTarget = useCartStore((state) => state.setDeepLinkTarget);
+    const unreadNotifications = useMemo(
+        () => bidNotifications.filter((notification) => !notification.read),
         [bidNotifications]
     );
+    const unreadCount = unreadNotifications.length;
 
     const ratingLabel =
         typeof restaurantInfo?.rating === 'number' && restaurantInfo.rating > 0
@@ -124,6 +157,159 @@ const Navbar: React.FC<NavbarProps> = ({
         };
     }, [restaurantInfo?.id]);
 
+    useEffect(() => {
+        const unlock = () => {
+            void audioManager.unlock();
+            window.removeEventListener('pointerdown', unlock);
+            window.removeEventListener('keydown', unlock);
+            window.removeEventListener('touchstart', unlock);
+        };
+
+        window.addEventListener('pointerdown', unlock, { passive: true, once: true });
+        window.addEventListener('keydown', unlock, { once: true });
+        window.addEventListener('touchstart', unlock, { passive: true, once: true });
+
+        return () => {
+            window.removeEventListener('pointerdown', unlock);
+            window.removeEventListener('keydown', unlock);
+            window.removeEventListener('touchstart', unlock);
+        };
+    }, []);
+
+    useEffect(() => {
+        const latestUnread = unreadNotifications[0] ?? null;
+
+        if (!latestUnread) {
+            setActiveCue(null);
+            lastUnreadIdRef.current = null;
+            return;
+        }
+
+        if (latestUnread.id === lastUnreadIdRef.current) {
+            return;
+        }
+
+        lastUnreadIdRef.current = latestUnread.id;
+        setActiveCue(latestUnread);
+
+        if (cueTimeoutRef.current) {
+            window.clearTimeout(cueTimeoutRef.current);
+        }
+
+        cueTimeoutRef.current = window.setTimeout(() => {
+            setActiveCue(null);
+        }, 7000);
+
+        return () => {
+            if (cueTimeoutRef.current) {
+                window.clearTimeout(cueTimeoutRef.current);
+            }
+        };
+    }, [unreadNotifications]);
+
+    useEffect(() => {
+        const handleStatusChanged = (event: Event) => {
+            const customEvent = event as CustomEvent<{
+                orderId?: string;
+                statusCode?: string;
+                statusLabel?: string;
+                description?: string | null;
+            }>;
+
+            const orderId = String(customEvent.detail?.orderId || '').trim();
+            if (!orderId) {
+                return;
+            }
+
+            const statusCode = String(customEvent.detail?.statusCode || '').trim();
+            const normalizedStatusCode = statusCode.toUpperCase();
+            const statusLabel = String(customEvent.detail?.statusLabel || 'Estado actualizado').trim();
+            const descriptionFromDb = String(customEvent.detail?.description || '').trim();
+            const translationKey = STATUS_CUE_DESCRIPTION_KEY_BY_CODE[normalizedStatusCode];
+            const localizedDescription = translationKey ? tTracking(translationKey) : '';
+            const description = localizedDescription || descriptionFromDb || statusLabel;
+
+            setActiveStatusCue({
+                orderId,
+                statusCode: normalizedStatusCode,
+                statusLabel,
+                description,
+            });
+
+            if (statusCueTimeoutRef.current) {
+                window.clearTimeout(statusCueTimeoutRef.current);
+            }
+
+            statusCueTimeoutRef.current = window.setTimeout(() => {
+                setActiveStatusCue(null);
+            }, 8000);
+        };
+
+        window.addEventListener('fast-eat:order_status_changed', handleStatusChanged as EventListener);
+
+        return () => {
+            window.removeEventListener('fast-eat:order_status_changed', handleStatusChanged as EventListener);
+            if (statusCueTimeoutRef.current) {
+                window.clearTimeout(statusCueTimeoutRef.current);
+            }
+        };
+    }, [tTracking]);
+
+    const openFromCue = (notification: BidNotification) => {
+        markBidNotificationRead(notification.id);
+        setDeepLinkTarget({ orderId: notification.orderId, bidId: notification.id });
+        setActiveCue(null);
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fast-eat:bid_notification_click', {
+                detail: {
+                    orderId: notification.orderId,
+                    bidId: notification.id,
+                    source: 'navbar_cue'
+                }
+            }));
+            window.dispatchEvent(new CustomEvent('fast-eat:bid_notification_conversion', {
+                detail: {
+                    orderId: notification.orderId,
+                    bidId: notification.id,
+                    source: 'navbar_cue'
+                }
+            }));
+        }
+        onShowHistory();
+    };
+
+    const dismissCue = (notification: BidNotification) => {
+        markBidNotificationRead(notification.id);
+        setActiveCue(null);
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fast-eat:bid_notification_dismiss', {
+                detail: {
+                    orderId: notification.orderId,
+                    bidId: notification.id,
+                    source: 'navbar_cue'
+                }
+            }));
+        }
+    };
+
+    const dismissStatusCue = () => {
+        if (!activeStatusCue) {
+            return;
+        }
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fast-eat:order_status_notification_dismiss', {
+                detail: {
+                    orderId: activeStatusCue.orderId,
+                    statusCode: activeStatusCue.statusCode,
+                    source: 'navbar_status_cue'
+                }
+            }));
+        }
+
+        setActiveStatusCue(null);
+    };
+
     const handleToggleFavorite = async () => {
         if (!restaurantInfo?.id || isFavoriteLoading) {
             return;
@@ -174,6 +360,64 @@ const Navbar: React.FC<NavbarProps> = ({
     return (
         <div className="sticky top-0 ui-panel shadow-2xl z-50 border-b">
             <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col">
+                {activeStatusCue && (
+                    <div className="pt-3">
+                        <div className="ui-panel-soft flex items-center justify-between gap-3 rounded-xl px-3 py-2 border border-blue-200">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (typeof window !== 'undefined') {
+                                        window.dispatchEvent(new CustomEvent('fast-eat:order_status_notification_click', {
+                                            detail: {
+                                                orderId: activeStatusCue.orderId,
+                                                statusCode: activeStatusCue.statusCode,
+                                                source: 'navbar_status_cue'
+                                            }
+                                        }));
+                                    }
+
+                                    onShowHistory();
+                                }}
+                                className="text-left flex-1"
+                                aria-label={t('trackOrders')}
+                            >
+                                <p className="text-[10px] font-black uppercase tracking-widest text-blue-700">Estado de orden actualizado</p>
+                                <p className="text-xs font-semibold text-blue-900">{activeStatusCue.description}</p>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={dismissStatusCue}
+                                className="ui-btn-secondary rounded-full p-1"
+                                aria-label="Dismiss order status notification"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {activeCue && (
+                    <div className="pt-3">
+                        <div className="ui-chip-brand flex items-center justify-between gap-3 rounded-xl px-3 py-2 animate-pulse">
+                            <button
+                                type="button"
+                                onClick={() => openFromCue(activeCue)}
+                                className="text-left flex-1"
+                                aria-label={t('openOfferNotifications')}
+                            >
+                                <p className="text-[10px] font-black uppercase tracking-widest">Nueva oferta recibida</p>
+                                <p className="text-xs font-semibold">Orden #{activeCue.orderId.slice(0, 8)} · ₡{Math.round(activeCue.bid.bidAmount).toLocaleString()}</p>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => dismissCue(activeCue)}
+                                className="ui-btn-secondary rounded-full p-1"
+                                aria-label="Dismiss bid notification"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                )}
                 <div className="flex items-center justify-between py-3 md:py-4">
                     <div className="flex items-center gap-3 md:gap-4 overflow-visible no-scrollbar scroll-smooth flex-nowrap pr-4 -mr-4 md:pr-0 md:mr-0">
                         <button

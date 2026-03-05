@@ -34,6 +34,10 @@ type OrderDetail = {
   statusCode: string | null;
   statusLabel: string | null;
   total: number;
+  subtotal?: number;
+  deliveryFee?: number;
+  feesTotal?: number;
+  customerTotal?: number;
   createdAt: string;
   items: unknown[];
   deliveryAddress: string | null;
@@ -169,6 +173,20 @@ export default function OrderDetailPage() {
     name: item.name || t('productFallback'),
   })), [order?.items, t]);
 
+  const pricing = React.useMemo(() => {
+    const subtotal = Number(order?.subtotal ?? 0);
+    const customerTotal = Number(order?.customerTotal ?? order?.total ?? subtotal);
+    const deliveryFee = Number(order?.deliveryFee ?? 0);
+    const feesTotal = Number(order?.feesTotal ?? Math.max(0, customerTotal - subtotal - deliveryFee));
+
+    return {
+      subtotal,
+      feesTotal,
+      deliveryFee,
+      customerTotal,
+    };
+  }, [order?.subtotal, order?.customerTotal, order?.total, order?.deliveryFee, order?.feesTotal]);
+
   const restaurantReason = eligibility?.reasons.restaurant?.[0] ?? null;
   const deliveryReason = eligibility?.reasons.delivery?.[0] ?? null;
 
@@ -288,6 +306,25 @@ export default function OrderDetailPage() {
                   ))}
                 </div>
               )}
+
+              <div className="space-y-2 border-t border-[var(--color-border)] pt-3">
+                <div className="ui-text-muted flex items-center justify-between text-xs">
+                  <span>{t('subtotal')}</span>
+                  <span>₡{Math.round(pricing.subtotal).toLocaleString()}</span>
+                </div>
+                <div className="ui-text-muted flex items-center justify-between text-xs">
+                  <span>{t('fees')}</span>
+                  <span>₡{Math.round(pricing.feesTotal).toLocaleString()}</span>
+                </div>
+                <div className="ui-text-muted flex items-center justify-between text-xs">
+                  <span>{t('deliveryPrice')}</span>
+                  <span>₡{Math.round(pricing.deliveryFee).toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm font-black">
+                  <span>{t('totalToPay')}</span>
+                  <span>₡{Math.round(pricing.customerTotal).toLocaleString()}</span>
+                </div>
+              </div>
             </section>
 
             <section className="ui-panel rounded-2xl p-5 space-y-3">

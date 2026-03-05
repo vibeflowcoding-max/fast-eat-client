@@ -17,6 +17,13 @@ type OrderRow = {
 type OrderNumberRow = {
   id: string;
   order_number: string | null;
+  branch_id: string | null;
+  total: number | string | null;
+  customer_total: number | string | null;
+  delivery_fee: number | string | null;
+  delivery_final_price: number | string | null;
+  updated_at: string | null;
+  security_code: string | null;
 };
 
 const INACTIVE_STATUS = new Set(['delivered', 'completed', 'cancelled', 'refunded']);
@@ -87,7 +94,7 @@ export async function GET(request: NextRequest) {
       orders.length
         ? (supabaseServer as any)
             .from('orders')
-            .select('id,order_number')
+          .select('id,order_number,branch_id,total,customer_total,delivery_fee,delivery_final_price,updated_at,security_code')
             .in('id', orders.map((order) => order.id))
         : Promise.resolve({ data: [] })
     ]);
@@ -110,8 +117,26 @@ export async function GET(request: NextRequest) {
     }
 
     const orderNumberById = new Map<string, string | null>();
+    const branchIdByOrderId = new Map<string, string | null>();
+    const subtotalByOrderId = new Map<string, number>();
+    const customerTotalByOrderId = new Map<string, number>();
+    const deliveryFeeByOrderId = new Map<string, number>();
+    const feesTotalByOrderId = new Map<string, number>();
+    const updatedAtByOrderId = new Map<string, string | null>();
+    const securityCodeByOrderId = new Map<string, string | null>();
     for (const order of (orderNumbersData ?? []) as OrderNumberRow[]) {
       orderNumberById.set(order.id, order.order_number ?? null);
+      branchIdByOrderId.set(order.id, order.branch_id ?? null);
+      const subtotal = toNumber(order.total);
+      const customerTotal = toNumber(order.customer_total);
+      const deliveryFee = toNumber(order.delivery_final_price ?? order.delivery_fee);
+
+      subtotalByOrderId.set(order.id, subtotal);
+      customerTotalByOrderId.set(order.id, customerTotal);
+      deliveryFeeByOrderId.set(order.id, deliveryFee);
+      feesTotalByOrderId.set(order.id, Math.max(0, customerTotal - subtotal - deliveryFee));
+      updatedAtByOrderId.set(order.id, order.updated_at ?? null);
+      securityCodeByOrderId.set(order.id, typeof order.security_code === 'string' ? order.security_code : null);
     }
 
     const normalizedOrders = orders.map((order) => {
@@ -126,10 +151,17 @@ export async function GET(request: NextRequest) {
         id: order.id,
         customerId,
         orderNumber: orderNumberById.get(order.id) ?? null,
+        branchId: branchIdByOrderId.get(order.id) ?? null,
         statusCode: order.status_code,
         statusLabel: order.status_label,
-        total: toNumber(order.total),
+        total: customerTotalByOrderId.get(order.id) ?? toNumber(order.total),
+        subtotal: subtotalByOrderId.get(order.id) ?? toNumber(order.total),
+        deliveryFee: deliveryFeeByOrderId.get(order.id) ?? 0,
+        feesTotal: feesTotalByOrderId.get(order.id) ?? 0,
+        customerTotal: customerTotalByOrderId.get(order.id) ?? toNumber(order.total),
+        securityCode: securityCodeByOrderId.get(order.id) ?? null,
         createdAt: order.created_at,
+        updatedAt: updatedAtByOrderId.get(order.id) ?? order.created_at,
         items: Array.isArray(order.items) ? order.items : [],
         restaurant: order.restaurant_id ? restaurantById.get(order.restaurant_id) ?? null : null,
         bids: activeBids,

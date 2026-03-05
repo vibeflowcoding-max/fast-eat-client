@@ -1,26 +1,39 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { MenuItem, OrderMetadata } from '@/types';
 import MenuItemCard from '@/components/MenuItemCard';
-import ChatWidget from '@/components/ChatWidget';
-import OrderTrackingModal from '@/components/OrderTrackingModal';
 import { useCartStore } from '@/store';
 import { CartAction } from '@/services/api';
+import { normalizePhoneWithSinglePlus } from '@/lib/phone';
+import {
+    areLocationsEquivalent,
+    buildGoogleMapsQueryUrl,
+    extractGoogleMapsUrl,
+    parseCoordsFromGoogleMapsUrl,
+} from '@/lib/location';
+import { DEFAULT_ORDER_MAP_CENTER, resolveOrderLocationOpenContext } from '@/lib/order-location';
+import type { BuildingType } from '@/components/AddressDetailsModal';
+import { supabase } from '@/lib/supabase';
 
 // Components
 import LoadingScreen from '@/components/LoadingScreen';
 import PhonePrompt from '@/components/PhonePrompt';
 import Hero from '@/components/Hero';
 import Navbar from '@/components/Navbar';
-import ItemDetailModal from '@/components/ItemDetailModal';
-import CartModal from '@/components/CartModal';
 import ExpirationTimer from '@/components/ExpirationTimer';
-import ConfirmModal from '@/components/ConfirmModal';
 import MenuSkeleton from '@/components/MenuSkeleton';
 import MenuError from '@/components/MenuError';
-import BranchSelectionModal from '@/components/BranchSelectionModal';
+
+const ChatWidget = dynamic(() => import('@/components/ChatWidget'));
+const OrderTrackingModal = dynamic(() => import('@/components/OrderTrackingModal'));
+const ItemDetailModal = dynamic(() => import('@/components/ItemDetailModal'));
+const CartModal = dynamic(() => import('@/components/CartModal'));
+const ConfirmModal = dynamic(() => import('@/components/ConfirmModal'));
+const BranchSelectionModal = dynamic(() => import('@/components/BranchSelectionModal'));
+const AddressDetailsModal = dynamic(() => import('@/components/AddressDetailsModal'));
 
 // Hooks
 import { useAppData } from '@/hooks/useAppData';
@@ -44,27 +57,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         return digits.length >= 8 && digits.length <= 15;
     };
 
-    const extractGoogleMapsUrl = (input: string): string | null => {
-        const found = input.match(/https:\/\/www\.google\.com\/maps\?q=[^\s]+/i);
-        return found?.[0] ?? null;
-    };
-
-    const parseCoordsFromGoogleMapsUrl = (url: string): { lat?: number; lng?: number } => {
-        const match = url.match(/q=([-\d.]+),([-\d.]+)/i);
-        if (!match) {
-            return {};
-        }
-
-        const lat = Number(match[1]);
-        const lng = Number(match[2]);
-
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-            return {};
-        }
-
-        return { lat, lng };
-    };
-
     // Store
     const {
         items: cart,
@@ -77,8 +69,10 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         restaurantInfo,
         setBranchId,
         setFromNumber,
+        setCustomerAddress,
         toggleTestMode,
-        customerName
+        customerName,
+        isAuthenticated
     } = useCartStore();
     const setCustomerId = useCartStore(state => state.setCustomerId);
 
@@ -126,7 +120,12 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
     const [isConfirming, setIsConfirming] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
+    const [isResolvingOrderLocation, setIsResolvingOrderLocation] = useState(false);
+    const [locationServicePrompt, setLocationServicePrompt] = useState<string | null>(null);
+    const [isAutoSavingProfileLocation, setIsAutoSavingProfileLocation] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [isOrderLocationModalOpen, setIsOrderLocationModalOpen] = useState(false);
+    const [orderAddressInitialPosition, setOrderAddressInitialPosition] = useState<{ lat: number; lng: number } | null>(null);
 
     // Resolution State - Blocks rendering until we know what branch we are on
     const [isResolving, setIsResolving] = useState(true);
@@ -145,24 +144,28 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         orderType: '',
         source: 'client',
         address: '',
-        gpsLocation: ''
+        gpsLocation: '',
+        locationOverriddenFromProfile: false,
+        locationDifferenceAcknowledged: false,
     });
 
     const profileLocation = useMemo(() => {
-        const raw = String(customerAddress?.urlAddress || customerAddress?.formattedAddress || '').trim();
-        if (!raw) {
+        const canonicalUrl = extractGoogleMapsUrl(customerAddress?.urlAddress)
+            || extractGoogleMapsUrl(customerAddress?.formattedAddress)
+            || null;
+
+        if (!canonicalUrl) {
             return null;
         }
 
-        const googleMapsUrl = extractGoogleMapsUrl(raw);
-        const coords = googleMapsUrl ? parseCoordsFromGoogleMapsUrl(googleMapsUrl) : {};
+        const coords = parseCoordsFromGoogleMapsUrl(canonicalUrl);
 
         return {
-            raw,
-            googleMapsUrl,
+            raw: canonicalUrl,
+            googleMapsUrl: canonicalUrl,
             lat: typeof customerAddress?.lat === 'number' ? customerAddress.lat : coords.lat,
             lng: typeof customerAddress?.lng === 'number' ? customerAddress.lng : coords.lng,
-            label: customerAddress?.formattedAddress || raw,
+            label: canonicalUrl,
         };
     }, [customerAddress]);
 
@@ -296,17 +299,17 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
 
         resolveBranch();
 
-        if (urlPhone) {
+        if (!isAuthenticated && urlPhone) {
             const normalizedUrlPhone = normalizePhone(urlPhone);
             if (isValidPhone(normalizedUrlPhone)) {
-                setFromNumber(normalizedUrlPhone);
-                setOrderMetadata(prev => ({ ...prev, customerPhone: normalizedUrlPhone }));
+                setFromNumber(normalizePhoneWithSinglePlus(normalizedUrlPhone));
+                setOrderMetadata(prev => ({ ...prev, customerPhone: normalizePhoneWithSinglePlus(normalizedUrlPhone) }));
             } else {
                 setFromNumber('');
                 setCustomerId('');
                 setShowPhonePrompt(true);
             }
-        } else {
+        } else if (!isAuthenticated) {
             const storedPhone = normalizePhone(useCartStore.getState().fromNumber || '');
             if (!isValidPhone(storedPhone)) {
                 setFromNumber('');
@@ -314,15 +317,24 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                 setShowPhonePrompt(true);
             }
         }
-    }, [searchParams, pathname, initialBranchId]);
+    }, [searchParams, pathname, initialBranchId, isAuthenticated]);
 
     // Sync Global Customer Name to Local Metadata
     useEffect(() => {
-        const storedName = useCartStore.getState().customerName;
-        if (storedName && orderMetadata.customerName !== storedName) {
-            setOrderMetadata(prev => ({ ...prev, customerName: storedName }));
-        }
-    }, [showPhonePrompt]);
+        const normalizedFromNumber = normalizePhoneWithSinglePlus(fromNumber);
+        setOrderMetadata((prev) => {
+            const nextName = customerName || prev.customerName;
+            const nextPhone = normalizedFromNumber || prev.customerPhone;
+            if (prev.customerName === nextName && prev.customerPhone === nextPhone) {
+                return prev;
+            }
+            return {
+                ...prev,
+                customerName: nextName,
+                customerPhone: nextPhone,
+            };
+        });
+    }, [customerName, fromNumber]);
 
     // Persistence of Metadata
     useEffect(() => {
@@ -333,36 +345,259 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
 
     useEffect(() => {
         if (!profileLocation) {
+            setOrderMetadata((previous) => {
+                if (previous.locationOverriddenFromProfile) {
+                    return previous;
+                }
+
+                const hasLocationData = Boolean(String(previous.address || '').trim() || String(previous.gpsLocation || '').trim());
+                if (!hasLocationData) {
+                    return previous;
+                }
+
+                return {
+                    ...previous,
+                    address: '',
+                    gpsLocation: '',
+                    customerLatitude: undefined,
+                    customerLongitude: undefined,
+                    locationDifferenceAcknowledged: false,
+                };
+            });
             return;
         }
 
         setOrderMetadata((previous) => {
-            const next = { ...previous };
-            let changed = false;
-
-            if (!String(previous.address || '').trim()) {
-                next.address = profileLocation.label;
-                changed = true;
+            if (previous.locationOverriddenFromProfile) {
+                return previous;
             }
 
-            if (!String(previous.gpsLocation || '').trim() && profileLocation.googleMapsUrl) {
-                next.gpsLocation = profileLocation.googleMapsUrl;
-                changed = true;
+            const nextAddress = profileLocation.googleMapsUrl || profileLocation.label;
+            const nextGps = profileLocation.googleMapsUrl || profileLocation.raw;
+            const changed =
+                previous.address !== nextAddress
+                || previous.gpsLocation !== nextGps
+                || (!Number.isFinite(previous.customerLatitude) && typeof profileLocation.lat === 'number')
+                || (!Number.isFinite(previous.customerLongitude) && typeof profileLocation.lng === 'number');
+
+            if (!changed) {
+                return previous;
             }
 
-            if (!Number.isFinite(previous.customerLatitude) && typeof profileLocation.lat === 'number') {
-                next.customerLatitude = profileLocation.lat;
-                changed = true;
-            }
-
-            if (!Number.isFinite(previous.customerLongitude) && typeof profileLocation.lng === 'number') {
-                next.customerLongitude = profileLocation.lng;
-                changed = true;
-            }
-
-            return changed ? next : previous;
+            return {
+                ...previous,
+                address: nextAddress,
+                gpsLocation: nextGps,
+                customerLatitude: typeof profileLocation.lat === 'number' ? profileLocation.lat : previous.customerLatitude,
+                customerLongitude: typeof profileLocation.lng === 'number' ? profileLocation.lng : previous.customerLongitude,
+                source: 'client',
+                locationDifferenceAcknowledged: false,
+            };
         });
     }, [profileLocation]);
+
+    const persistProfileLocation = async (input: {
+        position: { lat: number; lng: number };
+        mapsUrl?: string;
+        formattedAddress?: string;
+    }) => {
+        try {
+            setIsAutoSavingProfileLocation(true);
+            const { data: sessionData } = await supabase.auth.getSession();
+            const accessToken = sessionData.session?.access_token;
+            if (!accessToken) {
+                return;
+            }
+
+            const urlGoogleMaps = extractGoogleMapsUrl(input.mapsUrl) || buildGoogleMapsQueryUrl(input.position);
+            const response = await fetch('/api/profile/me', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                    urlGoogleMaps,
+                }),
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+            const persistedUrl = extractGoogleMapsUrl(data?.profile?.urlGoogleMaps) || urlGoogleMaps;
+            const persistedCoords = parseCoordsFromGoogleMapsUrl(persistedUrl);
+
+            setCustomerAddress({
+                urlAddress: persistedUrl,
+                buildingType: 'Other',
+                deliveryNotes: 'Meet at door',
+                lat: persistedCoords.lat ?? input.position.lat,
+                lng: persistedCoords.lng ?? input.position.lng,
+                formattedAddress: input.formattedAddress || persistedUrl,
+            });
+        } finally {
+            setIsAutoSavingProfileLocation(false);
+        }
+    };
+
+    const applyProfileLocationToOrder = () => {
+        if (!profileLocation) {
+            return;
+        }
+
+        setOrderMetadata((previous) => ({
+            ...previous,
+            address: profileLocation.googleMapsUrl || profileLocation.label,
+            gpsLocation: profileLocation.googleMapsUrl || profileLocation.raw,
+            customerLatitude: typeof profileLocation.lat === 'number' ? profileLocation.lat : previous.customerLatitude,
+            customerLongitude: typeof profileLocation.lng === 'number' ? profileLocation.lng : previous.customerLongitude,
+            source: 'client',
+            locationOverriddenFromProfile: false,
+            locationDifferenceAcknowledged: false,
+        }));
+    };
+
+    const handleUseDifferentOrderLocation = () => {
+        setLocationServicePrompt(null);
+
+        const openContext = resolveOrderLocationOpenContext({
+            hasProfileLocation: Boolean(profileLocation?.googleMapsUrl),
+            profilePosition:
+                (typeof profileLocation?.lat === 'number' && typeof profileLocation?.lng === 'number')
+                    ? { lat: profileLocation.lat, lng: profileLocation.lng }
+                    : null,
+            orderPosition:
+                (Number.isFinite(orderMetadata.customerLatitude) && Number.isFinite(orderMetadata.customerLongitude))
+                    ? {
+                        lat: Number(orderMetadata.customerLatitude),
+                        lng: Number(orderMetadata.customerLongitude),
+                    }
+                    : null,
+        });
+
+        setOrderMetadata((previous) => ({
+            ...previous,
+            locationOverriddenFromProfile: true,
+            locationDifferenceAcknowledged: false,
+        }));
+
+        const openModalWithPosition = (nextPosition: { lat: number; lng: number } | null) => {
+            setOrderAddressInitialPosition(nextPosition);
+            setIsOrderLocationModalOpen(true);
+        };
+
+        if (!openContext.shouldRequestCurrentLocation) {
+            openModalWithPosition(openContext.initialPosition);
+            return;
+        }
+
+        if (!navigator.geolocation) {
+            setLocationServicePrompt('Location services are disabled. Opening map with default location.');
+            openModalWithPosition(openContext.initialPosition || DEFAULT_ORDER_MAP_CENTER);
+            return;
+        }
+
+        setLocationServicePrompt('Please allow location access to center the map on your current location.');
+        setIsResolvingOrderLocation(true);
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const livePosition = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+
+                setLocationServicePrompt(null);
+                setOrderAddressInitialPosition(livePosition);
+                setIsResolvingOrderLocation(false);
+                setIsOrderLocationModalOpen(true);
+            },
+            () => {
+                setLocationServicePrompt('Location permission denied or unavailable. Opening map with default location.');
+                setOrderAddressInitialPosition(openContext.initialPosition || DEFAULT_ORDER_MAP_CENTER);
+                setIsResolvingOrderLocation(false);
+                setIsOrderLocationModalOpen(true);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+            }
+        );
+    };
+
+    const handleSaveOrderLocation = async (value: {
+        urlAddress: string;
+        buildingType: BuildingType;
+        unitDetails?: string;
+        deliveryNotes: string;
+        lat?: number;
+        lng?: number;
+        formattedAddress?: string;
+        placeId?: string;
+    }) => {
+        const nextGps = String(value.urlAddress || '').trim();
+        const nextAddress = String(value.formattedAddress || value.urlAddress || '').trim();
+
+        const parsedCoordsFromUrl = parseCoordsFromGoogleMapsUrl(nextGps || nextAddress);
+        const selectedPosition =
+            typeof value.lat === 'number' && typeof value.lng === 'number'
+                ? { lat: value.lat, lng: value.lng }
+                : (
+                    Number.isFinite(parsedCoordsFromUrl.lat) && Number.isFinite(parsedCoordsFromUrl.lng)
+                        ? { lat: Number(parsedCoordsFromUrl.lat), lng: Number(parsedCoordsFromUrl.lng) }
+                        : null
+                );
+
+        const equivalentToProfile = profileLocation
+            ? areLocationsEquivalent({
+                aUrl: nextGps || nextAddress,
+                aLat: selectedPosition?.lat,
+                aLng: selectedPosition?.lng,
+                bUrl: profileLocation.googleMapsUrl || profileLocation.raw,
+                bLat: profileLocation.lat,
+                bLng: profileLocation.lng,
+            })
+            : false;
+
+        setOrderMetadata((previous) => {
+            return {
+                ...previous,
+                address: nextAddress,
+                gpsLocation: nextGps,
+                customerLatitude: selectedPosition?.lat ?? previous.customerLatitude,
+                customerLongitude: selectedPosition?.lng ?? previous.customerLongitude,
+                source: 'client',
+                locationOverriddenFromProfile: !equivalentToProfile,
+                locationDifferenceAcknowledged: !equivalentToProfile ? false : previous.locationDifferenceAcknowledged,
+            };
+        });
+
+        if (equivalentToProfile || !selectedPosition) {
+            return;
+        }
+
+        const shouldPersistAsProfile = typeof window !== 'undefined'
+            ? window.confirm('Do you want to save this location as your new profile location?')
+            : false;
+
+        if (!shouldPersistAsProfile) {
+            return;
+        }
+
+        try {
+            await persistProfileLocation({
+                position: selectedPosition,
+                mapsUrl: nextGps || nextAddress,
+                formattedAddress: nextAddress,
+            });
+            setChefNotification({ content: '✅ Location saved to your profile.' });
+        } catch {
+            setChefNotification({ content: '⚠️ Could not save location to profile. We kept it for this order.' });
+        }
+    };
 
     // Expiration Timer Effect
     useEffect(() => {
@@ -597,6 +832,8 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                 gpsLocation: '',
                 customerLatitude: undefined,
                 customerLongitude: undefined,
+                locationOverriddenFromProfile: false,
+                locationDifferenceAcknowledged: false,
                 source: 'client'
             }));
         }
@@ -613,9 +850,12 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                 setOrderMetadata(prev => ({
                     ...prev,
                     gpsLocation: `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`,
+                    address: `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`,
                     customerLatitude: pos.coords.latitude,
                     customerLongitude: pos.coords.longitude,
-                    source: 'client'
+                    source: 'client',
+                    locationOverriddenFromProfile: profileLocation ? true : prev.locationOverriddenFromProfile,
+                    locationDifferenceAcknowledged: false,
                 }));
                 setIsLocating(false);
             },
@@ -626,7 +866,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         );
     };
 
-    if (showPhonePrompt) return (
+    if (showPhonePrompt && !isAuthenticated) return (
         <PhonePrompt
             restaurantInfo={restaurantInfo}
             initialCustomerName={initialCustomerName}
@@ -810,9 +1050,31 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                     fromNumber={fromNumber}
                     hasProfileLocation={Boolean(profileLocation)}
                     profileLocationLabel={profileLocation?.label}
+                    onUseSavedProfileLocation={applyProfileLocationToOrder}
+                    onUseDifferentLocation={handleUseDifferentOrderLocation}
+                    onOpenLocationPicker={handleUseDifferentOrderLocation}
+                    locationPickerLoading={isResolvingOrderLocation}
+                    locationServicePrompt={locationServicePrompt}
+                    isAutoSavingProfileLocation={isAutoSavingProfileLocation}
                     tableQuantity={tableQuantity}
                 />
             )}
+
+            <AddressDetailsModal
+                isOpen={isOrderLocationModalOpen}
+                initialValue={{
+                    urlAddress: orderMetadata.gpsLocation || '',
+                    buildingType: 'Other',
+                    deliveryNotes: '',
+                    lat: Number.isFinite(orderMetadata.customerLatitude) ? orderMetadata.customerLatitude : undefined,
+                    lng: Number.isFinite(orderMetadata.customerLongitude) ? orderMetadata.customerLongitude : undefined,
+                    formattedAddress: orderMetadata.address || undefined,
+                }}
+                initialPosition={orderAddressInitialPosition}
+                onClose={() => setIsOrderLocationModalOpen(false)}
+                onSave={handleSaveOrderLocation}
+                preferCurrentLocationOnOpen={false}
+            />
 
             <ChatWidget
                 key={`chat-${fromNumber || 'anonymous'}`}

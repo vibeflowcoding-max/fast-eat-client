@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AuctionState, BidNotification, CartItem, DeliveryBid, UserLocation } from './types';
 import { AppLocale, DEFAULT_LOCALE, normalizeLocale } from '@/i18n/config';
+import { normalizePhoneWithSinglePlus } from '@/lib/phone';
 
 import { OrderUpdate } from './hooks/useOrderTracking';
 
@@ -357,18 +358,25 @@ export const useCartStore = create<CartState>()(
       }),
       setAuthHydrated: (value) => set({ authHydrated: value }),
       setLocale: (locale) => set({ locale: normalizeLocale(locale) }),
-      hydrateClientContext: (payload) => set((state) => ({
-        customerId: payload.customerId ?? payload.customerAddress?.customerId ?? state.customerId,
-        customerName: payload.customerName ?? state.customerName,
-        fromNumber: payload.customerPhone ?? state.fromNumber,
-        customerAddress: payload.customerAddress ?? state.customerAddress,
-        clientContext: {
-          favorites: payload.favorites ?? state.clientContext?.favorites ?? [],
-          recentSearches: payload.recentSearches ?? state.clientContext?.recentSearches ?? [],
-          orderHistorySummary: payload.orderHistorySummary ?? state.clientContext?.orderHistorySummary ?? null,
-          settings: payload.settings ?? state.clientContext?.settings ?? null,
-        },
-      })),
+      hydrateClientContext: (payload) => set((state) => {
+        const hasCustomerAddress = Object.prototype.hasOwnProperty.call(payload, 'customerAddress');
+        const nextCustomerAddress = hasCustomerAddress
+          ? (payload.customerAddress ?? null)
+          : state.customerAddress;
+
+        return {
+          customerId: payload.customerId ?? payload.customerAddress?.customerId ?? state.customerId,
+          customerName: payload.customerName ?? state.customerName,
+          fromNumber: normalizePhoneWithSinglePlus(payload.customerPhone) || state.fromNumber,
+          customerAddress: nextCustomerAddress,
+          clientContext: {
+            favorites: payload.favorites ?? state.clientContext?.favorites ?? [],
+            recentSearches: payload.recentSearches ?? state.clientContext?.recentSearches ?? [],
+            orderHistorySummary: payload.orderHistorySummary ?? state.clientContext?.orderHistorySummary ?? null,
+            settings: payload.settings ?? state.clientContext?.settings ?? null,
+          },
+        };
+      }),
     }),
     {
       name: 'fasteat-storage',

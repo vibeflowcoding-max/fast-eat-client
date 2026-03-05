@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Customize Order</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex justify-center">
+<!-- Mobile Container -->
+<div class="w-full max-w-md bg-white dark:bg-[#2c1d15] min-h-screen relative shadow-xl overflow-x-hidden flex flex-col pb-24">
+<!-- Top App Bar & Hero -->
+<div class="relative flex h-auto w-full flex-col">
+<div class="fixed top-0 left-0 right-0 max-w-md mx-auto z-10 flex items-center p-4 justify-between bg-white/80 dark:bg-[#2c1d15]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+<button class="flex size-10 items-center justify-center rounded-full bg-slate-100 dark:bg-[#3d2a1e] text-slate-900 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-[#4d3728] transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h2 class="text-lg font-bold flex-1 text-center pr-10">Customize Order</h2>
+</div>
+<div class="w-full h-72 bg-slate-200 dark:bg-slate-800 bg-cover bg-center mt-16" data-alt="Close up of a classic cheeseburger" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuALE1bGHl0AUyf3sDp2NJKBSS0okl0jWFuvFhep1l23FvRqypsma_H6tuWFjc2u1Jraej7XD6iBe_n1vbXXlSj3roWDpzlz7oXaZ-sFBDQi6NtL9iPxApdAzlSFVnEohewoeyxP0FRL7Pc0efl2_wAfwMJ_ZN_xaaBIhWIS36rgLs2Hf3vokcfg25p2LmjcWsfYAozscXrGQb19W03p6lCNNSl9tZXZqDppyY0gzV3NEEqTI2PtiUa11mOKtbEtU2p_B8LPuZhIx7zC");'></div>
+<div class="px-5 pt-6 pb-2">
+<div class="flex justify-between items-start mb-2">
+<h1 class="text-3xl font-bold leading-tight">Classic Cheeseburger</h1>
+</div>
+<h2 class="text-2xl font-bold text-primary mb-3">$12.99</h2>
+<p class="text-base text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
+                    Our signature beef patty topped with melted cheddar cheese, crisp lettuce, ripe tomatoes, and our special house sauce, all served on a toasted sesame seed bun.
+                </p>
+<div class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 font-medium">
+<span class="flex items-center gap-1 text-yellow-500"><span class="material-symbols-outlined text-[18px]">star</span> 4.8</span>
+<span>•</span>
+<span>750 Cal</span>
+<span>•</span>
+<span>Contains: Dairy, Gluten</span>
+</div>
+</div>
+</div>
+<!-- Customization Options -->
+<div class="flex-1 px-5 py-4 flex flex-col gap-6">
+<!-- Section: Bun Options -->
+<div>
+<div class="flex justify-between items-end mb-4">
+<h3 class="text-xl font-bold">Choose your Bun</h3>
+<span class="text-xs font-semibold bg-primary/10 text-primary px-2 py-1 rounded">Required</span>
+</div>
+<div class="flex flex-col gap-3">
+<label class="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-[#352319] transition-colors">
+<div class="flex items-center gap-3">
+<input checked="" class="w-5 h-5 text-primary border-slate-300 focus:ring-primary dark:bg-[#4d3728] dark:border-slate-600" name="bun" type="radio"/>
+<span class="font-medium">Sesame Seed Bun</span>
+</div>
+</label>
+<label class="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-[#352319] transition-colors">
+<div class="flex items-center gap-3">
+<input class="w-5 h-5 text-primary border-slate-300 focus:ring-primary dark:bg-[#4d3728] dark:border-slate-600" name="bun" type="radio"/>
+<span class="font-medium">Brioche Bun</span>
+</div>
+<span class="text-sm text-slate-500 dark:text-slate-400">+$1.00</span>
+</label>
+<label class="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-[#352319] transition-colors">
+<div class="flex items-center gap-3">
+<input class="w-5 h-5 text-primary border-slate-300 focus:ring-primary dark:bg-[#4d3728] dark:border-slate-600" name="bun" type="radio"/>
+<span class="font-medium">Lettuce Wrap</span>
+</div>
+</label>
+</div>
+</div>
+<hr class="border-slate-200 dark:border-slate-800"/>
+<!-- Section: Add-ons -->
+<div>
+<div class="flex justify-between items-end mb-4">
+<div>
+<h3 class="text-xl font-bold">Add-ons</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400">Choose up to 5</p>
+</div>
+</div>
+<div class="flex flex-col gap-3">
+<label class="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-[#352319] transition-colors">
+<div class="flex items-center gap-3">
+<input class="w-5 h-5 text-primary rounded border-slate-300 focus:ring-primary dark:bg-[#4d3728] dark:border-slate-600" type="checkbox"/>
+<span class="font-medium">Extra Bacon</span>
+</div>
+<span class="text-sm text-slate-500 dark:text-slate-400">+$2.00</span>
+</label>
+<label class="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-[#352319] transition-colors">
+<div class="flex items-center gap-3">
+<input checked="" class="w-5 h-5 text-primary rounded border-slate-300 focus:ring-primary dark:bg-[#4d3728] dark:border-slate-600" type="checkbox"/>
+<span class="font-medium">Extra Cheese</span>
+</div>
+<span class="text-sm text-slate-500 dark:text-slate-400">+$1.50</span>
+</label>
+<label class="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-[#352319] transition-colors">
+<div class="flex items-center gap-3">
+<input class="w-5 h-5 text-primary rounded border-slate-300 focus:ring-primary dark:bg-[#4d3728] dark:border-slate-600" type="checkbox"/>
+<span class="font-medium">Avocado</span>
+</div>
+<span class="text-sm text-slate-500 dark:text-slate-400">+$2.50</span>
+</label>
+</div>
+</div>
+<hr class="border-slate-200 dark:border-slate-800"/>
+<!-- Section: Removal Options -->
+<div>
+<div class="flex justify-between items-end mb-4">
+<h3 class="text-xl font-bold">Remove Ingredients</h3>
+</div>
+<div class="flex flex-col gap-3">
+<label class="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-[#352319] transition-colors">
+<div class="flex items-center gap-3">
+<input class="w-5 h-5 text-red-500 rounded border-slate-300 focus:ring-red-500 dark:bg-[#4d3728] dark:border-slate-600" type="checkbox"/>
+<span class="font-medium">No Onions</span>
+</div>
+</label>
+<label class="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-[#352319] transition-colors">
+<div class="flex items-center gap-3">
+<input class="w-5 h-5 text-red-500 rounded border-slate-300 focus:ring-red-500 dark:bg-[#4d3728] dark:border-slate-600" type="checkbox"/>
+<span class="font-medium">No Tomatoes</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Section: Special Instructions -->
+<div class="mb-4">
+<h3 class="text-xl font-bold mb-3">Special Instructions</h3>
+<textarea class="w-full bg-slate-50 dark:bg-[#352319] border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm focus:ring-primary focus:border-primary resize-none placeholder:text-slate-400" placeholder="Add a note for the kitchen (e.g., allergies, extra sauce on the side)..." rows="3"></textarea>
+</div>
+</div>
+<!-- Fixed Bottom Action Bar -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white dark:bg-[#2c1d15] border-t border-slate-200 dark:border-slate-800 p-4 pb-safe flex items-center justify-between gap-4 z-20 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+<!-- Quantity Selector -->
+<div class="flex items-center bg-slate-100 dark:bg-[#3d2a1e] rounded-full px-2 py-1 h-14">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#4d3728] transition-colors">
+<span class="material-symbols-outlined">remove</span>
+</button>
+<span class="w-8 text-center font-bold text-lg">1</span>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#4d3728] transition-colors">
+<span class="material-symbols-outlined">add</span>
+</button>
+</div>
+<!-- Add to Cart Button -->
+<button class="flex-1 bg-primary hover:bg-primary/90 text-white font-bold h-14 rounded-full flex items-center justify-between px-6 transition-colors shadow-lg shadow-primary/20">
+<span>Add to Cart</span>
+<span>$14.49</span>
+</button>
+</div>
+</div>
+</body></html>

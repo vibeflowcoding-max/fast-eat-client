@@ -22,6 +22,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
     const setDeepLinkTarget = useCartStore((state) => state.setDeepLinkTarget);
     const setOrderBids = useCartStore((state) => state.setOrderBids);
     const updateActiveOrder = useCartStore((state) => state.updateActiveOrder);
+    const clearCart = useCartStore((state) => state.clearCart);
     const auctionStateByOrderId = useCartStore((state) => state.auctionStateByOrderId);
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
     const [bidSort, setBidSort] = useState<'price_asc' | 'price_desc' | 'rating_desc' | 'rating_asc'>('price_asc');
@@ -40,6 +41,10 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
             ENVIADO_A_COCINA: 'PENDING'
         };
         return dictionary[normalized] || normalized || 'UNKNOWN';
+    };
+
+    const shouldShowSecurityCode = (statusCode: string) => {
+        return statusCode === 'DRIVER_ASSIGNED' || statusCode === 'PREPARING' || statusCode === 'READY' || statusCode === 'DELIVERING';
     };
 
     const getDisplayStatusLabel = (order: any): string => {
@@ -97,12 +102,13 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
             const targetElement = document.getElementById(`bid-${deepLinkTarget.bidId}`);
             if (targetElement) {
                 targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setDeepLinkTarget(null);
             }
+
+            setDeepLinkTarget(null);
         }, 200);
 
         return () => window.clearTimeout(timeoutId);
-    }, [deepLinkTarget, isOpen, bidsByOrderId, setDeepLinkTarget]);
+    }, [deepLinkTarget, isOpen, setDeepLinkTarget]);
 
     useEffect(() => {
         if (!expandedOrder) return;
@@ -142,7 +148,12 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                     code: response.status,
                     label: response.label || getDisplayStatusLabel(orders.find((entry) => entry.orderId === orderId)),
                 },
-                deliveryFinalPrice: response.deliveryFinalPrice
+                deliveryFinalPrice: response.deliveryFinalPrice,
+                subtotal: response.subtotal,
+                feesTotal: response.feesTotal,
+                deliveryFee: response.deliveryFinalPrice,
+                customerTotal: response.customerTotal,
+                total: response.customerTotal,
             });
         } catch (error: any) {
             setOrderErrors((previous) => ({
@@ -180,6 +191,11 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                     label: response.label || getDisplayStatusLabel(orders.find((entry) => entry.orderId === orderId)),
                 }
             });
+
+            const normalizedStatus = parseStatusCode(response.status);
+            if (normalizedStatus === 'COMPLETED' || normalizedStatus === 'DELIVERED') {
+                clearCart();
+            }
         } catch (error: any) {
             setOrderErrors((previous) => ({
                 ...previous,
@@ -290,12 +306,53 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                                                                 <span className="font-bold text-gray-900">₡{(item.price * item.quantity).toLocaleString()}</span>
                                                             </div>
                                                         ))}
-                                                        {order.total !== undefined && (
-                                                            <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-200">
-                                                                <span className="font-black text-gray-900 uppercase text-[10px] tracking-widest">{t('totalToPay')}</span>
-                                                                <span className="font-black text-lg text-gray-900">₡{order.total.toLocaleString()}</span>
-                                                            </div>
-                                                        )}
+                                                        {(() => {
+                                                            const itemsSubtotal = Number(
+                                                                order.items?.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0) ?? 0,
+                                                            );
+
+                                                            const persistedSubtotal = Number(order.subtotal);
+                                                            const subtotal = Number.isFinite(persistedSubtotal) && (persistedSubtotal > 0 || itemsSubtotal === 0)
+                                                                ? persistedSubtotal
+                                                                : itemsSubtotal;
+
+                                                            const persistedCustomerTotal = Number(order.customerTotal ?? order.total);
+                                                            const customerTotal = Number.isFinite(persistedCustomerTotal)
+                                                                ? persistedCustomerTotal
+                                                                : subtotal;
+
+                                                            const persistedDeliveryFee = Number(order.deliveryFee ?? order.deliveryFinalPrice);
+                                                            const deliveryFee = Number.isFinite(persistedDeliveryFee)
+                                                                ? Math.max(0, persistedDeliveryFee)
+                                                                : 0;
+
+                                                            const derivedFeesTotal = Math.max(0, customerTotal - subtotal - deliveryFee);
+                                                            const persistedFeesTotal = Number(order.feesTotal);
+                                                            const feesTotal = Number.isFinite(persistedFeesTotal) && (persistedFeesTotal > 0 || derivedFeesTotal === 0)
+                                                                ? persistedFeesTotal
+                                                                : derivedFeesTotal;
+
+                                                            return (
+                                                                <div className="space-y-2 pt-2 mt-2 border-t border-gray-200">
+                                                                    <div className="flex justify-between items-center text-xs text-gray-600">
+                                                                        <span className="font-bold uppercase tracking-wide">{t('subtotal')}</span>
+                                                                        <span className="font-bold">₡{subtotal.toLocaleString()}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center text-xs text-gray-600">
+                                                                        <span className="font-bold uppercase tracking-wide">{t('fees')}</span>
+                                                                        <span className="font-bold">₡{feesTotal.toLocaleString()}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center text-xs text-gray-600">
+                                                                        <span className="font-bold uppercase tracking-wide">{t('deliveryPrice')}</span>
+                                                                        <span className="font-bold">₡{deliveryFee.toLocaleString()}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center pt-2 mt-1 border-t border-gray-200">
+                                                                        <span className="font-black text-gray-900 uppercase text-[10px] tracking-widest">{t('totalToPay')}</span>
+                                                                        <span className="font-black text-lg text-gray-900">₡{customerTotal.toLocaleString()}</span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </>
                                             )}
@@ -358,7 +415,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                                                 );
                                             })()}
 
-                                            {parseStatusCode(order.newStatus?.code || order.newStatus?.label) === 'DELIVERING' && order.securityCode && (
+                                            {shouldShowSecurityCode(parseStatusCode(order.newStatus?.code || order.newStatus?.label)) && order.securityCode && (
                                                 <div className="mt-4 p-4 bg-white border border-green-200 rounded-xl">
                                                     <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t('shareCode')}</h3>
                                                     <p className="text-2xl font-black text-gray-900 mt-2">{order.securityCode}</p>

@@ -12,35 +12,64 @@ type ApiOrder = {
   id: string;
   customerId: string;
   orderNumber: string | null;
+  branchId: string | null;
   statusCode: string | null;
   statusLabel: string | null;
   total: number;
+  subtotal?: number;
+  deliveryFee?: number;
+  feesTotal?: number;
+  customerTotal?: number;
+  securityCode: string | null;
   createdAt: string;
+  updatedAt?: string;
   items: unknown[];
   bidCount: number;
   bestBid: number | null;
   restaurant: { id: string; name: string; logo_url: string | null } | null;
 };
 
+const RECENT_TERMINAL_WINDOW_MS = 15 * 60 * 1000;
+
+function isRecentTimestamp(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return false;
+  return (Date.now() - timestamp) <= RECENT_TERMINAL_WINDOW_MS;
+}
+
 export default function OrdersPage() {
   const t = useTranslations('orders');
   const router = useAppRouter();
-  const { activeOrders, bidsByOrderId, fromNumber, customerId, isAuthenticated, branchId, setCustomerId, replaceActiveOrders } = useCartStore();
+  const { activeOrders, bidsByOrderId, fromNumber, customerId, branchId, setCustomerId, replaceActiveOrders, clearCart } = useCartStore();
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [activeFromApi, setActiveFromApi] = React.useState<ApiOrder[]>([]);
   const [pastOrders, setPastOrders] = React.useState<ApiOrder[]>([]);
   const [resolvedCustomerId, setResolvedCustomerId] = React.useState('');
+  const activeOrdersRef = React.useRef(activeOrders);
 
-  useOrderTracking(branchId, isAuthenticated ? '' : fromNumber, customerId || resolvedCustomerId);
+  React.useEffect(() => {
+    activeOrdersRef.current = activeOrders;
+  }, [activeOrders]);
+  const trackingBranchId = React.useMemo(() => {
+    const activeBranch = activeFromApi.find((order) => Boolean(order.branchId))?.branchId;
+    return activeBranch || branchId;
+  }, [activeFromApi, branchId]);
+
+  const trackingCustomerId = React.useMemo(() => {
+    return customerId || resolvedCustomerId;
+  }, [customerId, resolvedCustomerId]);
+
+  useOrderTracking(trackingBranchId, trackingCustomerId ? '' : fromNumber, trackingCustomerId);
 
   const refreshOrders = React.useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      if (!fromNumber && !customerId) {
+      if (!fromNumber && !trackingCustomerId) {
         setActiveFromApi([]);
         setPastOrders([]);
         setCustomerId('');
@@ -48,19 +77,44 @@ export default function OrdersPage() {
         return;
       }
 
-      const historyUrl = customerId
-        ? `/api/orders/history?customerId=${encodeURIComponent(customerId)}`
-        : `/api/orders/history?phone=${encodeURIComponent(fromNumber)}`;
+      const fetchHistory = async (url: string) => {
+        const response = await fetch(url);
+        const data = await response.json();
 
-      const response = await fetch(historyUrl);
-      const data = await response.json();
+        if (!response.ok) {
+          throw new Error(typeof data.error === 'string' ? data.error : t('loadError'));
+        }
 
-      if (!response.ok) {
-      throw new Error(typeof data.error === 'string' ? data.error : t('loadError'));
+        return data;
+      };
+
+      const historyByCustomerUrl = trackingCustomerId
+        ? `/api/orders/history?customerId=${encodeURIComponent(trackingCustomerId)}`
+        : '';
+      const historyByPhoneUrl = fromNumber
+        ? `/api/orders/history?phone=${encodeURIComponent(fromNumber)}`
+        : '';
+
+      let data = historyByCustomerUrl
+        ? await fetchHistory(historyByCustomerUrl)
+        : await fetchHistory(historyByPhoneUrl);
+
+      const primaryActive = Array.isArray(data.activeOrders) ? data.activeOrders : [];
+      const primaryPast = Array.isArray(data.pastOrders) ? data.pastOrders : [];
+      const shouldRetryByPhone = Boolean(historyByCustomerUrl && historyByPhoneUrl) && (primaryActive.length + primaryPast.length === 0);
+
+      if (shouldRetryByPhone) {
+        const fallbackData = await fetchHistory(historyByPhoneUrl);
+        const fallbackActive = Array.isArray(fallbackData.activeOrders) ? fallbackData.activeOrders : [];
+        const fallbackPast = Array.isArray(fallbackData.pastOrders) ? fallbackData.pastOrders : [];
+
+        if (fallbackActive.length + fallbackPast.length > 0) {
+          data = fallbackData;
+        }
       }
 
       const apiCustomerId = typeof data.customerId === 'string' ? data.customerId : '';
-      const shouldAdoptApiCustomerId = Boolean(apiCustomerId) && !customerId && !isAuthenticated;
+      const shouldAdoptApiCustomerId = Boolean(apiCustomerId) && apiCustomerId !== trackingCustomerId;
 
       if (shouldAdoptApiCustomerId) {
         setCustomerId(apiCustomerId);
@@ -97,15 +151,29 @@ export default function OrdersPage() {
             }))
           : [],
         total: order.total,
+        subtotal: Number(order.subtotal ?? order.total ?? 0),
+        deliveryFee: Number(order.deliveryFee ?? 0),
+        feesTotal: Number(order.feesTotal ?? 0),
+        customerTotal: Number(order.customerTotal ?? order.total ?? 0),
+        securityCode: order.securityCode,
       }));
 
       replaceActiveOrders(contextOrders);
+
+      const hadTrackedActiveOrders = Object.keys(activeOrdersRef.current || {}).length > 0;
+      const hasRecentTerminalOrder = nextPast.some((order: ApiOrder) =>
+        isRecentTimestamp(order.updatedAt || order.createdAt)
+      );
+
+      if ((hadTrackedActiveOrders || hasRecentTerminalOrder) && contextOrders.length === 0) {
+        clearCart();
+      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : t('loadError'));
     } finally {
       setLoading(false);
     }
-  }, [customerId, fromNumber, isAuthenticated, replaceActiveOrders, setCustomerId, t]);
+  }, [fromNumber, replaceActiveOrders, setCustomerId, clearCart, t, trackingCustomerId]);
 
   React.useEffect(() => {
     refreshOrders();
@@ -126,11 +194,11 @@ export default function OrdersPage() {
   const mergedActiveCount = filteredStoreOrders.length + activeFromApi.length;
 
   const buildOrderUrl = React.useCallback((orderId: string, orderCustomerId?: string | null, hash?: string) => {
-    const customerIdForUrl = (orderCustomerId || resolvedCustomerId || '').trim();
+    const customerIdForUrl = (orderCustomerId || trackingCustomerId || '').trim();
     const query = customerIdForUrl ? `?customerId=${encodeURIComponent(customerIdForUrl)}` : '';
     const suffix = hash || '';
     return `/orders/${encodeURIComponent(orderId)}${query}${suffix}`;
-  }, [resolvedCustomerId]);
+  }, [trackingCustomerId]);
 
   return (
     <main className="ui-page min-h-screen pb-32">

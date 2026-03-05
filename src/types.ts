@@ -35,6 +35,8 @@ export interface OrderMetadata {
   gpsLocation?: string;
   customerLatitude?: number;
   customerLongitude?: number;
+  locationOverriddenFromProfile?: boolean;
+  locationDifferenceAcknowledged?: boolean;
   tableNumber?: string;
   scheduledFor?: string | null;
   optOutCutlery?: boolean;

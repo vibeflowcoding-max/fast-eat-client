@@ -8,8 +8,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useRestaurants } from '@/hooks/useRestaurants';
 import CategoryBar from '@/components/CategoryBar';
 import ProfileCompletionPrompt from '@/components/ProfileCompletionPrompt';
-import ProfileCompletionModal from '@/components/ProfileCompletionModal';
-import AddressDetailsModal, { BuildingType } from '@/components/AddressDetailsModal';
+import type { BuildingType } from '@/components/AddressDetailsModal';
 import LoadingScreen from '@/components/LoadingScreen';
 import BottomNav from '@/components/BottomNav';
 import HomeHeroSearch from '@/features/home-discovery/components/HomeHeroSearch';
@@ -27,11 +26,14 @@ import { useHomeRails } from '@/features/home-discovery/hooks/useHomeRails';
 import { emitHomeEvent } from '@/features/home-discovery/analytics';
 import { buildPreferenceHints, getViewedRestaurantsHistory, trackViewedRestaurant } from '@/features/home-discovery/utils/discoveryStorage';
 import dynamic from 'next/dynamic';
-import ActivityFeed from '@/features/social/components/ActivityFeed';
-import LoyaltyWidget from '@/features/gamification/components/LoyaltyWidget';
-import StoryMenuFeed from '@/features/content/components/StoryMenuFeed';
-import DynamicPromoBanner from '@/features/home-discovery/components/DynamicPromoBanner';
 import { useTranslations } from 'next-intl';
+import { supabase } from '@/lib/supabase';
+
+const AddressDetailsModal = dynamic(() => import('@/components/AddressDetailsModal'));
+const ActivityFeed = dynamic(() => import('@/features/social/components/ActivityFeed'));
+const LoyaltyWidget = dynamic(() => import('@/features/gamification/components/LoyaltyWidget'));
+const StoryMenuFeed = dynamic(() => import('@/features/content/components/StoryMenuFeed'));
+const DynamicPromoBanner = dynamic(() => import('@/features/home-discovery/components/DynamicPromoBanner'));
 
 const HomeDiscoveryWidget = dynamic(
     () => import('@/features/home-discovery/components/HomeDiscoveryWidget'),
@@ -99,8 +101,6 @@ export default function HomePage() {
         fromNumber,
         customerAddress,
         profilePromptDismissedAt,
-        setCustomerName,
-        setFromNumber,
         setCustomerAddress,
         setOnboarded,
         setProfilePromptDismissedAt
@@ -114,7 +114,6 @@ export default function HomePage() {
     const isPredictiveReorderEnabled = process.env.NEXT_PUBLIC_HOME_PREDICTIVE_REORDER?.toLowerCase() !== 'false';
     const isStoryMenusEnabled = process.env.NEXT_PUBLIC_HOME_STORY_MENUS?.toLowerCase() !== 'false';
     const isFriendsActivityEnabled = process.env.NEXT_PUBLIC_HOME_FRIENDS_ACTIVITY?.toLowerCase() !== 'false';
-    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
     const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
     const [locationRequestLoading, setLocationRequestLoading] = useState(false);
@@ -399,35 +398,14 @@ export default function HomePage() {
     }, [customerAddress, fromNumber, setCustomerAddress]);
 
     const handleOpenProfileCompletion = React.useCallback(() => {
-        setIsProfileModalOpen(true);
+        router.push('/profile');
         emitHomeEvent({ name: 'profile_prompt_click' });
-    }, []);
+    }, [router]);
 
     const handleDismissProfilePrompt = React.useCallback(() => {
         setProfilePromptDismissedAt(Date.now());
         emitHomeEvent({ name: 'profile_prompt_dismiss' });
     }, [setProfilePromptDismissedAt]);
-
-    const handleProfileContinue = React.useCallback(async (value: { name: string; phone: string }) => {
-        const response = await fetch('/api/customer/profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(value)
-        });
-
-        if (!response.ok) {
-            const payload = await response.json().catch(() => null);
-            throw new Error(payload?.error || t('errors.saveProfile'));
-        }
-
-        setCustomerName(value.name);
-        setFromNumber(value.phone);
-        setOnboarded(true);
-
-        if (!isProfileIncomplete) {
-            setProfilePromptDismissedAt(null);
-        }
-    }, [isProfileIncomplete, setCustomerName, setFromNumber, setOnboarded, setProfilePromptDismissedAt, t]);
 
     const handleRequestLocationFromProfile = React.useCallback(() => {
         if (!navigator.geolocation) {
@@ -482,7 +460,7 @@ export default function HomePage() {
         if (!fromNumber.trim() || !customerName.trim()) {
             setIsAddressModalOpen(false);
             setLocationPermissionError(t('errors.namePhoneRequired'));
-            setIsProfileModalOpen(true);
+            router.push('/profile');
             throw new Error(t('errors.namePhoneRequiredAddress'));
         }
 
@@ -505,6 +483,27 @@ export default function HomePage() {
         }
 
         const data = await response.json();
+
+        try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const accessToken = sessionData.session?.access_token;
+
+            if (accessToken) {
+                await fetch('/api/profile/me', {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                    body: JSON.stringify({
+                        urlGoogleMaps: value.urlAddress,
+                    }),
+                });
+            }
+        } catch {
+            // Non-blocking sync; customer address save remains successful even if profile sync fails.
+        }
+
         setCustomerAddress({
             customerId: data.address?.customer_id,
             urlAddress: value.urlAddress,
@@ -521,8 +520,7 @@ export default function HomePage() {
         emitHomeEvent({ name: 'address_form_save_success' });
 
         setIsAddressModalOpen(false);
-        setIsProfileModalOpen(true);
-    }, [customerName, fromNumber, setCustomerAddress, setOnboarded, setProfilePromptDismissedAt, t]);
+    }, [customerName, fromNumber, router, setCustomerAddress, setOnboarded, setProfilePromptDismissedAt, t]);
 
     const rails = useHomeRails({
         restaurants: filteredRestaurants,
@@ -943,32 +941,6 @@ export default function HomePage() {
                 }}
             />
 
-            <ProfileCompletionModal
-                isOpen={isProfileModalOpen}
-                initialName={customerName}
-                initialPhone={fromNumber}
-                hasConfiguredAddress={Boolean(customerAddress?.urlAddress)}
-                locationRequestLoading={locationRequestLoading}
-                locationPermissionError={locationPermissionError}
-                onRequestLocation={handleRequestLocationFromProfile}
-                onEnterAddressManually={({ name, phone }) => {
-                    setCustomerName(name);
-                    setFromNumber(phone);
-                    setLocationPermissionError(null);
-                    setIsProfileModalOpen(false);
-                    setIsAddressModalOpen(true);
-                }}
-                onContinue={handleProfileContinue}
-                onLater={() => {
-                    setIsProfileModalOpen(false);
-                    setProfilePromptDismissedAt(Date.now());
-                    emitHomeEvent({ name: 'profile_prompt_dismiss' });
-                }}
-                onClose={() => {
-                    setIsProfileModalOpen(false);
-                }}
-            />
-
             <AddressDetailsModal
                 isOpen={isAddressModalOpen}
                 initialValue={customerAddress ?? undefined}
@@ -976,7 +948,7 @@ export default function HomePage() {
                 onClose={() => setIsAddressModalOpen(false)}
                 onBack={() => {
                     setIsAddressModalOpen(false);
-                    setIsProfileModalOpen(true);
+                    router.push('/profile');
                 }}
                 onSave={handleSaveAddress}
                 onPermissionRequested={() => emitHomeEvent({ name: 'location_permission_request' })}

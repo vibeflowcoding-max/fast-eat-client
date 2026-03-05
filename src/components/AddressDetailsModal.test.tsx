@@ -35,4 +35,41 @@ describe('AddressDetailsModal', () => {
 
     expect(screen.queryByText('Please provide a Google Maps URL before saving.')).not.toBeInTheDocument();
   });
+
+  it('keeps selected building type during parent re-renders while modal is open', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+
+    const { rerender } = render(
+      <AddressDetailsModal
+        isOpen
+        initialValue={{
+          urlAddress: 'https://www.google.com/maps/search/?api=1&query=10.011,-84.1',
+          buildingType: 'Other',
+          deliveryNotes: 'Meet at door',
+        }}
+        onClose={vi.fn()}
+        onSave={onSave}
+      />
+    );
+
+    const buildingTypeSelect = screen.getByLabelText('Building Type');
+
+    await userEvent.selectOptions(buildingTypeSelect, 'Hotel');
+    expect(buildingTypeSelect).toHaveValue('Hotel');
+
+    rerender(
+      <AddressDetailsModal
+        isOpen
+        initialValue={{
+          urlAddress: 'https://www.google.com/maps/search/?api=1&query=10.011,-84.1',
+          buildingType: 'Other',
+          deliveryNotes: 'Meet at door',
+        }}
+        onClose={vi.fn()}
+        onSave={onSave}
+      />
+    );
+
+    expect(screen.getByLabelText('Building Type')).toHaveValue('Hotel');
+  });
 });

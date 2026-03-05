@@ -21,6 +21,7 @@ interface AddressDetailsModalProps {
   isOpen: boolean;
   initialValue?: Partial<AddressFormValue>;
   initialPosition?: { lat: number; lng: number } | null;
+  preferCurrentLocationOnOpen?: boolean;
   onClose: () => void;
   onBack?: () => void;
   onSave: (value: AddressFormValue) => Promise<void>;
@@ -45,6 +46,7 @@ export default function AddressDetailsModal({
   isOpen,
   initialValue,
   initialPosition,
+  preferCurrentLocationOnOpen = true,
   onClose,
   onBack,
   onSave,
@@ -60,11 +62,19 @@ export default function AddressDetailsModal({
   const [normalizedAddress, setNormalizedAddress] = React.useState<MapsGeocodeData | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const wasOpenRef = React.useRef(false);
 
   React.useEffect(() => {
     if (!isOpen) {
+      wasOpenRef.current = false;
       return;
     }
+
+    if (wasOpenRef.current) {
+      return;
+    }
+
+    wasOpenRef.current = true;
 
     setUrlAddress(initialValue?.urlAddress ?? '');
     setBuildingType(initialValue?.buildingType ?? 'Apartment');
@@ -126,7 +136,7 @@ export default function AddressDetailsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
+    <div className="fixed inset-0 z-[140] flex items-end justify-center bg-black/40 sm:items-center">
       <div className="max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-white p-4 sm:max-w-lg sm:rounded-2xl">
         <h2 className="text-lg font-semibold text-gray-900">Address details</h2>
 
@@ -134,6 +144,7 @@ export default function AddressDetailsModal({
           <GoogleMapsAddressPicker
             initialUrl={urlAddress}
             initialPosition={selectedPosition}
+            preferCurrentLocationOnLoad={preferCurrentLocationOnOpen}
             onChange={(nextUrl, nextPosition, normalized) => {
               setUrlAddress(nextUrl);
               setSelectedPosition(nextPosition);

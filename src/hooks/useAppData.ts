@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useCartStore } from '../store';
 import { fetchMenuFromAPI, fetchRestaurantInfo, getCartFromN8N, fetchTableQuantity } from '../services/api';
 import { MenuItem, CartItem } from '../types';
@@ -21,10 +21,17 @@ export const useAppData = () => {
   const [activeCategory, setActiveCategory] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [tableQuantity, setTableQuantity] = useState<number>(0);
+  const requestCycleRef = useRef(0);
 
-  const initAppData = async () => {
+  const initAppData = useCallback(async (signal?: AbortSignal) => {
+    const cycle = Date.now();
+    requestCycleRef.current = cycle;
+    const isCurrentCycle = () => requestCycleRef.current === cycle && !signal?.aborted;
+
     if (!branchId || branchId === ':branchId' || branchId === 'undefined') {
-      setLoading(false);
+      if (isCurrentCycle()) {
+        setLoading(false);
+      }
       return;
     }
 
@@ -35,7 +42,7 @@ export const useAppData = () => {
       // 1. Load Restaurant Info (CRITICAL)
       try {
         const info = await fetchRestaurantInfo(branchId);
-        if (info) {
+        if (info && isCurrentCycle()) {
           setRestaurantInfo(info);
         }
       } catch (e) {
@@ -45,7 +52,7 @@ export const useAppData = () => {
       // 2. Load Table Quantity (Optional/Non-blocking)
       try {
         const tableData = await fetchTableQuantity(branchId);
-        if (tableData && tableData.is_available && tableData.quantity > 0) {
+        if (tableData && tableData.is_available && tableData.quantity > 0 && isCurrentCycle()) {
           setTableQuantity(tableData.quantity);
         }
       } catch (e) {
@@ -53,7 +60,9 @@ export const useAppData = () => {
       }
 
       if (!fromNumber) {
-        setLoading(false);
+        if (isCurrentCycle()) {
+          setLoading(false);
+        }
         return;
       }
 
@@ -64,14 +73,20 @@ export const useAppData = () => {
         const menuResult = await fetchMenuFromAPI(branchId);
         items = menuResult.items;
         apiCategories = menuResult.categories;
-        
+
+        if (!isCurrentCycle()) {
+          return;
+        }
+
         setMenuItems(items);
         const cats = apiCategories.length > 0 ? apiCategories : Array.from(new Set(items.map(i => i.category)));
         setCategories(cats);
         if (items.length > 0) setActiveCategory(apiCategories[0] || items[0].category);
       } catch (e) {
         console.error("Failed to fetch menu items", e);
-        setError(APP_CONSTANTS.MESSAGES.LOAD_ERROR);
+        if (isCurrentCycle()) {
+          setError(APP_CONSTANTS.MESSAGES.LOAD_ERROR);
+        }
       }
 
       // 4. Sync Initial Cart from Server (Optional/Non-blocking)
@@ -114,15 +129,24 @@ export const useAppData = () => {
       }
     } catch (e) {
       console.error("Fatal error during app data initialization", e);
-      setError(APP_CONSTANTS.MESSAGES.LOAD_ERROR);
+      if (isCurrentCycle()) {
+        setError(APP_CONSTANTS.MESSAGES.LOAD_ERROR);
+      }
     } finally {
-      setLoading(false);
+      if (isCurrentCycle()) {
+        setLoading(false);
+      }
     }
-  };
+  }, [branchId, expirationTime, fromNumber, isTestMode, setExpirationTime, setItems, setRestaurantInfo]);
 
   useEffect(() => {
-    initAppData();
-  }, [fromNumber, branchId, isTestMode]);
+    const controller = new AbortController();
+    initAppData(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [initAppData]);
 
   return {
     menuItems,

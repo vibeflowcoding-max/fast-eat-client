@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CartItem, OrderMetadata } from '../types';
 import CartItemRow from './CartItemRow';
 import OrderForm from './OrderForm';
@@ -10,6 +10,8 @@ import SinpeRequestUI from '../features/payments/components/SinpeRequestUI';
 import { SplitResult } from '../features/payments/utils/splitStrategies';
 import { useCartStore } from '../store';
 import { useTranslations } from 'next-intl';
+import { fetchCheckoutFeeRates } from '@/services/api';
+import { calculateCheckoutPricing } from '@/lib/checkout-pricing';
 
 interface CartModalProps {
     cart: CartItem[];
@@ -27,6 +29,12 @@ interface CartModalProps {
     fromNumber: string;
     hasProfileLocation?: boolean;
     profileLocationLabel?: string;
+    onUseSavedProfileLocation?: () => void;
+    onUseDifferentLocation?: () => void;
+    onOpenLocationPicker?: () => void;
+    locationPickerLoading?: boolean;
+    locationServicePrompt?: string | null;
+    isAutoSavingProfileLocation?: boolean;
     tableQuantity?: number;
 }
 
@@ -46,30 +54,94 @@ const CartModal: React.FC<CartModalProps> = ({
     fromNumber,
     hasProfileLocation = false,
     profileLocationLabel,
+    onUseSavedProfileLocation,
+    onUseDifferentLocation,
+    onOpenLocationPicker,
+    locationPickerLoading = false,
+    locationServicePrompt = null,
+    isAutoSavingProfileLocation = false,
     tableQuantity = 0
 }) => {
     const t = useTranslations('checkout.cart');
+    const branchId = useCartStore(state => state.branchId);
     const groupSessionId = useCartStore(state => state.groupSessionId);
     const groupParticipants = useCartStore(state => state.groupParticipants);
     const currentParticipantId = useCartStore(state => state.participantId);
 
     const [showBillSplitter, setShowBillSplitter] = useState(false);
     const [sinpeResults, setSinpeResults] = useState<SplitResult[] | null>(null);
+    const [feeRates, setFeeRates] = useState({ serviceFeeRate: 0, platformFeeRate: 0 });
+    const [isPricingUnavailable, setIsPricingUnavailable] = useState(false);
+
+    useEffect(() => {
+        let active = true;
+
+        const normalizedBranchId = String(branchId || '').trim();
+        if (!normalizedBranchId || normalizedBranchId === ':branchId') {
+            setFeeRates({ serviceFeeRate: 0, platformFeeRate: 0 });
+            setIsPricingUnavailable(false);
+            return;
+        }
+
+        const loadRates = async () => {
+            const rates = await fetchCheckoutFeeRates(normalizedBranchId);
+            if (!active) {
+                return;
+            }
+
+            setFeeRates(rates);
+            setIsPricingUnavailable(rates.serviceFeeRate === 0 && rates.platformFeeRate === 0);
+        };
+
+        void loadRates();
+
+        return () => {
+            active = false;
+        };
+    }, [branchId]);
 
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const taxesAndFees = 0; // For future implementation if delivery fees exist before order placement
-    const total = subtotal + taxesAndFees;
+    const pricing = calculateCheckoutPricing(subtotal, feeRates);
+    const taxesAndFees = pricing.serviceFeeAmount + pricing.platformFeeAmount;
+    const total = pricing.totalBeforeDelivery;
+
+    const formatCurrency = (value: number) => `₡${Math.round(value).toLocaleString()}`;
+    const formatRate = (rate: number) => `${(rate * 100).toFixed(rate * 100 % 1 === 0 ? 0 : 1)}%`;
 
     const isOrderFormValid = () => {
-        const { customerName, customerPhone, paymentMethod, orderType, address, gpsLocation, customerLatitude, customerLongitude, tableNumber } = orderMetadata;
+        const {
+            customerName,
+            customerPhone,
+            paymentMethod,
+            orderType,
+            address,
+            gpsLocation,
+            customerLatitude,
+            customerLongitude,
+            tableNumber,
+            locationOverriddenFromProfile,
+            locationDifferenceAcknowledged,
+        } = orderMetadata;
         const normalizedPhone = (customerPhone || fromNumber || '').trim();
         const hasOrderType = Boolean(orderType?.trim());
         const hasPaymentMethod = Boolean(paymentMethod?.trim());
         const hasCoordinates = Number.isFinite(customerLatitude) && Number.isFinite(customerLongitude);
         const hasDeliveryReference = Boolean(address?.trim()) || Boolean(gpsLocation?.trim()) || hasCoordinates;
         const isDeliveryDetailsValid = orderType !== 'delivery' || hasDeliveryReference;
+        const isLocationDifferenceAccepted =
+            orderType !== 'delivery' ||
+            !locationOverriddenFromProfile ||
+            Boolean(locationDifferenceAcknowledged);
         const isTableValid = !(orderType === 'comer_aca' || orderType === 'comer_aqui' || orderType === 'dine_in') || tableNumber;
-        return !!(customerName.trim() && normalizedPhone && hasOrderType && hasPaymentMethod && isDeliveryDetailsValid && isTableValid);
+        return !!(
+            customerName.trim() &&
+            normalizedPhone &&
+            hasOrderType &&
+            hasPaymentMethod &&
+            isDeliveryDetailsValid &&
+            isLocationDifferenceAccepted &&
+            isTableValid
+        );
     };
 
     return (
@@ -140,11 +212,50 @@ const CartModal: React.FC<CartModalProps> = ({
                             onGetLocation={onGetLocation}
                             hasProfileLocation={hasProfileLocation}
                             profileLocationLabel={profileLocationLabel}
+                            isUsingDifferentDeliveryLocation={Boolean(orderMetadata.locationOverriddenFromProfile)}
+                            onUseSavedProfileLocation={onUseSavedProfileLocation}
+                            onUseDifferentLocation={onUseDifferentLocation}
+                            onOpenLocationPicker={onOpenLocationPicker}
+                            locationPickerLoading={locationPickerLoading}
+                            locationServicePrompt={locationServicePrompt}
+                            isAutoSavingProfileLocation={isAutoSavingProfileLocation}
+                            locationDifferenceWarningVisible={Boolean(orderMetadata.locationOverriddenFromProfile)}
+                            locationDifferenceAcknowledged={Boolean(orderMetadata.locationDifferenceAcknowledged)}
+                            onToggleLocationDifferenceAcknowledged={(value) => setOrderMetadata({
+                                ...orderMetadata,
+                                locationDifferenceAcknowledged: value,
+                            })}
                             tableQuantity={tableQuantity}
                         />
                     )}
                 </div>
                 <div className="ui-panel p-5 md:p-8 border-t-4 space-y-3">
+                    {cart.length > 0 && (
+                        <div className="ui-panel-soft border-2 rounded-2xl p-4 space-y-2">
+                            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
+                                <span className="ui-text-muted">{t('subtotal')}</span>
+                                <span>{formatCurrency(pricing.subtotal)}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
+                                <span className="ui-text-muted">{t('serviceFee', { rate: formatRate(pricing.serviceFeeRate) })}</span>
+                                <span>{formatCurrency(pricing.serviceFeeAmount)}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
+                                <span className="ui-text-muted">{t('platformFee', { rate: formatRate(pricing.platformFeeRate) })}</span>
+                                <span>{formatCurrency(pricing.platformFeeAmount)}</span>
+                            </div>
+                            <div className="border-t border-border/30 pt-2 mt-2 flex items-center justify-between text-sm font-black uppercase tracking-widest">
+                                <span>{t('total')}</span>
+                                <span>{formatCurrency(pricing.totalBeforeDelivery)}</span>
+                            </div>
+                            <p className="ui-state-warning rounded-lg px-2 py-1 text-[10px] font-bold">
+                                {t('deliveryDisclaimer')}
+                            </p>
+                            {isPricingUnavailable && (
+                                <p className="ui-text-muted text-[10px] font-bold">{t('feesUnavailable')}</p>
+                            )}
+                        </div>
+                    )}
                     {groupSessionId && groupParticipants.length > 1 && (
                         <button
                             onClick={() => setShowBillSplitter(true)}

@@ -120,6 +120,31 @@ export const fetchTableQuantity = async (branchId: string): Promise<{ quantity: 
     return { quantity: 0, is_available: false };
   }
 };
+
+export const fetchCheckoutFeeRates = async (branchId: string): Promise<{ serviceFeeRate: number; platformFeeRate: number }> => {
+  try {
+    if (!branchId) {
+      return { serviceFeeRate: 0, platformFeeRate: 0 };
+    }
+
+    const response = await fetch(`/api/checkout/pricing?branchId=${encodeURIComponent(branchId)}`);
+    if (!response.ok) {
+      return { serviceFeeRate: 0, platformFeeRate: 0 };
+    }
+
+    const data = await response.json();
+    const serviceFeeRate = Number(data?.serviceFeeRate);
+    const platformFeeRate = Number(data?.platformFeeRate);
+
+    return {
+      serviceFeeRate: Number.isFinite(serviceFeeRate) ? serviceFeeRate : 0,
+      platformFeeRate: Number.isFinite(platformFeeRate) ? platformFeeRate : 0,
+    };
+  } catch {
+    return { serviceFeeRate: 0, platformFeeRate: 0 };
+  }
+};
+
 export const fetchBranches = async (): Promise<any[]> => {
   try {
     const response = await fetch('/api/branches');
@@ -380,7 +405,15 @@ export const listOrderBids = async (orderId: string): Promise<{ orderId: string;
 export const acceptBid = async (
   orderId: string,
   bidId: string
-): Promise<{ orderId: string; status: string; label: string | null; deliveryFinalPrice: number }> => {
+): Promise<{
+  orderId: string;
+  status: string;
+  label: string | null;
+  deliveryFinalPrice: number;
+  subtotal: number;
+  feesTotal: number;
+  customerTotal: number;
+}> => {
   const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/bids/${encodeURIComponent(bidId)}/accept`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }
@@ -399,7 +432,10 @@ export const acceptBid = async (
     label: typeof payload?.label === 'string'
       ? payload.label
       : (typeof payload?.statusLabel === 'string' ? payload.statusLabel : null),
-    deliveryFinalPrice: Number(payload?.deliveryFinalPrice ?? 0)
+    deliveryFinalPrice: Number(payload?.deliveryFinalPrice ?? 0),
+    subtotal: Number(payload?.subtotal ?? 0),
+    feesTotal: Number(payload?.feesTotal ?? 0),
+    customerTotal: Number(payload?.customerTotal ?? payload?.total ?? 0),
   };
 };
 
