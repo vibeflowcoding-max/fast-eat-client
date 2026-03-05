@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { constructSecureUrl } from '@/lib/url-utils';
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,9 +29,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (target === 'n8n') {
-      url = `${isTest ? N8N_TEST_BASE_URL : N8N_BASE_URL}/${WEBHOOK_ID}`;
+      url = constructSecureUrl(isTest ? N8N_TEST_BASE_URL : N8N_BASE_URL, WEBHOOK_ID || '');
     } else if (target === 'fast-eat') {
-      url = `${FAST_EAT_API_URL}${body.path}`;
+      url = constructSecureUrl(FAST_EAT_API_URL, body.path || '');
       delete body.path;
     }
 
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
 
   if (target === 'fast-eat' && path) {
     try {
-      const url = `${process.env.FAST_EAT_API_URL}${path}`;
+      const url = constructSecureUrl(process.env.FAST_EAT_API_URL, path);
       const response = await fetch(url);
       const data = await response.json();
       return NextResponse.json(data);

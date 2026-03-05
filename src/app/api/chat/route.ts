@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { constructSecureUrl } from '@/lib/url-utils';
 
 export async function POST(req: NextRequest) {
   try {
@@ -6,9 +7,9 @@ export async function POST(req: NextRequest) {
     
     const N8N_BASE_URL = process.env.N8N_BASE_URL;
     const N8N_TEST_BASE_URL = process.env.N8N_TEST_BASE_URL;
-    const WEBHOOK_ID = process.env.N8N_WEBHOOK_ID;
+    const WEBHOOK_ID = process.env.N8N_WEBHOOK_ID || '';
 
-    const url = `${isTest ? N8N_TEST_BASE_URL : N8N_BASE_URL}/${WEBHOOK_ID}`;
+    const url = constructSecureUrl(isTest ? N8N_TEST_BASE_URL : N8N_BASE_URL, WEBHOOK_ID);
     console.log(`[API/Chat] Forwarding to n8n: ${url}`);
 
     const response = await fetch(url, {

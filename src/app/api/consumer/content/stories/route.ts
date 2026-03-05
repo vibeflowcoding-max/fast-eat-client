@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { constructSecureUrl } from '@/lib/url-utils';
 
 function parseBearerHeader(request: NextRequest): string | null {
   const header = request.headers.get('authorization') || request.headers.get('Authorization');
@@ -26,7 +27,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
     }
 
-    const targetUrl = new URL('/api/consumer/content/stories', apiUrl);
+    const baseSecureUrl = constructSecureUrl(apiUrl, '/api/consumer/content/stories');
+    const targetUrl = new URL(baseSecureUrl);
     request.nextUrl.searchParams.forEach((value, key) => {
       targetUrl.searchParams.set(key, value);
     });

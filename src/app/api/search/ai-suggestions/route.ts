@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { constructSecureUrl } from '@/lib/url-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -154,7 +155,9 @@ async function callAiProvider(payload: { systemPrompt: string; query: string }) 
     return null;
   }
 
-  const response = await fetch(webhookUrl, {
+  const secureUrl = constructSecureUrl(webhookUrl, '');
+
+  const response = await fetch(secureUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'

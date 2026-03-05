@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { constructSecureUrl } from '@/lib/url-utils';
 import {
     buildRecommendationItems,
     getRestaurantRows,
@@ -83,7 +84,9 @@ async function callDiscoveryWebhook(payload: ChatRequestBody, traceId: string) {
         return null;
     }
 
-    const response = await fetch(webhookUrl, {
+    const secureUrl = constructSecureUrl(webhookUrl, '');
+
+    const response = await fetch(secureUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

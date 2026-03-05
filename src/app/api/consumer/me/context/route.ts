@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { constructSecureUrl } from '@/lib/url-utils';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
-    const response = await fetch(`${apiUrl}/api/consumer/v1/me/context`, {
+    const response = await fetch(constructSecureUrl(apiUrl, '/api/consumer/v1/me/context'), {
       method: 'GET',
       headers: {
         Authorization: authHeader,
