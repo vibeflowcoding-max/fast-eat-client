@@ -43,7 +43,7 @@ interface CartState {
     favorites: string[];
     recentSearches: Array<{ id: string; query: string; created_at: string }>;
     orderHistorySummary: { total: number; recent: any[] } | null;
-    settings: { shareActivity: boolean; dietaryProfile: any } | null;
+    settings: { shareActivity: boolean; dietaryProfile: import('./types').DietaryProfile | null } | null;
   } | null;
 
   // Group Cart State
@@ -100,7 +100,7 @@ interface CartState {
     favorites?: string[];
     recentSearches?: Array<{ id: string; query: string; created_at: string }>;
     orderHistorySummary?: { total: number; recent: any[] } | null;
-    settings?: { shareActivity: boolean; dietaryProfile: any } | null;
+    settings?: { shareActivity: boolean; dietaryProfile: import('./types').DietaryProfile | null } | null;
   }) => void;
 }
 
