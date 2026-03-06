@@ -224,23 +224,23 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             }
 
             try {
-                // If initializing with a real ID, we set the cookie AND set the store to ':branchId'
-                // This means ':branchId' implies "Valid Session Active"
+                // If initializing with a real ID, we set the session cookie.
                 await fetch('/api/session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ branchId: bId })
                 });
-
+            } catch (e) {
+                console.error("Failed to sync session", e);
+            } finally {
                 // CRITICAL FIX: We must set the REAL ID here.
-                // The modal logic checks if (branchId === ':branchId') to SHOW the modal.
-                // So setting it to the real ID ensures the modal closes.
+                // The modal logic checks if (branchId === ':branchId' || !branchId) to SHOW the modal.
+                // So setting it to the real ID ensures the modal closes and data fetching starts.
                 setBranchId(bId);
 
                 // Clean URL if it has raw ID to hide it, but keep it if it is a phone param
+                // We do this in finally to ensure a clean URL regardless of the API success
                 if (urlBranch) router.replace(pathname);
-            } catch (e) {
-                console.error("Failed to sync session", e);
             }
         };
 
