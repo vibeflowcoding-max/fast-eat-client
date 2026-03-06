@@ -14,7 +14,7 @@ export default function GroupCartJoinPage() {
     useEffect(() => {
         if (sessionId) {
             // Create a random unique ID for the guest
-            const guestId = `guest_${Math.random().toString(36).substring(2, 9)}`;
+            const guestId = `guest_${crypto.randomUUID().split('-')[0]}`;
 
             // Attempt to find user's name if they have one set in the store
             const existingName = useCartStore.getState().customerName || 'Amigo/a';

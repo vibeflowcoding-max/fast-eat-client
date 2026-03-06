@@ -15,8 +15,8 @@ export default function GroupCartWidget() {
     useGroupCartSync();
 
     const handleCreateGroup = () => {
-        const newSessionId = `grp_${Math.random().toString(36).substring(2, 9)}`;
-        const hostId = `host_${Math.random().toString(36).substring(2, 9)}`;
+        const newSessionId = `grp_${crypto.randomUUID().split('-')[0]}`;
+        const hostId = `host_${crypto.randomUUID().split('-')[0]}`;
         const hostName = useCartStore.getState().customerName || 'Yo (Anfitrión)';
         setGroupSession(newSessionId, true, hostId, hostName);
     };
