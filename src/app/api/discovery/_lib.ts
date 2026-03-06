@@ -142,22 +142,27 @@ function isDealActiveNow(deal: Pick<DealRow, 'starts_at' | 'ends_at'>) {
     return true;
 }
 
-function toRad(deg: number) {
-    return deg * (Math.PI / 180);
-}
-
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
     const earthRadiusKm = 6371;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
+    const toRad = Math.PI / 180;
+
+    // Convert to radians once
+    const radLat1 = lat1 * toRad;
+    const radLat2 = lat2 * toRad;
+    const dLat = radLat2 - radLat1;
+    const dLon = (lon2 - lon1) * toRad;
+
+    const sinDLat2 = Math.sin(dLat / 2);
+    const sinDLon2 = Math.sin(dLon / 2);
 
     const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        sinDLat2 * sinDLat2 +
+        Math.cos(radLat1) * Math.cos(radLat2) *
+        sinDLon2 * sinDLon2;
 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return earthRadiusKm * c;
+    // Math.asin is mathematically equivalent to Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    // but noticeably faster in V8/JavaScript engines.
+    return earthRadiusKm * 2 * Math.asin(Math.sqrt(a));
 }
 
 function getRankingWeights(): RankingWeights {
