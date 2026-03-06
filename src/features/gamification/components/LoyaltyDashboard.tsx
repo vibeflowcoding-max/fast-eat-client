@@ -11,16 +11,10 @@ interface LoyaltyDashboardProps {
 
 export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
     const { points, currentStreak, longestStreak, badges, resetStreakIfExpired } = useLoyaltyStore();
-    const [isMounted, setIsMounted] = React.useState(false);
 
     useEffect(() => {
         resetStreakIfExpired();
     }, [resetStreakIfExpired]);
-
-    useEffect(() => {
-        setIsMounted(true);
-        return () => setIsMounted(false);
-    }, []);
 
     const POINTS_PER_TIER = 2000;
     const currentTierProgress = (points % POINTS_PER_TIER) / POINTS_PER_TIER;
@@ -61,7 +55,7 @@ export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
         return () => window.removeEventListener('keydown', handleEscape);
     }, [handleClose]);
 
-    if (!isMounted) {
+    if (typeof document === 'undefined') {
         return null;
     }
 

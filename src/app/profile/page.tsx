@@ -152,7 +152,7 @@ export default function ProfilePage() {
     }
 
     fetchProfile();
-  }, [hydrateClientContext, parseCoordsFromGoogleMapsUrl, setCustomerName, setFromNumber, t]);
+  }, [customerName, fromNumber, hydrateClientContext, parseCoordsFromGoogleMapsUrl, setCustomerName, setFromNumber, t]);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') {

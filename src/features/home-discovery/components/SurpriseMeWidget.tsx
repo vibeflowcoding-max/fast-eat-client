@@ -143,7 +143,7 @@ export default function SurpriseMeWidget({ onRecommendationClick }: SurpriseMeWi
                                     {result.itemId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                                 </h3>
                                 <p className="text-xs text-slate-600 dark:text-slate-300 mt-1.5 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-orange-100 dark:border-slate-800 leading-relaxed">
-                                    "{result.justification}"
+                                    &ldquo;{result.justification}&rdquo;
                                 </p>
                             </div>
 

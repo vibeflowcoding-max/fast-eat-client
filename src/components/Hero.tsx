@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { RestaurantInfo } from '../types';
 
 interface HeroProps {
@@ -8,10 +9,13 @@ interface HeroProps {
 const Hero: React.FC<HeroProps> = ({ restaurantInfo }) => {
     return (
         <div className="h-[20vh] md:h-[45vh] w-full relative overflow-hidden">
-            <img
+            <Image
                 src="https://images.unsplash.com/photo-1579027989536-b7b1f875659b?auto=format&fit=crop&q=80&w=1600"
-                className="w-full h-full object-cover"
                 alt="Hero"
+                fill
+                priority
+                sizes="100vw"
+                className="object-cover"
             />
             <div className="absolute inset-0 hero-overlay flex flex-col items-center justify-center text-white text-center p-4">
                 <span className="text-[var(--color-brand)] text-xl md:text-5xl mb-1 md:mb-4 font-bold tracking-widest">

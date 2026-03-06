@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { RestaurantWithBranches } from '@/types';
@@ -76,26 +78,6 @@ function getLocalizedCategoryName(name: string, isEnglish: boolean): string {
     return CATEGORY_EN_MAP[normalizeCategoryName(name)] ?? name;
 }
 
-function reviewConfidenceLabel(reviewCount?: number | null) {
-    if (!reviewCount || reviewCount < 25) return 'Baja';
-    if (reviewCount < 90) return 'Media';
-    return 'Alta';
-}
-
-function getMetricErrors(restaurant: RestaurantWithBranches) {
-    const errors: string[] = [];
-
-    if (typeof restaurant.eta_min !== 'number' || Number.isNaN(restaurant.eta_min) || restaurant.eta_min <= 0) {
-        errors.push('ETA no disponible');
-    }
-
-    if (typeof restaurant.avg_price_estimate !== 'number' || Number.isNaN(restaurant.avg_price_estimate) || restaurant.avg_price_estimate <= 0) {
-        errors.push('Total estimado no disponible');
-    }
-
-    return errors;
-}
-
 export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardProps) {
     const router = useRouter();
     const locale = useLocale();
@@ -111,10 +93,8 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
     const etaMinutes = restaurant.eta_min;
     const finalPriceEstimate = restaurant.avg_price_estimate;
     const rating = restaurant.rating;
-    const reviewCount = restaurant.review_count;
     const hasPromo = Boolean(restaurant.promo_text);
     const deliveryFeeHint = primaryBranch?.estimated_delivery_fee ?? restaurant.estimated_delivery_fee;
-    const reviewConfidence = reviewConfidenceLabel(reviewCount);
     const hasRating = typeof rating === 'number' && !Number.isNaN(rating) && rating > 0;
     const ratingLabel = hasRating ? rating.toFixed(1) : t('noReviews');
 

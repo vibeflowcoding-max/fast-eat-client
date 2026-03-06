@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { MenuItem, OrderMetadata } from '@/types';
@@ -44,9 +44,9 @@ interface MainAppProps {
 }
 
 export default function MainApp({ initialBranchId }: MainAppProps) {
-    const normalizePhone = (value: string): string => String(value || '').replace(/\D/g, '');
+    const normalizePhone = useCallback((value: string): string => String(value || '').replace(/\D/g, ''), []);
 
-    const isValidPhone = (value: string): boolean => {
+    const isValidPhone = useCallback((value: string): boolean => {
         const digits = normalizePhone(value);
         if (!digits) return false;
 
@@ -55,7 +55,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         }
 
         return digits.length >= 8 && digits.length <= 15;
-    };
+    }, [normalizePhone]);
 
     // Store
     const {
@@ -148,6 +148,11 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         locationOverriddenFromProfile: false,
         locationDifferenceAcknowledged: false,
     });
+
+    const handleAddToCart = useCallback(
+        (newItem: Parameters<typeof addToCart>[0]) => addToCart(newItem, orderMetadata),
+        [addToCart, orderMetadata]
+    );
 
     const profileLocation = useMemo(() => {
         const canonicalUrl = extractGoogleMapsUrl(customerAddress?.urlAddress)
@@ -317,7 +322,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                 setShowPhonePrompt(true);
             }
         }
-    }, [searchParams, pathname, initialBranchId, isAuthenticated]);
+    }, [initialBranchId, isAuthenticated, isValidPhone, normalizePhone, pathname, router, searchParams, setBranchId, setCustomerId, setFromNumber]);
 
     // Sync Global Customer Name to Local Metadata
     useEffect(() => {
@@ -616,7 +621,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             }
         }, 1000);
         return () => clearInterval(interval);
-    }, [expirationTime]);
+    }, [expirationTime, setChefNotification]);
 
     // Update payment/service options when restaurantInfo changes
     useEffect(() => {
@@ -963,7 +968,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                                 No encontramos resultados
                             </h3>
                             <p className="text-gray-500 font-bold text-sm mt-2">
-                                "{searchQuery}" no coincide con ningún plato.
+                                &ldquo;{searchQuery}&rdquo; no coincide con ningún plato.
                             </p>
                             <button
                                 onClick={() => setSearchQuery('')}
@@ -977,7 +982,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                             <MenuItemCard
                                 key={item.id}
                                 item={item}
-                                onAddToCart={(newItem) => addToCart(newItem, orderMetadata)}
+                                onAddToCart={handleAddToCart}
                                 currentQuantity={itemQuantities[item.id] || 0}
                                 isHighlighted={highlightedItemId === String(item.id)}
                             />
@@ -997,7 +1002,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                                 <MenuItemCard
                                     key={item.id}
                                     item={item}
-                                    onAddToCart={(newItem) => addToCart(newItem, orderMetadata)}
+                                    onAddToCart={handleAddToCart}
                                     currentQuantity={itemQuantities[item.id] || 0}
                                     isHighlighted={highlightedItemId === String(item.id)}
                                 />

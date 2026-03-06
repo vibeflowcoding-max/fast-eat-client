@@ -4,26 +4,6 @@ import { APP_CONSTANTS } from '../constants';
 export type InteractionType = 'chat' | 'carrito' | 'generar_orden' | 'get_carrito' | 'delete_cart';
 export type CartAction = 'add' | 'increment' | 'reduce' | 'remove' | 'details' | 'clear' | 'none' | 'recommendation' | 'add-to-cart';
 
-const PROXY_URL = '/api/external';
-
-const cleanJsonResponse = (text: string): any => {
-  if (!text) return null;
-  const trimmed = text.trim();
-  try {
-    return JSON.parse(trimmed);
-  } catch (e) {
-    const matches = trimmed.match(/(\{[\s\S]*\}|\[[\s\S]*\])/g);
-    if (matches) {
-      try {
-        return JSON.parse(matches[0]);
-      } catch (e2) {
-        console.warn("No se pudo parsear el JSON extraído");
-      }
-    }
-    return null;
-  }
-};
-
 const extractDataFromN8N = (data: any) => {
   if (!data) return { message: "", action: "none", confirmation: false };
 
@@ -70,11 +50,17 @@ const mapBidFromApi = (bid: any): DeliveryBid => ({
   createdAt: String(bid?.createdAt ?? bid?.created_at ?? new Date().toISOString())
 });
 
-export const fetchMenuFromAPI = async (branchId: string): Promise<{ items: MenuItem[], categories: string[] }> => {
+export const fetchMenuFromAPI = async (
+  branchId: string,
+  signal?: AbortSignal,
+): Promise<{ items: MenuItem[], categories: string[] }> => {
   try {
-    // Use placeholder to hide real ID, but keep correct structure for Fast Eat API
-    const path = `/mcp/public/branches/:branchId/menu`;
-    const response = await fetch(`${PROXY_URL}?target=fast-eat&path=${encodeURIComponent(path)}`);
+    const normalizedBranchId = String(branchId || '').trim();
+    if (!normalizedBranchId) {
+      return { items: [], categories: [] };
+    }
+
+    const response = await fetch(`/api/menu/branch/${encodeURIComponent(normalizedBranchId)}`, { signal });
     if (!response.ok) throw new Error('Error al cargar el menú');
     const data = await response.json();
     const rawItems = Array.isArray(data) ? data : (data.menu || []);
@@ -94,10 +80,17 @@ export const fetchMenuFromAPI = async (branchId: string): Promise<{ items: MenuI
   }
 };
 
-export const fetchRestaurantInfo = async (branchId: string): Promise<import('../types').RestaurantInfo | null> => {
+export const fetchRestaurantInfo = async (
+  branchId: string,
+  signal?: AbortSignal,
+): Promise<import('../types').RestaurantInfo | null> => {
   try {
-    const path = `/restaurants/public/branch/:branchId`;
-    const response = await fetch(`${PROXY_URL}?target=fast-eat&path=${encodeURIComponent(path)}`);
+    const normalizedBranchId = String(branchId || '').trim();
+    if (!normalizedBranchId) {
+      return null;
+    }
+
+    const response = await fetch(`/api/restaurants/public/branch/${encodeURIComponent(normalizedBranchId)}`, { signal });
     if (!response.ok) throw new Error('Error al cargar la información del restaurante');
     const data = await response.json();
     if (data.success && data.data) {
@@ -110,9 +103,12 @@ export const fetchRestaurantInfo = async (branchId: string): Promise<import('../
   }
 };
 
-export const fetchTableQuantity = async (branchId: string): Promise<{ quantity: number, is_available: boolean }> => {
+export const fetchTableQuantity = async (
+  branchId: string,
+  signal?: AbortSignal,
+): Promise<{ quantity: number, is_available: boolean }> => {
   try {
-    const response = await fetch(`/api/tables?branchId=${branchId}`);
+    const response = await fetch(`/api/tables?branchId=${branchId}`, { signal });
     if (!response.ok) return { quantity: 0, is_available: false };
     return await response.json();
   } catch (error) {
@@ -168,16 +164,6 @@ export const sendChatToN8N = async (
   isTest: boolean = false
 ) => {
   try {
-    const n8nOrderTypeMap: Record<string, string> = {
-      'comer_aca': 'comer_ahi',
-      'comer_aqui': 'comer_ahi',
-      'dine_in': 'comer_ahi',
-      'domicilio': 'domicilio',
-      'delivery': 'domicilio',
-      'recoger': 'recoger',
-      'pickup': 'recoger'
-    };
-
     const payload = {
       message,
       fromNumber,
@@ -209,9 +195,8 @@ export const sendChatToN8N = async (
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        target: 'n8n',
+        ...payload,
         isTest,
-        body: payload
       }),
     });
 
@@ -226,7 +211,7 @@ export const sendChatToN8N = async (
       order_id: extracted.order_id,
       order_number: extracted.order_number
     };
-  } catch (error) {
+  } catch {
     return {
       output: APP_CONSTANTS.MESSAGES.CONNECTION_ERROR,
       action: "none" as CartAction,
@@ -298,13 +283,12 @@ export const getCartFromN8N = async (branchId: string, fromNumber: string, isTes
       branch_id: branchId,
       intencion: "get_carrito"
     };
-    const response = await fetch('/api/chat', { // Updated to use /api/chat
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        target: 'n8n',
+        ...payload,
         isTest,
-        body: payload
       }),
     });
     const rawData = await response.json();
@@ -312,22 +296,12 @@ export const getCartFromN8N = async (branchId: string, fromNumber: string, isTes
     const finalData = data?.output || data;
     if (finalData?.cart?.items) return finalData.cart.items;
     return [];
-  } catch (error) {
+  } catch {
     return [];
   }
 };
 
 export const sendOrderToN8N = async (message: string, cart: CartItem[], branchId: string, fromNumber: string, interaction: string, action: string, item: any, orderMetadata: OrderMetadata, isTest: boolean = false): Promise<any> => {
-  const n8nOrderTypeMap: Record<string, string> = {
-    'comer_aca': 'comer_ahi',
-    'comer_aqui': 'comer_ahi',
-    'dine_in': 'comer_ahi',
-    'domicilio': 'domicilio',
-    'delivery': 'domicilio',
-    'recoger': 'recoger',
-    'pickup': 'recoger'
-  };
-
   const payload = {
     message,
     fromNumber,
@@ -357,9 +331,8 @@ export const sendOrderToN8N = async (message: string, cart: CartItem[], branchId
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      target: 'n8n',
+      ...payload,
       isTest,
-      body: payload
     }),
   });
 

@@ -60,7 +60,7 @@ function AuthCallbackContent() {
     return () => {
       cancelled = true;
     };
-  }, [router, searchParams]);
+  }, [router, searchParams, t]);
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-10">

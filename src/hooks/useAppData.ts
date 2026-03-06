@@ -39,24 +39,22 @@ export const useAppData = () => {
     setError(null);
 
     try {
-      // 1. Load Restaurant Info (CRITICAL)
-      try {
-        const info = await fetchRestaurantInfo(branchId);
-        if (info && isCurrentCycle()) {
-          setRestaurantInfo(info);
-        }
-      } catch (e) {
-        console.error("Failed to fetch restaurant info", e);
+      // Step A: parallel — restInfo and tableQty are independent, run together
+      const [infoResult, tableResult] = await Promise.allSettled([
+        fetchRestaurantInfo(branchId, signal),
+        fetchTableQuantity(branchId, signal),
+      ]);
+
+      if (infoResult.status === 'fulfilled' && infoResult.value && isCurrentCycle()) {
+        setRestaurantInfo(infoResult.value);
+      } else if (infoResult.status === 'rejected') {
+        console.error("Failed to fetch restaurant info", infoResult.reason);
       }
 
-      // 2. Load Table Quantity (Optional/Non-blocking)
-      try {
-        const tableData = await fetchTableQuantity(branchId);
-        if (tableData && tableData.is_available && tableData.quantity > 0 && isCurrentCycle()) {
-          setTableQuantity(tableData.quantity);
-        }
-      } catch (e) {
-        console.error("Failed to fetch table quantity", e);
+      if (tableResult.status === 'fulfilled' && tableResult.value?.is_available && tableResult.value.quantity > 0 && isCurrentCycle()) {
+        setTableQuantity(tableResult.value.quantity);
+      } else if (tableResult.status === 'rejected') {
+        console.error("Failed to fetch table quantity", tableResult.reason);
       }
 
       if (!fromNumber) {
@@ -66,11 +64,11 @@ export const useAppData = () => {
         return;
       }
 
-      // 3. Load Menu and Categories (CRITICAL)
+      // Step B: critical path — fetch menu (unblocks UI immediately after)
       let items: MenuItem[] = [];
       let apiCategories: string[] = [];
       try {
-        const menuResult = await fetchMenuFromAPI(branchId);
+        const menuResult = await fetchMenuFromAPI(branchId, signal);
         items = menuResult.items;
         apiCategories = menuResult.categories;
 
@@ -89,11 +87,11 @@ export const useAppData = () => {
         }
       }
 
-      // 4. Sync Initial Cart from Server (Optional/Non-blocking)
-      if (items.length > 0) {
-        try {
-          const serverItems = await getCartFromN8N(branchId, fromNumber, isTestMode);
-          if (serverItems && Array.isArray(serverItems)) {
+      // Step C: fire-and-forget cart sync — runs in background, never stalls the menu
+      if (items.length > 0 && fromNumber) {
+        getCartFromN8N(branchId, fromNumber, isTestMode)
+          .then((serverItems) => {
+            if (!serverItems || !Array.isArray(serverItems) || !isCurrentCycle()) return;
             const syncedCart: CartItem[] = serverItems.map((sItem: any) => {
               const itemId = sItem.item_id || sItem.id;
               const itemName = sItem.nombre || sItem.name;
@@ -115,17 +113,15 @@ export const useAppData = () => {
                 notes: itemNotes
               };
             });
-            
+
             if (syncedCart.length > 0) {
               setItems(syncedCart);
               if (!expirationTime) {
                 setExpirationTime(Date.now() + 40 * 60 * 1000);
               }
             }
-          }
-        } catch (e) {
-          console.error("Failed to sync cart from server", e);
-        }
+          })
+          .catch((e) => console.error("Failed to sync cart from server", e));
       }
     } catch (e) {
       console.error("Fatal error during app data initialization", e);
@@ -133,6 +129,7 @@ export const useAppData = () => {
         setError(APP_CONSTANTS.MESSAGES.LOAD_ERROR);
       }
     } finally {
+      // Ensure loading is cleared even on unexpected errors
       if (isCurrentCycle()) {
         setLoading(false);
       }

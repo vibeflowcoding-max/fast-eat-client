@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveAuthenticatedCustomer } from '@/app/api/_lib/auth';
 import { getSupabaseServer } from '@/lib/supabase-server';
-import { ensureCustomerByPhone } from '@/app/api/customer/_lib';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,20 +58,17 @@ function isUnknownColumnError(error: unknown): boolean {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabaseServer = getSupabaseServer();
-    const { searchParams } = new URL(request.url);
-    const phone = searchParams.get('phone')?.trim();
-
-    if (!phone) {
-      return NextResponse.json({ address: null });
+    const resolved = await resolveAuthenticatedCustomer(request);
+    if (resolved instanceof NextResponse) {
+      return resolved;
     }
 
-    const { customerId } = await ensureCustomerByPhone({ phone });
+    const supabaseServer = getSupabaseServer();
 
     const { data, error } = await (supabaseServer as any)
       .from('customer_address')
       .select('*')
-      .eq('customer_id', customerId)
+      .eq('customer_id', resolved.customerId)
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -93,11 +90,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const resolved = await resolveAuthenticatedCustomer(request);
+    if (resolved instanceof NextResponse) {
+      return resolved;
+    }
+
     const supabaseServer = getSupabaseServer();
     const body = await request.json();
 
-    const phone = typeof body?.phone === 'string' ? body.phone.trim() : '';
-    const fullName = typeof body?.fullName === 'string' ? body.fullName.trim() : '';
     const urlAddress = typeof body?.urlAddress === 'string' ? body.urlAddress.trim() : '';
     const buildingType = typeof body?.buildingType === 'string' ? body.buildingType.trim() : '';
     const unitDetails = typeof body?.unitDetails === 'string' ? body.unitDetails.trim() : null;
@@ -108,10 +108,6 @@ export async function POST(request: NextRequest) {
     const formattedAddress = typeof body?.formattedAddress === 'string' ? body.formattedAddress.trim() : undefined;
     const placeId = typeof body?.placeId === 'string' ? body.placeId.trim() : undefined;
 
-    if (!phone) {
-      return NextResponse.json({ error: 'phone is required' }, { status: 400 });
-    }
-
     if (!urlAddress) {
       return NextResponse.json({ error: 'urlAddress is required' }, { status: 400 });
     }
@@ -120,10 +116,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'buildingType is invalid' }, { status: 400 });
     }
 
-    const { customerId } = await ensureCustomerByPhone({ phone, fullName });
-
     const baseUpsertPayload = {
-      customer_id: customerId,
+      customer_id: resolved.customerId,
       url_address: urlAddress,
       building_type: buildingType,
       unit_details: unitDetails,

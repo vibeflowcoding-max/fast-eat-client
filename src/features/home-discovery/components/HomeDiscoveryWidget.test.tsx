@@ -50,7 +50,6 @@ describe('HomeDiscoveryWidget integration', () => {
   it('renders recommendation cards from assistant response and forwards CTA actions', async () => {
     const user = userEvent.setup();
     const onRecommendationClick = vi.fn();
-    const onCompareRequest = vi.fn();
 
     render(
       <HomeDiscoveryWidget
@@ -65,10 +64,8 @@ describe('HomeDiscoveryWidget integration', () => {
     await user.click(screen.getByRole('button', { name: 'Ver restaurante' }));
     expect(onRecommendationClick).toHaveBeenCalledWith('restaurant-1');
 
-    await user.click(screen.getByRole('button', { name: 'Comparar' }));
-    expect(onCompareRequest).toHaveBeenCalledWith(
-      expect.arrayContaining([expect.objectContaining({ restaurantId: 'restaurant-1' })])
-    );
+    await user.click(screen.getByRole('button', { name: '¿Quieres comparar opciones?' }));
+    expect(sendMessage).toHaveBeenCalledWith('¿Quieres comparar opciones?');
   });
 
   it('supports keyboard close on Escape for assistant dialog', async () => {

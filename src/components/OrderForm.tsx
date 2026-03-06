@@ -26,14 +26,18 @@ interface OrderFormProps {
     tableQuantity?: number;
 }
 
+function toLocalDateTimeValue(date: Date): string {
+    return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+}
+
 const OrderForm: React.FC<OrderFormProps> = ({
     orderMetadata,
     setOrderMetadata,
     paymentOptions,
     serviceOptions,
     fromNumber,
-    isLocating,
-    onGetLocation,
+    isLocating: _isLocating,
+    onGetLocation: _onGetLocation,
     hasProfileLocation = false,
     profileLocationLabel,
     isUsingDifferentDeliveryLocation = false,
@@ -49,6 +53,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     tableQuantity = 0
 }) => {
     const t = useTranslations('checkout.orderForm');
+    const [minimumScheduledDateTime] = React.useState(() => toLocalDateTimeValue(new Date()));
 
     return (
         <div className="ui-panel p-6 rounded-3xl border-2 space-y-6">
@@ -282,7 +287,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                                 checked={!!orderMetadata.scheduledFor}
                                 onChange={(e) => setOrderMetadata({
                                     ...orderMetadata,
-                                    scheduledFor: e.target.checked ? new Date(Date.now() + 3600000 - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16) : null
+                                    scheduledFor: e.target.checked ? toLocalDateTimeValue(new Date(Date.now() + 3600000)) : null
                                 })}
                             />
                             <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-brand)]"></div>
@@ -301,7 +306,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                                 type="datetime-local"
                                 className="w-full px-4 py-3 ui-panel-soft border-2 rounded-xl text-sm font-black focus:outline-none focus:border-[var(--color-brand)] transition-all"
                                 value={orderMetadata.scheduledFor}
-                                min={new Date(Date.now() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16)}
+                                min={minimumScheduledDateTime}
                                 onChange={(e) => setOrderMetadata({ ...orderMetadata, scheduledFor: e.target.value })}
                             />
                         </div>

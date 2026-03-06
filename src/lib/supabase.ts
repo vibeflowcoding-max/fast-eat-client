@@ -2,16 +2,14 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const fallbackSupabaseUrl = 'https://placeholder.supabase.co';
-const fallbackSupabaseAnonKey = 'placeholder-anon-key';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("Supabase credentials missing. Table selection features might not work.");
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. Configure Supabase browser credentials.');
 }
 
 export const supabase = createClient(
-  supabaseUrl || fallbackSupabaseUrl,
-  supabaseAnonKey || fallbackSupabaseAnonKey,
+  supabaseUrl,
+  supabaseAnonKey,
   {
     auth: {
       persistSession: true,

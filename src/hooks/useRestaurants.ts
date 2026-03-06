@@ -69,9 +69,7 @@ export function useRestaurants({ categoryId, userLocation }: UseRestaurantsOptio
         }
     }, []);
 
-    const fetchRestaurants = useCallback(async () => {
-        const controller = new AbortController();
-
+    const fetchRestaurants = useCallback(async (signal?: AbortSignal) => {
         setLoading(true);
         setError(null);
 
@@ -88,41 +86,36 @@ export function useRestaurants({ categoryId, userLocation }: UseRestaurantsOptio
             }
 
             const url = `/api/restaurants${params.toString() ? `?${params.toString()}` : ''}`;
-            const response = await fetch(url, { signal: controller.signal });
+            const response = await fetch(url, { signal });
 
             if (!response.ok) {
                 throw new Error('Failed to fetch restaurants');
             }
 
             const data = await response.json();
-            if (!controller.signal.aborted) {
+            if (!signal?.aborted) {
                 setRestaurants(Array.isArray(data) ? data : []);
             }
         } catch (err) {
-            if (controller.signal.aborted) {
+            if (signal?.aborted) {
                 return;
             }
 
             setError(err instanceof Error ? err.message : 'Unknown error');
         } finally {
-            if (!controller.signal.aborted) {
+            if (!signal?.aborted) {
                 setLoading(false);
             }
         }
-        return () => {
-            controller.abort();
-        };
     }, [categoryId, latitude, longitude]);
 
     useEffect(() => {
-        let cancel: (() => void) | undefined;
+        const controller = new AbortController();
 
-        fetchRestaurants().then((cleanup) => {
-            cancel = cleanup;
-        });
+        void fetchRestaurants(controller.signal);
 
         return () => {
-            cancel?.();
+            controller.abort();
         };
     }, [fetchRestaurants]);
 
@@ -171,5 +164,11 @@ export function useRestaurants({ categoryId, userLocation }: UseRestaurantsOptio
         return rankedResults;
     }, [latitude, longitude, setSuggestionCache]);
 
-    return { restaurants, loading, error, refetch: fetchRestaurants, fetchSuggestions };
+    return {
+        restaurants,
+        loading,
+        error,
+        refetch: () => fetchRestaurants(),
+        fetchSuggestions,
+    };
 }

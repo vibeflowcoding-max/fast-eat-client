@@ -59,8 +59,8 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({
     restaurantInfo,
-    isTestMode,
-    toggleTestMode,
+    isTestMode: _isTestMode,
+    toggleTestMode: _toggleTestMode,
     onShowHistory,
     onOpenCart,
     totalItemsCount,
@@ -76,7 +76,7 @@ const Navbar: React.FC<NavbarProps> = ({
     isLoading,
     onOpenReviews,
     onGoBack,
-    customerName,
+    customerName: _customerName,
     searchQuery,
     setSearchQuery,
 }) => {

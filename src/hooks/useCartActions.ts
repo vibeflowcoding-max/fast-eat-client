@@ -3,6 +3,7 @@ import { useCartStore } from '../store';
 import { sendChatToN8N, submitOrderToMCP, CartAction } from '../services/api';
 import { CartItem, OrderMetadata } from '../types';
 import { normalizePhoneWithSinglePlus } from '@/lib/phone';
+import { getAuthenticatedJsonHeaders } from '@/lib/client-auth';
 
 export const useCartActions = () => {
   const {
@@ -55,7 +56,7 @@ export const useCartActions = () => {
         } else {
           setChefNotification({ content: "Lo sentimos, hubo un problema al sincronizar. 🏮" });
         }
-      } catch (error) {
+      } catch {
         setChefNotification({ content: "Error de conexión. 🏮" });
       } finally {
         setIsSyncing(false);
@@ -105,7 +106,7 @@ export const useCartActions = () => {
         setChefNotification({ content: "Error en el servidor. 🏮" });
         return false;
       }
-    } catch (e) {
+    } catch {
       setChefNotification({ content: "Error de conexión. 🏮" });
       return false;
     } finally {
@@ -125,7 +126,7 @@ export const useCartActions = () => {
         setChefNotification({ content: "No se pudo vaciar el carrito." });
         return false;
       }
-    } catch (e) {
+    } catch {
       setChefNotification({ content: "Error de red al vaciar el carrito." });
       return false;
     } finally {
@@ -165,14 +166,12 @@ export const useCartActions = () => {
           return false;
         }
 
+        const headers = await getAuthenticatedJsonHeaders();
+
         const saveAddressResponse = await fetch('/api/customer/address', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({
-            phone: normalizedCustomerPhone,
-            fullName: canonicalCustomerName,
             urlAddress,
             buildingType: 'Other',
             unitDetails: null,

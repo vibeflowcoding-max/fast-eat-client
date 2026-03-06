@@ -66,9 +66,9 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
     };
 
     const expandedOrder = orders.find((order) => order.orderId === expandedOrderId) || null;
-    const expandedOrderBids = expandedOrder ? (bidsByOrderId[expandedOrder.orderId] || []) : [];
 
     const sortedBids = useMemo(() => {
+        const expandedOrderBids = expandedOrderId ? (bidsByOrderId[expandedOrderId] || []) : [];
         const byCreatedAtAsc = (a: typeof expandedOrderBids[number], b: typeof expandedOrderBids[number]) =>
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 
@@ -91,7 +91,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
             if (a.driverRating !== b.driverRating) return a.driverRating - b.driverRating;
             return byCreatedAtAsc(a, b);
         });
-    }, [expandedOrderBids, bidSort]);
+    }, [bidSort, bidsByOrderId, expandedOrderId]);
 
     useEffect(() => {
         if (!deepLinkTarget || !isOpen) return;
@@ -167,7 +167,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
     const handleCounterOffer = async (orderId: string, bidId: string, amount: number) => {
         setOrderErrors((previous) => ({ ...previous, [orderId]: '' }));
         try {
-            const response = await counterOffer(orderId, bidId, amount);
+            await counterOffer(orderId, bidId, amount);
             // After countering, we refresh bids to show the "countered" status
             const bidsResponse = await listOrderBids(orderId);
             setOrderBids(bidsResponse.orderId, bidsResponse.bids);
@@ -300,7 +300,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                                                                     <span className="font-bold text-red-600 bg-red-50 px-1.5 rounded">{item.quantity}x</span>
                                                                     <div className="flex flex-col">
                                                                         <span className="font-bold text-gray-800">{item.name}</span>
-                                                                        {item.notes && <span className="text-[10px] text-gray-500 italic">"{item.notes}"</span>}
+                                                                        {item.notes && <span className="text-[10px] text-gray-500 italic">&ldquo;{item.notes}&rdquo;</span>}
                                                                     </div>
                                                                 </div>
                                                                 <span className="font-bold text-gray-900">₡{(item.price * item.quantity).toLocaleString()}</span>

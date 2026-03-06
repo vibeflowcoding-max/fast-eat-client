@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseServer } from '@/lib/supabase-server';
 
 export async function GET() {
   try {
-    const { data: branches, error } = await supabase
+    const supabaseServer = getSupabaseServer();
+    const { data: branches, error } = await supabaseServer
       .from('branches')
       .select('id, name, image_url, city, address')
       .eq('is_active', true)

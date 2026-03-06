@@ -1,26 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { postN8nWebhook } from '@/app/api/_server/upstreams/n8n';
+
+const chatRequestSchema = z.object({
+  message: z.string().trim().min(1),
+  fromNumber: z.string().trim().optional().default(''),
+  branch_id: z.string().trim().min(1),
+  intencion: z.enum(['chat', 'carrito', 'generar_orden', 'get_carrito', 'delete_cart']),
+  action: z.string().trim().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  item_id: z.union([z.string(), z.number()]).optional(),
+  nombre: z.string().trim().optional(),
+  cantidad: z.number().optional(),
+  detalles: z.string().optional(),
+  precio: z.number().optional(),
+  isTest: z.boolean().optional(),
+}).passthrough();
 
 export async function POST(req: NextRequest) {
   try {
-    const { body, isTest } = await req.json();
-    
-    const N8N_BASE_URL = process.env.N8N_BASE_URL;
-    const N8N_TEST_BASE_URL = process.env.N8N_TEST_BASE_URL;
-    const WEBHOOK_ID = process.env.N8N_WEBHOOK_ID;
+    const rawBody = await req.json().catch(() => null);
+    const parsed = chatRequestSchema.safeParse(rawBody);
 
-    const url = `${isTest ? N8N_TEST_BASE_URL : N8N_BASE_URL}/${WEBHOOK_ID}`;
-    console.log(`[API/Chat] Forwarding to n8n: ${url}`);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid chat request body' }, { status: 400 });
+    }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    const { isTest = false, ...payload } = parsed.data;
+    const { response, payload: data } = await postN8nWebhook(payload, isTest);
 
-    const data = await response.json();
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: 'Chat upstream request failed' },
+        { status: response.status },
+      );
+    }
+
     return NextResponse.json(data);
-  } catch (error: any) {
-    console.error("Chat API Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Chat API Error' },
+      { status: 500 },
+    );
   }
 }

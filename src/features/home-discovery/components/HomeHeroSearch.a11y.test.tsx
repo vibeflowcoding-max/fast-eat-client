@@ -30,7 +30,7 @@ describe('HomeHeroSearch accessibility', () => {
     expect(screen.getByLabelText('Buscar restaurantes o comida')).toBeInTheDocument();
   });
 
-  it('shows notifications option for users', () => {
+  it('shows voice ordering option for users', () => {
     render(
       <HomeHeroSearch
         hasActiveLocation
@@ -39,6 +39,6 @@ describe('HomeHeroSearch accessibility', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: /notificaciones/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ordenar por voz/i })).toBeInTheDocument();
   });
 });

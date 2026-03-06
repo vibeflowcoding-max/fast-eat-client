@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Volume2, VolumeX, Plus, Play, Pause } from 'lucide-react';
+import { Volume2, VolumeX, Plus, Play } from 'lucide-react';
 import { useCartStore } from '@/store';
 import { CartItem } from '@/types';
 
@@ -32,6 +32,9 @@ export default function StoryVideoPlayer({
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [isAdded, setIsAdded] = useState(false);
+    const markPlaying = React.useEffectEvent((nextValue: boolean) => {
+        setIsPlaying(nextValue);
+    });
 
     const addToCart = useCartStore(state => state.updateItem);
 
@@ -40,11 +43,11 @@ export default function StoryVideoPlayer({
         if (!video) return;
 
         if (isActive) {
-            video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+            video.play().then(() => markPlaying(true)).catch(() => markPlaying(false));
             video.currentTime = 0;
         } else {
             video.pause();
-            setIsPlaying(false);
+            queueMicrotask(() => markPlaying(false));
         }
     }, [isActive]);
 

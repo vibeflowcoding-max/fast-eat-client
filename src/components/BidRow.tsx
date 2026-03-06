@@ -95,7 +95,7 @@ const BidRow: React.FC<BidRowProps> = ({ bid, orderId, title, isLoading, isHighl
 
       {bid.driverNotes && (
         <div className="mt-3 p-2 bg-gray-50/50 rounded-lg border-l-2 border-gray-200">
-          <p className="text-[11px] font-medium text-gray-700 leading-relaxed italic">"{bid.driverNotes}"</p>
+          <p className="text-[11px] font-medium text-gray-700 leading-relaxed italic">&ldquo;{bid.driverNotes}&rdquo;</p>
         </div>
       )}
     </div>

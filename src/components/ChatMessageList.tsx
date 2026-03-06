@@ -1,8 +1,16 @@
+/* eslint-disable @next/next/no-img-element */
+
 import React, { useRef, useEffect } from 'react';
 import { MenuItem, ChatMessage } from '../types';
 
+type RenderableChatMessage = ChatMessage & {
+    item_id?: string | number;
+    item_ids?: Array<string | number | { id?: string | number; productId?: string | number }>;
+    confirmation?: boolean;
+};
+
 interface ChatMessageListProps {
-    messages: any[];
+    messages: RenderableChatMessage[];
     isTyping: boolean;
     isThinking: boolean;
     menuItems: MenuItem[];
@@ -24,7 +32,7 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({
         }
     }, [messages, isTyping]);
 
-    const formatText = (text: any) => {
+    const formatText = (text: string | null | undefined) => {
         if (!text || typeof text !== 'string') return <div className="h-2" />;
         return text.split('\n').map((line, i) => {
             const parts = line.split(/(\*\*.*?\*\*)/g);
@@ -50,7 +58,7 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({
             <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm flex-shrink-0 bg-gray-100">
                     {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        <img src={item.image} alt={item.name} loading="lazy" decoding="async" width={48} height={48} className="w-full h-full object-cover" />
                     ) : (
                         <span className="w-full h-full flex items-center justify-center text-xl">🍱</span>
                     )}
@@ -64,7 +72,7 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({
         </button>
     );
 
-    const renderMessageContent = (message: any) => {
+    const renderMessageContent = (message: RenderableChatMessage) => {
         const { content, item_id, item_ids, confirmation, role } = message;
 
         if (confirmation === false && role === 'assistant') {

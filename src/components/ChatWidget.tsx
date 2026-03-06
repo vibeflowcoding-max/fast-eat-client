@@ -45,33 +45,42 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const lastNotificationRef = useRef<string | null>(null);
+  const hideInvitation = React.useEffectEvent(() => {
+    setShowInvitation(false);
+  });
+  const showIncomingNotification = React.useEffectEvent(() => {
+    setShowNotification(true);
+  });
+  const appendNotificationMessage = React.useEffectEvent((content: string, itemIds?: any[] | null) => {
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      content,
+      item_ids: itemIds,
+      action: 'none',
+      confirmation: true
+    }]);
+  });
 
   useEffect(() => {
     localStorage.setItem('izakaya_chat_history', JSON.stringify(messages));
   }, [messages]);
 
   useEffect(() => {
-    if (isOpen) {
-      setShowInvitation(false);
-    } else {
-      const timer = setTimeout(() => setShowInvitation(false), 12000);
-      return () => clearTimeout(timer);
+    if (isOpen || !showInvitation) {
+      return;
     }
-  }, [isOpen]);
+
+    const timer = setTimeout(() => hideInvitation(), 12000);
+    return () => clearTimeout(timer);
+  }, [isOpen, showInvitation]);
 
   useEffect(() => {
     if (notification && notification.content && notification.content !== lastNotificationRef.current) {
       lastNotificationRef.current = notification.content;
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: notification.content,
-        item_ids: notification.item_ids,
-        action: 'none',
-        confirmation: true
-      }]);
+      appendNotificationMessage(notification.content, notification.item_ids);
 
       if (!isOpen) {
-        setShowNotification(true);
+        showIncomingNotification();
         const timer = setTimeout(() => setShowNotification(false), 8000);
         return () => clearTimeout(timer);
       }
@@ -95,7 +104,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         confirmation: response?.confirmation
       }]);
 
-    } catch (e) {
+    } catch {
       setIsTyping(false);
       setMessages(prev => [...prev, { role: 'assistant', content: "Lo siento, tuve un problema conectando con la cocina. 🏮", confirmation: false }]);
     }
@@ -104,7 +113,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   return (
     <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[100] flex flex-col items-end pointer-events-none">
       {showInvitation && !isOpen && !showNotification && (
-        <div className="mb-4 mr-2 bg-white px-5 py-3 rounded-2xl shadow-2xl border-2 border-red-600 animate-fadeIn relative pointer-events-auto cursor-pointer hover:scale-105 transition-transform" onClick={() => setIsOpen(true)}>
+        <div className="mb-4 mr-2 bg-white px-5 py-3 rounded-2xl shadow-2xl border-2 border-red-600 animate-fadeIn relative pointer-events-auto cursor-pointer hover:scale-105 transition-transform" onClick={() => { setShowInvitation(false); setIsOpen(true); }}>
           <p className="text-[11px] font-black text-gray-900 uppercase tracking-widest">¿Dudas con el menú? 🍱</p>
           <p className="text-[9px] font-bold text-red-600 uppercase mt-1">Pregúntale al Chef Zen</p>
           <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-r-2 border-b-2 border-red-600 rotate-45"></div>
@@ -152,7 +161,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       )}
       <div className="relative pointer-events-auto">
         {!isOpen && <div className="absolute inset-0 rounded-full bg-red-600 animate-ping opacity-25 scale-125"></div>}
-        <button onClick={() => { setIsOpen(!isOpen); setShowNotification(false); }} className={`w-16 h-16 md:w-24 md:h-24 rounded-full shadow-2xl flex items-center justify-center transition-all duration-500 border-4 border-white active:scale-90 relative z-20 overflow-hidden ${isOpen ? 'bg-black rotate-180' : 'bg-red-600 hover:scale-110'}`}>
+        <button onClick={() => { setShowInvitation(false); setIsOpen(!isOpen); setShowNotification(false); }} className={`w-16 h-16 md:w-24 md:h-24 rounded-full shadow-2xl flex items-center justify-center transition-all duration-500 border-4 border-white active:scale-90 relative z-20 overflow-hidden ${isOpen ? 'bg-black rotate-180' : 'bg-red-600 hover:scale-110'}`}>
           {isThinking ? <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div> : isOpen ? <span className="text-white text-2xl font-light">✕</span> : <div className="flex flex-col items-center"><span className="text-white text-4xl">👨‍🍳</span><span className="text-white text-[7px] font-black uppercase tracking-tighter -mt-1">Chef Zen</span></div>}
         </button>
       </div>

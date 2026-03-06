@@ -1,7 +1,8 @@
 
+/* eslint-disable @next/next/no-img-element */
+
 import React, { useState, useEffect } from 'react';
 import { MenuItem, CartItem } from '../types';
-import { useCartStore } from '../store';
 import { useDietaryGuardian } from '../features/home-discovery/hooks/useDietaryGuardian';
 import { ShieldCheck, ShieldAlert, Loader2, Camera } from 'lucide-react';
 
@@ -18,19 +19,26 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
   const [isAdding, setIsAdding] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const syncQuantity = React.useEffectEvent((nextQuantity: number) => {
+    setQuantity(nextQuantity);
+  });
 
   const { isActive, checkItem, loadingMap, resultsMap } = useDietaryGuardian();
   const isDietaryGuardianEnabled = process.env.NEXT_PUBLIC_HOME_DIETARY_GUARDIAN?.toLowerCase() === 'true';
 
   useEffect(() => {
-    if (isDietaryGuardianEnabled && isActive && !resultsMap[item.id] && !loadingMap[item.id]) {
-      checkItem(item);
-    }
+    if (!isDietaryGuardianEnabled || !isActive || resultsMap[item.id] || loadingMap[item.id]) return;
+    const schedule = typeof requestIdleCallback !== 'undefined'
+      ? (cb: () => void) => requestIdleCallback(cb, { timeout: 2000 })
+      : (cb: () => void) => window.setTimeout(cb, 200);
+    const cancel = typeof cancelIdleCallback !== 'undefined' ? cancelIdleCallback : window.clearTimeout;
+    const id = schedule(() => checkItem(item));
+    return () => cancel(id as number);
   }, [isDietaryGuardianEnabled, isActive, item, checkItem, resultsMap, loadingMap]);
 
   useEffect(() => {
     if (!isAdding && currentQuantity > 0) {
-      setQuantity(currentQuantity);
+      syncQuantity(currentQuantity);
     }
   }, [currentQuantity, isAdding]);
 
@@ -136,7 +144,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
                 ) : (
                   <ShieldAlert className="w-4 h-4 shrink-0 text-[var(--color-brand)] mt-0.5" />
                 )}
-                <span className="leading-relaxed break-words flex-1 italic">"{resultsMap[item.id].reason}"</span>
+                <span className="leading-relaxed break-words flex-1 italic">&ldquo;{resultsMap[item.id].reason}&rdquo;</span>
               </div>
             ) : null}
           </div>
@@ -209,4 +217,9 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
   );
 };
 
-export default MenuItemCard;
+export default React.memo(MenuItemCard, (prev, next) =>
+  prev.item.id === next.item.id &&
+  prev.currentQuantity === next.currentQuantity &&
+  prev.isHighlighted === next.isHighlighted &&
+  prev.onAddToCart === next.onAddToCart
+);

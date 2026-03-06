@@ -29,14 +29,17 @@ export default function DietaryProfileSettings({ isOpen, onClose }: DietaryProfi
         intolerances: [],
         preferences: []
     });
+    const syncLocalProfile = React.useEffectEvent((nextProfile: DietaryProfile) => {
+        setLocalProfile(nextProfile);
+    });
 
     const [customAllergy, setCustomAllergy] = useState('');
 
     useEffect(() => {
         if (isOpen && dietaryProfile) {
-            setLocalProfile(dietaryProfile);
+            syncLocalProfile(dietaryProfile);
         } else if (isOpen && !dietaryProfile) {
-            setLocalProfile({
+            syncLocalProfile({
                 diet: 'none',
                 allergies: [],
                 intolerances: [],

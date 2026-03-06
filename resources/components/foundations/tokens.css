@@ -1,0 +1,97 @@
+:root {
+  --fe-color-brand-primary: #ec5b13;
+  --fe-color-brand-primary-hover: #d94e0a;
+  --fe-color-brand-primary-soft: rgba(236, 91, 19, 0.12);
+  --fe-color-brand-primary-glow: rgba(236, 91, 19, 0.24);
+
+  --fe-color-surface-app: #f8f6f2;
+  --fe-color-surface-base: #ffffff;
+  --fe-color-surface-raised: #fff9f5;
+  --fe-color-surface-muted: #f4eee8;
+  --fe-color-surface-inverse-app: #221610;
+  --fe-color-surface-inverse-base: #2c1d15;
+  --fe-color-surface-inverse-raised: #352319;
+  --fe-color-surface-inverse-hover: #3d2a1e;
+
+  --fe-color-text-primary: #0f172a;
+  --fe-color-text-secondary: #475569;
+  --fe-color-text-muted: #64748b;
+  --fe-color-text-inverse-primary: #f8fafc;
+  --fe-color-text-inverse-secondary: #cbd5e1;
+  --fe-color-text-inverse-muted: #94a3b8;
+
+  --fe-color-border-subtle: #e5e7eb;
+  --fe-color-border-default: #cbd5e1;
+  --fe-color-border-strong: #94a3b8;
+  --fe-color-border-inverse-subtle: #4b2f21;
+  --fe-color-border-accent: rgba(236, 91, 19, 0.18);
+
+  --fe-color-feedback-success: #059669;
+  --fe-color-feedback-warning: #d97706;
+  --fe-color-feedback-danger: #dc2626;
+  --fe-color-feedback-info: #0284c7;
+  --fe-color-feedback-rating: #eab308;
+
+  --fe-gradient-campaign-orange: linear-gradient(135deg, #ec5b13 0%, #fb923c 100%);
+  --fe-gradient-campaign-berry: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+  --fe-gradient-campaign-fresh: linear-gradient(135deg, #10b981 0%, #2dd4bf 100%);
+
+  --fe-font-body: "Plus Jakarta Sans", sans-serif;
+  --fe-font-display-accent: "Playfair Display SC", serif;
+
+  --fe-font-size-caption: 12px;
+  --fe-font-size-meta: 13px;
+  --fe-font-size-body-sm: 14px;
+  --fe-font-size-body: 16px;
+  --fe-font-size-title-sm: 18px;
+  --fe-font-size-title: 20px;
+  --fe-font-size-headline: 24px;
+  --fe-font-size-hero: 30px;
+
+  --fe-font-weight-regular: 400;
+  --fe-font-weight-medium: 500;
+  --fe-font-weight-semibold: 600;
+  --fe-font-weight-bold: 700;
+
+  --fe-line-height-tight: 1.2;
+  --fe-line-height-normal: 1.45;
+  --fe-line-height-relaxed: 1.6;
+
+  --fe-space-2xs: 4px;
+  --fe-space-xs: 8px;
+  --fe-space-sm: 12px;
+  --fe-space-md: 16px;
+  --fe-space-lg: 24px;
+  --fe-space-xl: 32px;
+  --fe-space-2xl: 48px;
+
+  --fe-radius-sm: 12px;
+  --fe-radius-md: 16px;
+  --fe-radius-lg: 24px;
+  --fe-radius-xl: 32px;
+  --fe-radius-pill: 9999px;
+
+  --fe-shadow-card: 0 10px 25px rgba(15, 23, 42, 0.08);
+  --fe-shadow-floating: 0 -4px 10px rgba(15, 23, 42, 0.08);
+  --fe-shadow-cta: 0 12px 24px rgba(236, 91, 19, 0.22);
+  --fe-shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.06);
+
+  --fe-layout-mobile-max-width: 448px;
+  --fe-layout-header-height: 64px;
+  --fe-layout-bottom-bar-height: 88px;
+  --fe-layout-touch-target-min: 44px;
+
+  --fe-icon-xs: 14px;
+  --fe-icon-sm: 16px;
+  --fe-icon-md: 20px;
+  --fe-icon-lg: 24px;
+
+  --fe-motion-fast: 150ms;
+  --fe-motion-base: 200ms;
+  --fe-motion-slow: 300ms;
+  --fe-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}

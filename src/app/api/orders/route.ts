@@ -1,47 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { z } from 'zod';
+import { fetchFastEat, getSafeUpstreamErrorMessage } from '@/app/api/_server/upstreams/fast-eat';
+import { postN8nWebhook } from '@/app/api/_server/upstreams/n8n';
+
+const n8nOrderSchema = z.object({
+  message: z.string().trim().min(1),
+  fromNumber: z.string().trim().optional().default(''),
+  branch_id: z.string().trim().min(1),
+  intencion: z.string().trim().min(1),
+  action: z.string().trim().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  isTest: z.boolean().optional(),
+}).passthrough();
+
+const mcpOrderSchema = z.object({
+  tool: z.string().trim().min(1),
+  arguments: z.record(z.string(), z.unknown()).optional(),
+});
+
+function getRecordValue(record: Record<string, unknown>, key: string) {
+  return record[key];
+}
+
+function getStringValue(record: Record<string, unknown>, key: string): string {
+  const value = getRecordValue(record, key);
+
+  return typeof value === 'string' ? value : '';
+}
+
+function getNullableStringValue(record: Record<string, unknown>, key: string): string | null {
+  const value = getRecordValue(record, key);
+
+  return typeof value === 'string' ? value : null;
+}
+
+function getUnknownNumberValue(record: Record<string, unknown>, key: string): unknown {
+  return getRecordValue(record, key);
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const payload = await req.json();
-    const isWrappedPayload =
-      payload &&
-      typeof payload === 'object' &&
-      ('target' in payload || 'body' in payload || 'isTest' in payload);
+    const payload = await req.json().catch(() => null);
 
-    const target = isWrappedPayload ? payload.target : undefined;
-    const body = isWrappedPayload ? payload.body : payload;
-    const isTest = isWrappedPayload ? payload.isTest : false;
+    const parsedN8nPayload = n8nOrderSchema.safeParse(payload);
+    if (parsedN8nPayload.success) {
+      const { isTest = false, ...n8nPayload } = parsedN8nPayload.data;
+      const { response, payload: data } = await postN8nWebhook(n8nPayload, isTest);
+
+      if (!response.ok) {
+        return NextResponse.json(
+          { success: false, message: 'Error al procesar la orden' },
+          { status: response.status },
+        );
+      }
+
+      return NextResponse.json(data);
+    }
+
+    const ORDER_PATH = '/mcp/order';
+
+    // Ensure branchId is correctly set in arguments if missing
+    const parsedMcpPayload = mcpOrderSchema.safeParse(payload);
+    if (!parsedMcpPayload.success) {
+      return NextResponse.json({ success: false, message: 'Invalid order payload' }, { status: 400 });
+    }
+
     const cookieStore = await cookies();
-    
-    // Get Branch ID from Session Cookie as a fallback
     const sessionBranchId = cookieStore.get('session_branch_id')?.value;
     const DEFAULT_BRANCH_ID = process.env.DEFAULT_BRANCH_ID;
     const branchIdToUse = sessionBranchId || DEFAULT_BRANCH_ID;
 
-    if (target === 'n8n') {
-      const N8N_BASE_URL = process.env.N8N_BASE_URL;
-      const N8N_TEST_BASE_URL = process.env.N8N_TEST_BASE_URL;
-      const WEBHOOK_ID = process.env.N8N_WEBHOOK_ID;
-      const url = `${isTest ? N8N_TEST_BASE_URL : N8N_BASE_URL}/${WEBHOOK_ID}`;
-      
-      console.log(`[API/Orders] Generating order via n8n: ${url}`);
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      
-      const data = await response.json();
-      return NextResponse.json(data);
-    }
-
-    const FAST_EAT_API_URL = process.env.FAST_EAT_API_URL;
-    const ORDER_PATH = '/mcp/order';
-    const url = `${FAST_EAT_API_URL}${ORDER_PATH}`;
-
-    // Ensure branchId is correctly set in arguments if missing
-    let finalBody = body;
+    let finalBody = parsedMcpPayload.data;
     if (finalBody?.arguments && (!finalBody.arguments.branchId || finalBody.arguments.branchId === ':branchId')) {
       if (branchIdToUse) {
         finalBody.arguments.branchId = branchIdToUse;
@@ -53,37 +83,40 @@ export async function POST(req: NextRequest) {
 
     if (isToolPayload && finalBody.tool === 'create_branch_order' && finalBody.arguments) {
       const args = finalBody.arguments;
+      const customer = typeof args.customer === 'object' && args.customer !== null
+        ? (args.customer as Record<string, unknown>)
+        : {};
       const normalizedCustomerPhone = String(
-        args.customer?.phone ||
-        args.customer?.fromNumber ||
-        args.customerPhone ||
-        args.customer_phone ||
-        args.phone ||
-        args.fromNumber ||
+        getStringValue(customer, 'phone') ||
+        getStringValue(customer, 'fromNumber') ||
+        getStringValue(args, 'customerPhone') ||
+        getStringValue(args, 'customer_phone') ||
+        getStringValue(args, 'phone') ||
+        getStringValue(args, 'fromNumber') ||
         ''
       ).trim();
-      const paymentMethodRaw = String(args.payment_method_code || args.paymentMethod || 'CASH').toLowerCase();
+      const paymentMethodRaw = String(getRecordValue(args, 'payment_method_code') || getRecordValue(args, 'paymentMethod') || 'CASH').toLowerCase();
       const paymentMethodCode =
         paymentMethodRaw === 'cash' ? 'CASH' :
         paymentMethodRaw === 'card' ? 'CARD' :
         paymentMethodRaw === 'sinpe' ? 'SINPE' :
-        String(args.payment_method_code || args.paymentMethod || 'CASH').toUpperCase();
+        String(getRecordValue(args, 'payment_method_code') || getRecordValue(args, 'paymentMethod') || 'CASH').toUpperCase();
 
-      const serviceModeRaw = String(args.service_mode || args.orderType || 'pickup').toLowerCase();
+      const serviceModeRaw = String(getRecordValue(args, 'service_mode') || getRecordValue(args, 'orderType') || 'pickup').toLowerCase();
       const serviceMode =
         serviceModeRaw === 'delivery' || serviceModeRaw === 'domicilio' ? 'delivery' :
         serviceModeRaw === 'dine_in' || serviceModeRaw === 'comer_ahi' || serviceModeRaw === 'comer_aqui' ? 'dine_in' :
         'pickup';
 
       finalBody.arguments = {
-        branch_id: args.branch_id || args.branchId,
+        branch_id: getRecordValue(args, 'branch_id') || getRecordValue(args, 'branchId'),
         customer: {
-          name: args.customer?.name || args.customerName,
+          name: getStringValue(customer, 'name') || getStringValue(args, 'customerName'),
           phone: normalizedCustomerPhone,
-          email: args.customer?.email || args.customerEmail || null,
-          address: args.customer?.address || args.address || null,
-          latitude: args.customerLatitude ?? args.customer_latitude ?? args.customer?.latitude ?? null,
-          longitude: args.customerLongitude ?? args.customer_longitude ?? args.customer?.longitude ?? null,
+          email: getNullableStringValue(customer, 'email') || getNullableStringValue(args, 'customerEmail'),
+          address: getNullableStringValue(customer, 'address') || getNullableStringValue(args, 'address'),
+          latitude: getUnknownNumberValue(args, 'customerLatitude') ?? getUnknownNumberValue(args, 'customer_latitude') ?? getUnknownNumberValue(customer, 'latitude') ?? null,
+          longitude: getUnknownNumberValue(args, 'customerLongitude') ?? getUnknownNumberValue(args, 'customer_longitude') ?? getUnknownNumberValue(customer, 'longitude') ?? null,
         },
         items: Array.isArray(args.items)
           ? args.items.map((item: any) => ({
@@ -94,10 +127,10 @@ export async function POST(req: NextRequest) {
           : [],
         payment_method_code: paymentMethodCode,
         service_mode: serviceMode,
-        table_number: args.table_number || args.tableNumber || null,
-        delivery_address: args.delivery_address || args.address || null,
-        notes: args.notes || null,
-        source: args.source || 'client',
+        table_number: getRecordValue(args, 'table_number') || getRecordValue(args, 'tableNumber') || null,
+        delivery_address: getNullableStringValue(args, 'delivery_address') || getNullableStringValue(args, 'address'),
+        notes: getNullableStringValue(args, 'notes'),
+        source: getStringValue(args, 'source') || 'client',
         delivery_enabled: serviceMode === 'delivery',
         allow_delivery_auction: serviceMode === 'delivery',
       };
@@ -115,39 +148,22 @@ export async function POST(req: NextRequest) {
         }
       : finalBody;
 
-    console.log(`[API/Orders] Forwarding direct order to: ${url}`);
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s timeout
-
     try {
-      const response = await fetch(url, {
+      const { response, payload: data } = await fetchFastEat(ORDER_PATH, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json, text/event-stream',
         },
         body: JSON.stringify(upstreamBody),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
+      }, 55000);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[API/Orders] External API Error (${response.status}):`, errorText);
-        try {
-          const errorJson = JSON.parse(errorText);
-          return NextResponse.json({ 
-            success: false, 
-            message: errorJson.message || 'Error al procesar la orden' 
-          }, { status: response.status });
-        } catch {
-          return NextResponse.json({ success: false, message: 'Error de conexión' }, { status: response.status });
-        }
+        return NextResponse.json(
+          { success: false, message: getSafeUpstreamErrorMessage(data, 'Error al procesar la orden') },
+          { status: response.status },
+        );
       }
-
-      const data = await response.json();
 
       if (isToolPayload && data?.result?.content?.[0]?.text) {
         try {
@@ -169,9 +185,8 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json(data);
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
+    } catch (fetchError: unknown) {
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
         console.warn("[API/Orders] Request timed out after 55s");
         return NextResponse.json({ 
           success: false, 
@@ -180,9 +195,12 @@ export async function POST(req: NextRequest) {
       }
       throw fetchError;
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("[API/Orders] Fatal Error:", error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: error instanceof Error ? error.message : 'Unexpected order error' },
+      { status: 500 },
+    );
   }
 }
 

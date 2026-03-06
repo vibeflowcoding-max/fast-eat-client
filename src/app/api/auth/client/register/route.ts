@@ -1,23 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { fetchFastEat, getSafeUpstreamErrorMessage } from '@/app/api/_server/upstreams/fast-eat';
+
+const registerSchema = z.object({
+  email: z.string().trim().email(),
+  password: z.string().min(8),
+  fullName: z.string().trim().min(2).optional(),
+  name: z.string().trim().min(2).optional(),
+});
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const apiUrl = process.env.FAST_EAT_API_URL;
+    const rawBody = await req.json().catch(() => null);
+    const parsed = registerSchema.safeParse(rawBody);
 
-    if (!apiUrl) {
-      return NextResponse.json({ error: 'FAST_EAT_API_URL is not configured' }, { status: 500 });
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid registration payload' }, { status: 400 });
     }
 
-    const response = await fetch(`${apiUrl}/api/auth/client/register`, {
+    const { response, payload } = await fetchFastEat('/api/auth/client/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      cache: 'no-store'
+      body: JSON.stringify(parsed.data),
     });
 
-    const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: getSafeUpstreamErrorMessage(payload, 'Client register proxy failed') },
+        { status: response.status },
+      );
+    }
+
+    return NextResponse.json(payload, { status: response.status });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Client register proxy failed' },

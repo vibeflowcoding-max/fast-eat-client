@@ -26,7 +26,7 @@ describe('mapsApi', () => {
     const result = await mapsApi.reverseGeocode(9.93, -84.09);
 
     expect(fetch).toHaveBeenCalledWith(
-      '/api/external',
+      '/api/maps',
       expect.objectContaining({ method: 'POST' }),
     );
     expect(result.place_id).toBe('place-1');
@@ -49,9 +49,11 @@ describe('mapsApi', () => {
     await mapsApi.autocompletePlaces('San', { lat: 9.93, lng: -84.09, radius: 5000 });
 
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/external?target=fast-eat&path='),
+      expect.stringContaining('/api/maps?input=San'),
       expect.objectContaining({ method: 'GET' }),
     );
+
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[0])).toContain('action=autocomplete');
 
     vi.unstubAllGlobals();
   });

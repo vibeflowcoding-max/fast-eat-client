@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from 'next/font/google';
 import { Suspense } from "react";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import RouteTransitionIndicator from "@/components/RouteTransitionIndicator";
 import AuthBootstrap from "@/components/AuthBootstrap";
 import I18nProvider from '@/components/providers/I18nProvider';
+
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
 export const metadata: Metadata = {
     title: "FastEat - Order food fast",
@@ -21,8 +24,6 @@ export const viewport: Viewport = {
     themeColor: "#dc2626",
     width: "device-width",
     initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
 };
 
 export default function RootLayout({
@@ -33,10 +34,9 @@ export default function RootLayout({
     return (
         <html lang="en">
             <head>
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
                 <link rel="apple-touch-icon" href="/placeholder-restaurant.svg" />
             </head>
-            <body>
+            <body className={inter.className}>
                 <I18nProvider>
                     <Suspense fallback={null}>
                         <RouteTransitionIndicator />

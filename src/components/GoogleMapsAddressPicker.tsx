@@ -144,8 +144,8 @@ export default function GoogleMapsAddressPicker({
         setReverseGeocodeError(null);
         onChange(mapsUrl, nextPosition, normalized);
       })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError') {
+      .catch((requestError: unknown) => {
+        if (requestError instanceof DOMException && requestError.name === 'AbortError') {
           return;
         }
 
@@ -356,7 +356,7 @@ export default function GoogleMapsAddressPicker({
         }
 
         setMapLoading(false);
-      } catch (error) {
+      } catch {
         mapsLoaderPromise = null;
         mapsLoaderInitialized = false;
         if (!cancelled) {

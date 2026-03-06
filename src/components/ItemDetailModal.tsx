@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+
 import React from 'react';
 import { MenuItem } from '../types';
 
@@ -35,7 +37,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     </div>
                 )}
                 <div className="relative h-40 md:h-80 flex-shrink-0 overflow-hidden">
-                    <img src={item.image} className="w-full h-full object-cover" alt={item.name} />
+                    <img src={item.image} className="w-full h-full object-cover" alt={item.name} loading="lazy" decoding="async" fetchPriority="low" width={576} height={320} />
                     <button
                         disabled={isSyncing}
                         onClick={onClose}

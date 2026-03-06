@@ -351,9 +351,33 @@ export const useCartStore = create<CartState>()(
         isAuthenticated: true,
       }),
       clearAuthSession: () => set({
+        items: [],
+        expirationTime: null,
+        branchId: '',
+        fromNumber: '',
+        customerId: '',
+        customerName: '',
+        restaurantInfo: null,
+        activeOrders: {},
+        bidsByOrderId: {},
+        bidNotifications: [],
+        deepLinkTarget: null,
+        auctionStateByOrderId: {},
+        userLocation: null,
+        isOnboarded: false,
+        customerAddress: null,
+        profilePromptDismissedAt: null,
+        dietaryProfile: null,
         authUserId: null,
         authEmail: null,
         isAuthenticated: false,
+        authHydrated: false,
+        groupSessionId: null,
+        isHost: false,
+        participantId: null,
+        participantName: null,
+        groupParticipants: [],
+        shareActivity: false,
         clientContext: null,
       }),
       setAuthHydrated: (value) => set({ authHydrated: value }),
@@ -381,27 +405,18 @@ export const useCartStore = create<CartState>()(
     {
       name: 'fasteat-storage',
       partialize: (state) => ({
-        fromNumber: state.fromNumber,
-        customerId: state.customerId,
-        customerName: state.customerName,
-        activeOrders: state.activeOrders,
-        bidsByOrderId: state.bidsByOrderId,
-        bidNotifications: state.bidNotifications,
-        deepLinkTarget: state.deepLinkTarget,
-        auctionStateByOrderId: state.auctionStateByOrderId,
-        items: state.items,
-        expirationTime: state.expirationTime,
-        branchId: state.branchId,
-        userLocation: state.userLocation,
-        isOnboarded: state.isOnboarded,
-        customerAddress: state.customerAddress,
-        profilePromptDismissedAt: state.profilePromptDismissedAt,
-        authUserId: state.authUserId,
-        authEmail: state.authEmail,
-        isAuthenticated: state.isAuthenticated,
         locale: state.locale,
-        clientContext: state.clientContext
+        shareActivity: state.shareActivity,
       }),
+      version: 2,
+      migrate: (persistedState) => {
+        const state = (persistedState || {}) as Partial<CartState>;
+
+        return {
+          locale: normalizeLocale(state.locale ?? DEFAULT_LOCALE),
+          shareActivity: Boolean(state.shareActivity),
+        };
+      },
     }
   )
 );

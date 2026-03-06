@@ -3,9 +3,12 @@ import userEvent from '@testing-library/user-event';
 import HomePage from './HomePage';
 import { emitHomeEvent } from '@/features/home-discovery/analytics';
 
+const pushMock = vi.fn();
+
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
-    push: vi.fn()
+    push: pushMock,
   })
 }));
 
@@ -39,6 +42,14 @@ const mockStoreState = {
 
 vi.mock('@/store', () => ({
   useCartStore: () => mockStoreState
+}));
+
+vi.mock('@/lib/client-auth', () => ({
+  getAccessToken: vi.fn(async () => 'token-123'),
+  getAuthenticatedJsonHeaders: vi.fn(async () => ({
+    'Content-Type': 'application/json',
+    Authorization: 'Bearer token-123',
+  })),
 }));
 
 vi.mock('@/hooks/useCategories', () => ({
@@ -145,28 +156,22 @@ vi.mock('@/features/home-discovery/analytics', () => ({
 describe('HomePage onboarding redesign', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    pushMock.mockReset();
     stableFetchSuggestions.mockReset().mockResolvedValue([]);
     mockStoreState.customerName = '';
     mockStoreState.fromNumber = '';
     mockStoreState.customerAddress = null;
+    (mockStoreState as Record<string, unknown>).isAuthenticated = true;
     mockStoreState.profilePromptDismissedAt = null;
 
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input.toString();
 
-      if (url.startsWith('/api/customer/address') && (!init || init.method === undefined || init.method === 'GET')) {
+      if (url === '/api/customer/address' && (!init || init.method === undefined || init.method === 'GET')) {
         return {
           ok: true,
           status: 200,
           json: async () => ({ address: null })
-        } as any;
-      }
-
-      if (url === '/api/customer/profile') {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ customerId: 'cust-1' })
         } as any;
       }
 
@@ -207,42 +212,32 @@ describe('HomePage onboarding redesign', () => {
     render(<HomePage />);
 
     expect(screen.getByRole('button', { name: 'Complete now' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Limpiar todo' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Buscar restaurantes o comida')).toBeInTheDocument();
   });
 
-  it('saves profile fields from modal flow', async () => {
+  it('routes profile completion through the profile page flow', async () => {
     const user = userEvent.setup();
 
     render(<HomePage />);
 
     await user.click(screen.getByRole('button', { name: 'Complete now' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
 
     await waitFor(() => {
-      expect(mockStoreState.setCustomerName).toHaveBeenCalledWith('Ivan Mora');
-      expect(mockStoreState.setFromNumber).toHaveBeenCalledWith('88881234');
-      expect(mockStoreState.setOnboarded).toHaveBeenCalledWith(true);
+      expect(pushMock).toHaveBeenCalledWith('/profile');
+      expect(emitHomeEvent).toHaveBeenCalledWith(expect.objectContaining({ name: 'profile_prompt_click' }));
     });
   });
 
-  it('supports manual address save fallback and tracks analytics', async () => {
+  it('dismisses the prompt and persists the dismissal timestamp', async () => {
     const user = userEvent.setup();
 
     render(<HomePage />);
 
-    await user.click(screen.getByRole('button', { name: 'Complete now' }));
-    await user.click(screen.getByRole('button', { name: 'Enter address manually' }));
-    await user.click(screen.getByRole('button', { name: 'Save Address' }));
+    await user.click(screen.getByRole('button', { name: 'Later' }));
 
     await waitFor(() => {
-      expect(mockStoreState.setCustomerAddress).toHaveBeenCalled();
-      expect(emitHomeEvent).toHaveBeenCalledWith(expect.objectContaining({ name: 'address_form_save_success' }));
+      expect(mockStoreState.setProfilePromptDismissedAt).toHaveBeenCalledWith(expect.any(Number));
+      expect(emitHomeEvent).toHaveBeenCalledWith(expect.objectContaining({ name: 'profile_prompt_dismiss' }));
     });
-
-    const postCall = vi.mocked(fetch).mock.calls.find(([url, init]) => url === '/api/customer/address' && init?.method === 'POST');
-    const payload = JSON.parse(String(postCall?.[1]?.body || '{}'));
-    expect(payload.lat).toBe(9.9);
-    expect(payload.lng).toBe(-84.1);
-    expect(payload.placeId).toBe('place-xyz');
   });
 });
