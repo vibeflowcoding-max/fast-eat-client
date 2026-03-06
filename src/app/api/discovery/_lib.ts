@@ -306,7 +306,7 @@ export function getTraceId(existing?: string | null) {
         return existing;
     }
 
-    return `trace-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    return `trace-${Date.now()}-${crypto.randomUUID().split('-')[0]}`;
 }
 
 export function inferIntentFromQuery(query: string): DiscoveryIntent | undefined {
