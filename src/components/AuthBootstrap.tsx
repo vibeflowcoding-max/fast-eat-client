@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { isPublicAnonymousPath } from '@/lib/public-routes';
+import { fetchClientBootstrap } from '@/services/api';
 import { useCartStore } from '@/store';
 import { normalizePhoneWithSinglePlus } from '@/lib/phone';
 import { extractGoogleMapsUrl, parseCoordsFromGoogleMapsUrl } from '@/lib/location';
@@ -27,153 +28,58 @@ export default function AuthBootstrap() {
   useEffect(() => {
     let isMounted = true;
 
-    async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs: number = 10000) {
-      const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
-
-      try {
-        return await fetch(input, {
-          ...init,
-          signal: controller.signal,
-        });
-      } finally {
-        window.clearTimeout(timeoutId);
-      }
-    }
-
     async function hydrateAuthenticatedContext(accessToken: string) {
       if (lastHydratedTokenRef.current === accessToken) {
         return;
       }
 
       try {
+        setSavedCarts([]);
         setSavedCartsError(null);
+        setSavedCartsHydrated(true);
 
-        const [profileResponse, contextResponse, cartsResponse] = await Promise.all([
-          fetchWithTimeout('/api/profile/me', {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-            cache: 'no-store',
-          }),
-          fetchWithTimeout('/api/consumer/me/context', {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-            cache: 'no-store',
-          }, 10000),
-          fetchWithTimeout('/api/carts', {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-            cache: 'no-store',
-          }, 10000),
-        ]);
-
-        let profilePayload: {
-          fullName?: string | null;
-          phone?: string | null;
-          urlGoogleMaps?: string | null;
-        } | null = null;
-
-        if (profileResponse.ok) {
-          const profileData = await profileResponse.json();
-          profilePayload = profileData?.profile ?? null;
-        }
-
-        if (!contextResponse.ok) {
-          const canonicalName =
-            typeof profilePayload?.fullName === 'string' && profilePayload.fullName.trim()
-              ? profilePayload.fullName.trim()
-              : null;
-          const canonicalPhone = normalizePhoneWithSinglePlus(profilePayload?.phone ?? null);
-          const canonicalUrlGoogleMaps = extractGoogleMapsUrl(profilePayload?.urlGoogleMaps) || null;
-          const profileCoords = canonicalUrlGoogleMaps ? parseCoordsFromGoogleMapsUrl(canonicalUrlGoogleMaps) : {};
-
-          hydrateClientContext({
-            customerName: canonicalName,
-            customerPhone: canonicalPhone,
-            customerAddress: canonicalUrlGoogleMaps
-              ? {
-                  urlAddress: canonicalUrlGoogleMaps,
-                  buildingType: 'Other',
-                  deliveryNotes: 'Meet at door',
-                  lat: profileCoords.lat,
-                  lng: profileCoords.lng,
-                  formattedAddress: canonicalUrlGoogleMaps,
-                }
-              : null,
-          });
-
-          if (cartsResponse.ok) {
-            const cartsPayload = await cartsResponse.json().catch(() => ({}));
-            setSavedCarts(Array.isArray(cartsPayload?.carts) ? cartsPayload.carts : []);
-          } else {
-            const cartsPayload = await cartsResponse.json().catch(() => ({}));
-            setSavedCartsError(typeof cartsPayload?.error === 'string' ? cartsPayload.error : 'Could not load saved carts');
-          }
-
-          setSavedCartsHydrated(true);
-
-          lastHydratedTokenRef.current = accessToken;
-          return;
-        }
-
-        const contextData = await contextResponse.json();
-        const payload = contextData?.data;
-
-        const contextProfileName =
-          typeof payload?.profile?.userProfile?.full_name === 'string' && payload.profile.userProfile.full_name.trim()
-            ? payload.profile.userProfile.full_name.trim()
-            : null;
-        const contextProfilePhone = normalizePhoneWithSinglePlus(payload?.profile?.userProfile?.phone ?? null);
-        const contextProfileMaps = extractGoogleMapsUrl(payload?.profile?.userProfile?.url_google_maps) || null;
-
+        const payload = await fetchClientBootstrap();
         const canonicalName =
-          typeof profilePayload?.fullName === 'string' && profilePayload.fullName.trim()
-            ? profilePayload.fullName.trim()
-            : contextProfileName;
-        const canonicalPhone = normalizePhoneWithSinglePlus(profilePayload?.phone ?? contextProfilePhone ?? null);
-        const canonicalUrlGoogleMaps =
-          extractGoogleMapsUrl(profilePayload?.urlGoogleMaps)
-          || contextProfileMaps
-          || null;
+          typeof payload?.profile?.fullName === 'string' && payload.profile.fullName.trim()
+            ? payload.profile.fullName.trim()
+            : typeof payload?.customer?.name === 'string' && payload.customer.name.trim()
+              ? payload.customer.name.trim()
+              : null;
+        const canonicalPhone = normalizePhoneWithSinglePlus(
+          payload?.profile?.phone ?? payload?.customer?.phone ?? null,
+        );
+        const canonicalUrlGoogleMaps = extractGoogleMapsUrl(
+          payload?.primaryAddress?.urlAddress
+            || payload?.primaryAddress?.formattedAddress
+            || payload?.profile?.urlGoogleMaps
+            || null,
+        );
         const profileCoords = canonicalUrlGoogleMaps ? parseCoordsFromGoogleMapsUrl(canonicalUrlGoogleMaps) : {};
 
         hydrateClientContext({
-          customerId: payload?.profile?.customer?.id ?? null,
+          customerId: payload?.customerId ?? payload?.customer?.id ?? null,
           customerName: canonicalName,
           customerPhone: canonicalPhone,
           customerAddress: canonicalUrlGoogleMaps
             ? {
-                customerId: payload?.profile?.customer?.id ?? undefined,
+                customerId: payload?.primaryAddress?.customerId ?? payload?.customer?.id ?? undefined,
                 urlAddress: canonicalUrlGoogleMaps,
-                buildingType: 'Other',
-                unitDetails: undefined,
-                deliveryNotes: 'Meet at door',
-                lat: profileCoords.lat,
-                lng: profileCoords.lng,
-                formattedAddress: canonicalUrlGoogleMaps,
+                buildingType: payload?.primaryAddress?.buildingType === 'Apartment'
+                  || payload?.primaryAddress?.buildingType === 'Residential Building'
+                  || payload?.primaryAddress?.buildingType === 'Hotel'
+                  || payload?.primaryAddress?.buildingType === 'Office Building'
+                  ? payload.primaryAddress.buildingType
+                  : 'Other',
+                unitDetails: payload?.primaryAddress?.unitDetails ?? undefined,
+                deliveryNotes: payload?.primaryAddress?.deliveryNotes || 'Meet at door',
+                lat: typeof payload?.primaryAddress?.lat === 'number' ? payload.primaryAddress.lat : profileCoords.lat,
+                lng: typeof payload?.primaryAddress?.lng === 'number' ? payload.primaryAddress.lng : profileCoords.lng,
+                formattedAddress: payload?.primaryAddress?.formattedAddress || canonicalUrlGoogleMaps,
+                placeId: payload?.primaryAddress?.placeId ?? undefined,
               }
             : null,
-          favorites: Array.isArray(payload?.favorites) ? payload.favorites : [],
-          recentSearches: Array.isArray(payload?.recentSearches) ? payload.recentSearches : [],
-          orderHistorySummary: payload?.orderHistorySummary ?? null,
-          settings: payload?.settings ?? null,
         });
 
-        if (cartsResponse.ok) {
-          const cartsPayload = await cartsResponse.json().catch(() => ({}));
-          setSavedCarts(Array.isArray(cartsPayload?.carts) ? cartsPayload.carts : []);
-        } else {
-          const cartsPayload = await cartsResponse.json().catch(() => ({}));
-          setSavedCartsError(typeof cartsPayload?.error === 'string' ? cartsPayload.error : 'Could not load saved carts');
-        }
-
-        setSavedCartsHydrated(true);
         lastHydratedTokenRef.current = accessToken;
       } catch {
         // Fail silently in bootstrap so app can continue rendering.

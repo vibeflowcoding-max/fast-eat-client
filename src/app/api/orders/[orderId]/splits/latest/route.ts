@@ -1,32 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-function getApiUrl(): string {
-  const apiUrl = process.env.FAST_EAT_API_URL?.trim();
-  if (!apiUrl) {
-    throw new Error('FAST_EAT_API_URL is not configured');
-  }
-
-  return apiUrl.replace(/\/$/, '');
-}
+import { resolveAuthenticatedUser } from '@/app/api/_lib/auth';
+import { getLatestOrderSplitLocal } from '@/server/consumer/orders';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest, context: { params: Promise<{ orderId: string }> }) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
+    const resolvedUser = await resolveAuthenticatedUser(request);
+    if (resolvedUser instanceof NextResponse) {
+      return resolvedUser;
     }
 
     const { orderId } = await context.params;
-    const response = await fetch(`${getApiUrl()}/api/consumer/v1/orders/${encodeURIComponent(orderId)}/splits/latest`, {
-      method: 'GET',
-      headers: { Authorization: authHeader },
-      cache: 'no-store',
-    });
-    const data = await response.json().catch(() => ({}));
-    return NextResponse.json(data, { status: response.status });
+    const split = await getLatestOrderSplitLocal(orderId, resolvedUser.userId);
+    return NextResponse.json({ success: true, data: { split } }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Split proxy failed' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Split request failed' }, { status: 500 });
   }
 }

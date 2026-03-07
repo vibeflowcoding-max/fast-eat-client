@@ -1,54 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-function getApiUrl(): string {
-  const apiUrl = process.env.FAST_EAT_API_URL?.trim();
-  if (!apiUrl) {
-    throw new Error('FAST_EAT_API_URL is not configured');
-  }
-
-  return apiUrl.replace(/\/$/, '');
-}
+import { resolveAuthenticatedUser } from '@/app/api/_lib/auth';
+import { getDietaryProfileLocal, upsertDietaryProfileLocal } from '@/server/consumer/personalization';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
+    const resolvedUser = await resolveAuthenticatedUser(request);
+    if (resolvedUser instanceof NextResponse) {
+      return resolvedUser;
     }
 
-    const response = await fetch(`${getApiUrl()}/api/consumer/v1/profile/dietary`, {
-      method: 'GET',
-      headers: { Authorization: authHeader },
-      cache: 'no-store',
-    });
-    const data = await response.json().catch(() => ({}));
-    return NextResponse.json(data, { status: response.status });
+    const profile = await getDietaryProfileLocal(resolvedUser.userId);
+    return NextResponse.json({ success: true, data: { profile } }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Dietary proxy failed' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Dietary request failed' }, { status: 500 });
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
+    const resolvedUser = await resolveAuthenticatedUser(request);
+    if (resolvedUser instanceof NextResponse) {
+      return resolvedUser;
     }
 
     const body = await request.json().catch(() => ({}));
-    const response = await fetch(`${getApiUrl()}/api/consumer/v1/profile/dietary`, {
-      method: 'PUT',
-      headers: {
-        Authorization: authHeader,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-    const data = await response.json().catch(() => ({}));
-    return NextResponse.json(data, { status: response.status });
+    const profile = await upsertDietaryProfileLocal(resolvedUser.userId, body);
+    return NextResponse.json({ success: true, data: { profile } }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Dietary proxy failed' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Dietary request failed' }, { status: 500 });
   }
 }

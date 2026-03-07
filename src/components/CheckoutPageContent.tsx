@@ -23,7 +23,7 @@ import { DEFAULT_ORDER_METADATA } from '@/lib/order-metadata';
 import { formatPhoneForDisplay, normalizePhoneWithSinglePlus } from '@/lib/phone';
 import { supabase } from '@/lib/supabase';
 import { useCartActions } from '@/hooks/useCartActions';
-import { fetchCheckoutFeeRates, fetchRestaurantInfo, fetchTableQuantity } from '@/services/api';
+import { fetchCheckoutContext } from '@/services/api';
 import { useCartStore } from '@/store';
 
 function mapPaymentOptions(methods: string[]) {
@@ -145,25 +145,23 @@ export default function CheckoutPageContent() {
     }
 
     const loadCheckoutData = async () => {
-      const [restaurant, tables, rates] = await Promise.all([
-        restaurantInfo?.id === normalizedBranchId ? Promise.resolve(restaurantInfo) : fetchRestaurantInfo(normalizedBranchId),
-        fetchTableQuantity(normalizedBranchId),
-        fetchCheckoutFeeRates(normalizedBranchId),
-      ]);
+      const context = await fetchCheckoutContext(normalizedBranchId);
 
       if (!active) {
         return;
       }
 
-      if (restaurant) {
-        setRestaurantInfo(restaurant);
-        setPaymentOptions(mapPaymentOptions(restaurant.payment_methods || []));
-        setServiceOptions(mapServiceOptions(restaurant.service_modes || []));
+      if (context?.restaurant) {
+        setRestaurantInfo(context.restaurant);
+        setPaymentOptions(mapPaymentOptions(context.restaurant.payment_methods || []));
+        setServiceOptions(mapServiceOptions(context.restaurant.service_modes || []));
       }
 
-      setTableQuantity(tables.quantity || 0);
-      setFeeRates(rates);
-      setIsPricingUnavailable(rates.serviceFeeRate === 0 && rates.platformFeeRate === 0);
+      const nextFeeRates = context?.feeRates || { serviceFeeRate: 0, platformFeeRate: 0 };
+
+      setTableQuantity(context?.isTableAvailable ? context.tableQuantity || 0 : 0);
+      setFeeRates(nextFeeRates);
+      setIsPricingUnavailable(nextFeeRates.serviceFeeRate === 0 && nextFeeRates.platformFeeRate === 0);
     };
 
     void loadCheckoutData();

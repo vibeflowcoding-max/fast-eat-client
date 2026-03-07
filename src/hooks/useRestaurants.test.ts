@@ -61,4 +61,40 @@ describe('useRestaurants', () => {
 
     vi.unstubAllGlobals();
   });
+
+  it('does not surface an aborted shared request as an error for a new subscriber', async () => {
+    let resolveFetch: ((value: unknown) => void) | null = null;
+
+    vi.stubGlobal('fetch', vi.fn(() => {
+      return new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+    }) as typeof fetch);
+
+    const first = renderHook(() => useRestaurants({ categoryId: 'cat-1' }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    first.unmount();
+
+    const second = renderHook(() => useRestaurants({ categoryId: 'cat-1' }));
+
+    resolveFetch?.({
+      ok: true,
+      json: async () => [createRestaurant('restaurant-1', 'Burger House')],
+    });
+
+    await waitFor(() => {
+      expect(second.result.current.restaurants[0]?.id).toBe('restaurant-1');
+    });
+
+    expect(second.result.current.error).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    first.unmount();
+    second.unmount();
+    vi.unstubAllGlobals();
+  });
 });

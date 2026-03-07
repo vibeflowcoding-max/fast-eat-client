@@ -1,25 +1,13 @@
 import { NextResponse } from 'next/server';
-
-function getApiUrl(): string {
-  const apiUrl = process.env.FAST_EAT_API_URL?.trim();
-  if (!apiUrl) {
-    throw new Error('FAST_EAT_API_URL is not configured');
-  }
-
-  return apiUrl.replace(/\/$/, '');
-}
+import { getDietaryOptionsCatalogLocal } from '@/server/consumer/personalization';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const response = await fetch(`${getApiUrl()}/api/consumer/v1/profile/dietary/options`, {
-      method: 'GET',
-      cache: 'no-store',
-    });
-    const data = await response.json().catch(() => ({}));
-    return NextResponse.json(data, { status: response.status });
+    const catalog = await getDietaryOptionsCatalogLocal();
+    return NextResponse.json({ success: true, data: catalog }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Dietary options proxy failed' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Dietary options request failed' }, { status: 500 });
   }
 }

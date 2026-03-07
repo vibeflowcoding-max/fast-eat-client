@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
-import { fetchFastEat, getSafeUpstreamErrorMessage } from '@/app/api/_server/upstreams/fast-eat';
 import { postN8nWebhook } from '@/app/api/_server/upstreams/n8n';
 import { getSupabaseServer } from '@/lib/supabase-server';
+import { createBranchOrderRpcLocal, createConsumerOrderLocal } from '@/server/orders/create';
 
 const n8nOrderSchema = z.object({
   message: z.string().trim().min(1),
@@ -91,11 +91,6 @@ export async function POST(req: NextRequest) {
 
     const parsedClientConsumerPayload = clientConsumerOrderSchema.safeParse(payload);
     if (parsedClientConsumerPayload.success) {
-      const apiUrl = process.env.FAST_EAT_API_URL?.trim();
-      if (!apiUrl) {
-        return NextResponse.json({ success: false, message: 'FAST_EAT_API_URL is not configured' }, { status: 500 });
-      }
-
       const body = parsedClientConsumerPayload.data;
       const supabaseServer = getSupabaseServer();
       const { data: branchRecord, error: branchError } = await (supabaseServer as any)
@@ -108,49 +103,40 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, message: 'Could not resolve restaurant for branch' }, { status: 400 });
       }
 
-      const serviceModeRaw = String(body.orderType || 'pickup').toLowerCase();
-      const normalizedOrderType = serviceModeRaw === 'delivery' ? 'delivery' : (serviceModeRaw === 'dine_in' ? 'dine-in' : 'pickup');
-
-      const upstreamResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/api/consumer/v1/orders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
+      const order = await createConsumerOrderLocal({
+        restaurant_id: String(branchRecord.restaurant_id),
+        customer_name: body.customerName,
+        customer_phone: body.customerPhone,
+        delivery_address: body.address || null,
+        total_amount: body.totalAmount,
+        order_type: String(body.orderType || 'pickup').toLowerCase(),
+        source: (body.source || 'client') as 'client' | 'virtualMenu' | 'bot',
+        customerLatitude: body.customerLatitude,
+        customerLongitude: body.customerLongitude,
+        scheduledFor: body.scheduledFor || undefined,
+        optOutCutlery: Boolean(body.optOutCutlery),
+        metadata: {
+          branchId: body.branchId,
+          tableNumber: body.tableNumber || null,
         },
-        body: JSON.stringify({
-          restaurant_id: String(branchRecord.restaurant_id),
-          customer_name: body.customerName,
-          customer_phone: body.customerPhone,
-          delivery_address: body.address || null,
-          total_amount: body.totalAmount,
-          order_type: normalizedOrderType,
-          source: body.source || 'client',
-          customerLatitude: body.customerLatitude,
-          customerLongitude: body.customerLongitude,
-          scheduledFor: body.scheduledFor || undefined,
-          optOutCutlery: Boolean(body.optOutCutlery),
-          metadata: {
-            branchId: body.branchId,
-            tableNumber: body.tableNumber || null,
-          },
-          items: body.items.map((item) => ({
-            item_id: item.item_id || item.productId || item.id,
-            variant_id: item.variantId || item.variant_id || undefined,
-            quantity: item.quantity,
-            notes: item.notes || undefined,
-            modifiers: (item.modifiers || []).map((modifier) => ({
-              modifier_item_id: modifier.modifier_item_id,
-              quantity: modifier.quantity || 1,
-            })),
+        items: body.items.map((item) => ({
+          item_id: item.item_id || item.productId || item.id || '',
+          variant_id: item.variantId || item.variant_id || undefined,
+          quantity: item.quantity,
+          notes: item.notes || undefined,
+          modifiers: (item.modifiers || []).map((modifier) => ({
+            modifier_item_id: modifier.modifier_item_id,
+            quantity: modifier.quantity || 1,
           })),
-        }),
+        })),
       });
 
-      const upstreamPayload = await upstreamResponse.json().catch(() => ({}));
-      return NextResponse.json(upstreamPayload, { status: upstreamResponse.status });
+      return NextResponse.json({
+        success: true,
+        data: { order },
+        message: 'Pedido creado exitosamente',
+      }, { status: 201 });
     }
-
-    const ORDER_PATH = '/mcp/order';
 
     // Ensure branchId is correctly set in arguments if missing
     const parsedMcpPayload = mcpOrderSchema.safeParse(payload);
@@ -228,65 +214,58 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    const upstreamBody = isToolPayload
-      ? {
-          jsonrpc: '2.0',
-          id: `order-${Date.now()}`,
-          method: 'tools/call',
-          params: {
-            name: finalBody.tool,
-            arguments: finalBody.arguments ?? {},
-          },
-        }
-      : finalBody;
-
-    try {
-      const { response, payload: data } = await fetchFastEat(ORDER_PATH, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json, text/event-stream',
-        },
-        body: JSON.stringify(upstreamBody),
-      }, 55000);
-
-      if (!response.ok) {
-        return NextResponse.json(
-          { success: false, message: getSafeUpstreamErrorMessage(data, 'Error al procesar la orden') },
-          { status: response.status },
-        );
-      }
-
-      if (isToolPayload && data?.result?.content?.[0]?.text) {
-        try {
-          const parsedToolResult = JSON.parse(data.result.content[0].text);
-          return NextResponse.json(parsedToolResult);
-        } catch {
-          return NextResponse.json(data);
-        }
-      }
-
-      if (data?.error) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: data.error?.message || 'Error al procesar la orden',
-          },
-          { status: 400 },
-        );
-      }
-
-      return NextResponse.json(data);
-    } catch (fetchError: unknown) {
-      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.warn("[API/Orders] Request timed out after 55s");
-        return NextResponse.json({ 
-          success: false, 
-          message: "El servidor está tardando en responder, pero es posible que tu orden se esté procesando. Por favor, espera un momento antes de reintentar." 
-        }, { status: 504 });
-      }
-      throw fetchError;
+    if (!isToolPayload || finalBody.tool !== 'create_branch_order' || !finalBody.arguments) {
+      return NextResponse.json(
+        { success: false, message: 'Unsupported order payload' },
+        { status: 400 },
+      );
     }
+
+    const supabaseServer = getSupabaseServer();
+    const branchId = String(finalBody.arguments.branch_id || finalBody.arguments.branchId || '').trim();
+
+    if (!branchId) {
+      return NextResponse.json({ success: false, message: 'branch_id is required' }, { status: 400 });
+    }
+
+    const { data: branchRecord, error: branchError } = await (supabaseServer as any)
+      .from('branches')
+      .select('id, restaurant_id')
+      .eq('id', branchId)
+      .maybeSingle();
+
+    if (branchError || !branchRecord?.restaurant_id) {
+      return NextResponse.json({ success: false, message: 'Could not resolve restaurant for branch' }, { status: 400 });
+    }
+
+    const rpcResult = await createBranchOrderRpcLocal({
+      branchId,
+      restaurantId: String(branchRecord.restaurant_id),
+      customer: {
+        name: getStringValue(finalBody.arguments.customer ?? {}, 'name') || getStringValue(finalBody.arguments, 'customerName') || 'Cliente',
+        phone: getStringValue(finalBody.arguments.customer ?? {}, 'phone') || getStringValue(finalBody.arguments, 'customerPhone') || getStringValue(finalBody.arguments, 'phone'),
+        email: getNullableStringValue(finalBody.arguments.customer ?? {}, 'email') || getNullableStringValue(finalBody.arguments, 'customerEmail'),
+        address: getNullableStringValue(finalBody.arguments.customer ?? {}, 'address') || getNullableStringValue(finalBody.arguments, 'delivery_address') || getNullableStringValue(finalBody.arguments, 'address'),
+      },
+      items: Array.isArray(finalBody.arguments.items)
+        ? finalBody.arguments.items.map((item: any) => ({
+            menu_item_id: String(item.menu_item_id || item.menuItemId || item.productId || item.id || ''),
+            quantity: Number(item.quantity || 1),
+            special_instructions: item.special_instructions || item.specialInstructions || item.notes || null,
+          }))
+        : [],
+      paymentMethodCode: String(finalBody.arguments.payment_method_code || finalBody.arguments.paymentMethod || 'CASH').toUpperCase(),
+      serviceMode: (String(finalBody.arguments.service_mode || finalBody.arguments.orderType || 'pickup').toLowerCase() === 'delivery'
+        ? 'delivery'
+        : String(finalBody.arguments.service_mode || finalBody.arguments.orderType || 'pickup').toLowerCase() === 'dine_in'
+          ? 'dine_in'
+          : 'pickup') as 'pickup' | 'delivery' | 'dine_in' | 'takeaway',
+      deliveryAddress: getNullableStringValue(finalBody.arguments, 'delivery_address') || getNullableStringValue(finalBody.arguments, 'address'),
+      notes: getNullableStringValue(finalBody.arguments, 'notes'),
+      tableNumber: finalBody.arguments.table_number ? Number(finalBody.arguments.table_number) : (finalBody.arguments.tableNumber ? Number(finalBody.arguments.tableNumber) : null),
+    });
+
+    return NextResponse.json(rpcResult);
   } catch (error) {
     console.error("[API/Orders] Fatal Error:", error);
     return NextResponse.json(

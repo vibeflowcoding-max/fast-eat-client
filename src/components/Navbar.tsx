@@ -91,6 +91,8 @@ const Navbar: React.FC<NavbarProps> = ({
     const t = useTranslations('nav');
     const tTracking = useTranslations('tracking');
     const bidNotifications = useCartStore((state) => state.bidNotifications);
+    const clientContext = useCartStore((state) => state.clientContext);
+    const hydrateClientContext = useCartStore((state) => state.hydrateClientContext);
     const markBidNotificationRead = useCartStore((state) => state.markBidNotificationRead);
     const setDeepLinkTarget = useCartStore((state) => state.setDeepLinkTarget);
     const unreadNotifications = useMemo(
@@ -111,6 +113,11 @@ const Navbar: React.FC<NavbarProps> = ({
 
     React.useEffect(() => {
         let mounted = true;
+        const cachedFavorites = Array.isArray(clientContext?.favorites) ? clientContext.favorites : [];
+
+        if (restaurantInfo?.id && cachedFavorites.length > 0) {
+            setIsFavorite(cachedFavorites.includes(restaurantInfo.id));
+        }
 
         async function loadFavoriteState() {
             if (!restaurantInfo?.id) {
@@ -141,7 +148,12 @@ const Navbar: React.FC<NavbarProps> = ({
 
                 const payload = await response.json();
                 if (mounted) {
-                    setIsFavorite(Boolean(payload?.isFavorite));
+                    if (Array.isArray(payload?.favoriteRestaurantIds)) {
+                        hydrateClientContext({ favorites: payload.favoriteRestaurantIds.map(String) });
+                        setIsFavorite(payload.favoriteRestaurantIds.map(String).includes(restaurantInfo.id));
+                    } else {
+                        setIsFavorite(Boolean(payload?.isFavorite));
+                    }
                 }
             } catch {
                 if (mounted) {
@@ -150,12 +162,14 @@ const Navbar: React.FC<NavbarProps> = ({
             }
         }
 
-        loadFavoriteState();
+        if (!restaurantInfo?.id || cachedFavorites.length === 0) {
+            loadFavoriteState();
+        }
 
         return () => {
             mounted = false;
         };
-    }, [restaurantInfo?.id]);
+    }, [clientContext?.favorites, hydrateClientContext, restaurantInfo?.id]);
 
     useEffect(() => {
         const unlock = () => {
@@ -323,6 +337,11 @@ const Navbar: React.FC<NavbarProps> = ({
         const optimisticValue = !isFavorite;
         setIsFavorite(optimisticValue);
         setIsFavoriteLoading(true);
+        const previousFavorites = Array.isArray(clientContext?.favorites) ? clientContext.favorites : [];
+        const nextFavorites = optimisticValue
+            ? Array.from(new Set([...previousFavorites, restaurantInfo.id]))
+            : previousFavorites.filter((entry) => entry !== restaurantInfo.id);
+        hydrateClientContext({ favorites: nextFavorites });
 
         try {
             if (optimisticValue) {
@@ -352,6 +371,7 @@ const Navbar: React.FC<NavbarProps> = ({
             }
         } catch {
             setIsFavorite(!optimisticValue);
+            hydrateClientContext({ favorites: previousFavorites });
         } finally {
             setIsFavoriteLoading(false);
         }

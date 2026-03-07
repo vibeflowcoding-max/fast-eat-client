@@ -26,6 +26,10 @@ const PREDICTIVE_DISMISS_SESSION_KEY = 'home_banner_predictive_dismissed_v1';
 
 type PredictiveFallbackType = 'offline' | 'api_error' | 'provider_unavailable' | 'incomplete_data' | null;
 
+function isAbortError(error: unknown): boolean {
+    return error instanceof DOMException && error.name === 'AbortError';
+}
+
 function toTrackedFallbackType(type: Exclude<PredictiveFallbackType, null> | 'missing_target'): HomeBannerFallbackType {
     if (type === 'provider_unavailable' || type === 'incomplete_data') {
         return 'api_error';
@@ -100,6 +104,8 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
             return;
         }
 
+        const controller = new AbortController();
+
         const checkPrediction = async () => {
             try {
                 const response = await fetch('/api/discovery/predictive-reorder', {
@@ -108,6 +114,7 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
                         'Content-Type': 'application/json',
                         'x-locale': locale,
                     },
+                    signal: controller.signal,
                     body: JSON.stringify({
                         current_time: new Date().toISOString()
                     })
@@ -149,6 +156,10 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
 
                 hidePredictionState();
             } catch (error) {
+                if (controller.signal.aborted || isAbortError(error)) {
+                    return;
+                }
+
                 console.error('[PredictivePrompt] Failed to fetch prediction:', error);
                 showFallbackState('api_error');
                 emitHomeEvent({
@@ -160,6 +171,10 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
         };
 
         checkPrediction();
+
+        return () => {
+            controller.abort();
+        };
     }, [isDismissed, locale]);
 
     useEffect(() => {

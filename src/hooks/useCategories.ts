@@ -7,6 +7,20 @@ const CATEGORIES_CACHE_TTL_MS = 5 * 60 * 1000;
 
 let categoriesCache: RestaurantCategory[] | null = null;
 let categoriesCacheAt = 0;
+let categoriesInflightPromise: Promise<RestaurantCategory[]> | null = null;
+
+function isAbortLikeError(error: unknown): boolean {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+        return true;
+    }
+
+    if (error instanceof Error) {
+        const normalized = error.message.toLowerCase();
+        return normalized.includes('aborted') || normalized.includes('signal is aborted');
+    }
+
+    return false;
+}
 
 export function useCategories() {
     const [categories, setCategories] = useState<RestaurantCategory[]>([]);
@@ -27,21 +41,31 @@ export function useCategories() {
 
         async function fetchCategories() {
             try {
-                const response = await fetch('/api/categories', { signal: controller.signal });
-                if (!response.ok) {
-                    throw new Error('Failed to fetch categories');
+                const loader = categoriesInflightPromise || (async () => {
+                    const response = await fetch('/api/categories');
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch categories');
+                    }
+                    const data = await response.json();
+                    const normalized = Array.isArray(data) ? data : [];
+                    categoriesCache = normalized;
+                    categoriesCacheAt = Date.now();
+                    return normalized;
+                })();
+
+                categoriesInflightPromise = loader;
+                const normalized = await loader;
+
+                if (!controller.signal.aborted) {
+                    setCategories(normalized);
                 }
-                const data = await response.json();
-                const normalized = Array.isArray(data) ? data : [];
-                categoriesCache = normalized;
-                categoriesCacheAt = Date.now();
-                setCategories(normalized);
             } catch (err) {
-                if (controller.signal.aborted) {
+                if (controller.signal.aborted || isAbortLikeError(err)) {
                     return;
                 }
                 setError(err instanceof Error ? err.message : 'Unknown error');
             } finally {
+                categoriesInflightPromise = null;
                 if (!controller.signal.aborted) {
                     setLoading(false);
                 }

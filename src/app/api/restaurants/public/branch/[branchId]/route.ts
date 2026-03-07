@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchFastEat, getSafeUpstreamErrorMessage } from '@/app/api/_server/upstreams/fast-eat';
 import { getSupabaseServer } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +27,7 @@ async function loadBranchFromSupabase(branchId: string) {
       name,
       address,
       phone,
+      rating,
       is_active,
       image_url,
       restaurant_id,
@@ -68,7 +68,7 @@ async function loadBranchFromSupabase(branchId: string) {
     address: String(branchRecord.address || ''),
     phone: String(branchRecord.phone || ''),
     email: String(restaurant.email || ''),
-    rating: toNumber(restaurant.rating),
+    rating: toNumber((branchRecord as any)?.rating ?? restaurant.rating),
     image_url: String(branchRecord.image_url || ''),
     google_maps_url: String(restaurant.google_maps_url || ''),
     opening_hours: typeof restaurant.opening_hours === 'object' && restaurant.opening_hours !== null ? restaurant.opening_hours : {},
@@ -92,33 +92,19 @@ export async function GET(
       return NextResponse.json({ error: 'branchId is required' }, { status: 400 });
     }
 
-    try {
-      const { response, payload } = await fetchFastEat(
-        `/restaurants/public/branch/${encodeURIComponent(normalizedBranchId)}`,
-        { method: 'GET' },
-      );
-
-      if (response.ok) {
-        return NextResponse.json(payload);
-      }
-
-      const fallbackData = await loadBranchFromSupabase(normalizedBranchId);
-      if (fallbackData) {
-        return NextResponse.json({ success: true, data: fallbackData });
-      }
-
-      return NextResponse.json(
-        { error: getSafeUpstreamErrorMessage(payload, 'Could not load restaurant info') },
-        { status: response.status },
-      );
-    } catch {
-      const fallbackData = await loadBranchFromSupabase(normalizedBranchId);
-      if (fallbackData) {
-        return NextResponse.json({ success: true, data: fallbackData });
-      }
-
-      throw new Error('Could not load restaurant info');
+    const data = await loadBranchFromSupabase(normalizedBranchId);
+    if (!data) {
+      return NextResponse.json({ error: 'Could not load restaurant info' }, { status: 404 });
     }
+
+    return NextResponse.json(
+      { success: true, data },
+      {
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      },
+    );
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Could not load restaurant info' },

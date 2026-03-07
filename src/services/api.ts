@@ -1,4 +1,4 @@
-import { CartItem, DeliveryBid, DeliveryTrackingPayload, DietaryOptionsCatalog, DietaryProfile, MCPOrderPayload, MenuItem, MysteryBoxOffersResponse, OrderMetadata, PersistedCartRecord, PlannerRecommendationsResponse, RestaurantInfo, SavedOrderSplitDraft } from '../types';
+import { BranchCheckoutContextPayload, BranchMenuCategoryItemsPayload, BranchMenuCategorySummary, BranchShellPayload, CartItem, ClientBootstrapPayload, DeliveryBid, DeliveryTrackingPayload, DietaryOptionsCatalog, DietaryProfile, MenuItem, MysteryBoxOffersResponse, OrderMetadata, PersistedCartRecord, PlannerRecommendationsResponse, RestaurantInfo, SavedOrderSplitDraft } from '../types';
 import { APP_CONSTANTS } from '../constants';
 import { supabase } from '@/lib/supabase';
 import { getLocalSavedCart, listLocalSavedCarts, upsertLocalSavedCart, archiveLocalSavedCart } from '@/lib/saved-carts-storage';
@@ -20,9 +20,7 @@ function isStorageFallbackError(errorMessage: string): boolean {
     || normalized.includes('missing supabase server credentials')
     || normalized.includes('missing authenticated session')
     || normalized.includes('missing authorization header')
-    || normalized.includes('unauthorized')
-    || normalized.includes('missing fast_eat_api_url')
-    || normalized.includes('missing fast eat api url');
+    || normalized.includes('unauthorized');
 }
 
 async function getAuthenticatedHeaders(): Promise<Record<string, string>> {
@@ -84,6 +82,77 @@ const mapBidFromApi = (bid: any): DeliveryBid => ({
   expiresAt: String(bid?.expiresAt ?? bid?.expires_at ?? new Date().toISOString()),
   createdAt: String(bid?.createdAt ?? bid?.created_at ?? new Date().toISOString())
 });
+
+function mapMenuItem(rawItem: any, categoryName?: string): MenuItem {
+  return {
+    id: String(rawItem?.id || rawItem?.productId || rawItem?.name),
+    name: rawItem?.name || 'Platillo',
+    description: rawItem?.description || 'Delicioso platillo tradicional.',
+    price: Number(rawItem?.price || rawItem?.branch_price || rawItem?.base_price || 0),
+    category: categoryName || rawItem?.category || 'General',
+    image: rawItem?.image || rawItem?.image_url || 'https://images.unsplash.com/photo-1580822184713-fc5400e7fe10?auto=format&fit=crop&q=80&w=800',
+    ingredients: Array.isArray(rawItem?.ingredients) ? rawItem.ingredients.map(String) : [],
+    defaultVariantId: rawItem?.defaultVariantId || rawItem?.default_variant_id || null,
+    variants: Array.isArray(rawItem?.variants)
+      ? rawItem.variants.map((variant: any) => ({
+          id: String(variant.id),
+          name: String(variant.name || 'Regular'),
+          price: Number(variant.price || 0),
+          isDefault: Boolean(variant.isDefault ?? variant.is_default),
+        }))
+      : [],
+    modifierGroups: Array.isArray(rawItem?.modifierGroups)
+      ? rawItem.modifierGroups
+      : Array.isArray(rawItem?.modifier_groups)
+        ? rawItem.modifier_groups.map((group: any) => ({
+            id: String(group.id),
+            name: String(group.name || 'Extras'),
+            minSelection: Number(group.minSelection ?? group.min_selection ?? 0),
+            maxSelection: group.maxSelection ?? group.max_selection ?? null,
+            required: Boolean(group.required),
+            options: Array.isArray(group.options)
+              ? group.options.map((option: any) => ({
+                  id: String(option.id),
+                  name: String(option.name || 'Opción'),
+                  priceDelta: Number(option.priceDelta ?? option.price_delta ?? 0),
+                  available: option.available !== false,
+                  stockCount: option.stockCount ?? option.stock_count ?? null,
+                }))
+              : [],
+          }))
+        : [],
+    hasStructuredCustomization: Boolean(
+      rawItem?.hasStructuredCustomization
+        || (Array.isArray(rawItem?.modifierGroups) && rawItem.modifierGroups.length > 0)
+        || (Array.isArray(rawItem?.modifier_groups) && rawItem.modifier_groups.length > 0),
+    ),
+  };
+}
+
+function mapRestaurantInfoPayload(data: any): RestaurantInfo | null {
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  return {
+    id: String(data.id || ''),
+    name: String(data.name || 'Restaurante'),
+    description: String(data.description || ''),
+    category: String(data.category || ''),
+    address: String(data.address || ''),
+    phone: String(data.phone || ''),
+    email: String(data.email || ''),
+    rating: Number(data.rating || 0),
+    image_url: String(data.image_url || ''),
+    google_maps_url: String(data.google_maps_url || ''),
+    opening_hours: typeof data.opening_hours === 'object' && data.opening_hours !== null ? data.opening_hours : {},
+    payment_methods: Array.isArray(data.payment_methods) ? data.payment_methods.map(String) : [],
+    service_modes: Array.isArray(data.service_modes) ? data.service_modes.map(String) : [],
+    active: Boolean(data.active),
+    created_at: String(data.created_at || ''),
+    updated_at: String(data.updated_at || ''),
+  };
+}
 
 export const fetchMenuFromAPI = async (
   branchId: string,
@@ -182,9 +251,9 @@ export const fetchRestaurantInfo = async (
     if (!response.ok) throw new Error('Error al cargar la información del restaurante');
     const data = await response.json();
     if (data.success && data.data) {
-      return data.data;
+      return mapRestaurantInfoPayload(data.data);
     }
-    return null;
+    return mapRestaurantInfoPayload(data?.data ?? data);
   } catch (error) {
     if (isAbortError(error)) {
       throw error;
@@ -235,6 +304,204 @@ export const fetchCheckoutFeeRates = async (branchId: string): Promise<{ service
   } catch {
     return { serviceFeeRate: 0, platformFeeRate: 0 };
   }
+};
+
+export const fetchClientBootstrap = async (
+  signal?: AbortSignal,
+): Promise<ClientBootstrapPayload | null> => {
+  const headers = await getAuthenticatedHeaders();
+  const response = await fetch('/api/consumer/me/bootstrap', {
+    method: 'GET',
+    headers,
+    cache: 'no-store',
+    signal,
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || 'Could not load bootstrap context');
+  }
+
+  return (data?.data || data) as ClientBootstrapPayload;
+};
+
+export const fetchBranchShell = async (
+  branchId: string,
+  signal?: AbortSignal,
+): Promise<BranchShellPayload | null> => {
+  try {
+    const normalizedBranchId = String(branchId || '').trim();
+    if (!normalizedBranchId) {
+      return null;
+    }
+
+    const response = await fetch(`/api/branches/${encodeURIComponent(normalizedBranchId)}/shell`, {
+      cache: 'no-store',
+      signal,
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data?.error || 'Could not load branch shell');
+    }
+
+    const payload = data?.data || data;
+
+    return {
+      branchId: String(payload?.branchId || normalizedBranchId),
+      restaurant: mapRestaurantInfoPayload(payload?.restaurant),
+      tableQuantity: Number(payload?.tableQuantity || 0),
+      isTableAvailable: Boolean(payload?.isTableAvailable),
+    };
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+
+    console.error('Error fetching branch shell:', error);
+    return null;
+  }
+};
+
+export const fetchCheckoutContext = async (
+  branchId: string,
+  signal?: AbortSignal,
+): Promise<BranchCheckoutContextPayload | null> => {
+  try {
+    const normalizedBranchId = String(branchId || '').trim();
+    if (!normalizedBranchId) {
+      return null;
+    }
+
+    const response = await fetch(`/api/branches/${encodeURIComponent(normalizedBranchId)}/checkout-context`, {
+      cache: 'no-store',
+      signal,
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data?.error || 'Could not load checkout context');
+    }
+
+    const payload = data?.data || data;
+    const feeRates = payload?.feeRates || {};
+
+    return {
+      branchId: String(payload?.branchId || normalizedBranchId),
+      restaurant: mapRestaurantInfoPayload(payload?.restaurant),
+      tableQuantity: Number(payload?.tableQuantity || 0),
+      isTableAvailable: Boolean(payload?.isTableAvailable),
+      feeRates: {
+        serviceFeeRate: Number(feeRates?.serviceFeeRate || 0),
+        platformFeeRate: Number(feeRates?.platformFeeRate || 0),
+        source: typeof feeRates?.source === 'string' ? feeRates.source : 'default',
+      },
+    };
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+
+    console.error('Error fetching checkout context:', error);
+    return null;
+  }
+};
+
+export const fetchBranchMenuCategories = async (
+  branchId: string,
+  signal?: AbortSignal,
+): Promise<BranchMenuCategorySummary[]> => {
+  try {
+    const normalizedBranchId = String(branchId || '').trim();
+    if (!normalizedBranchId) {
+      return [];
+    }
+
+    const response = await fetch(`/api/menu/branch/${encodeURIComponent(normalizedBranchId)}/categories`, {
+      cache: 'no-store',
+      signal,
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data?.error || 'Could not load menu categories');
+    }
+
+    const payload = data?.categories || data?.data?.categories || data?.data || [];
+    return Array.isArray(payload)
+      ? payload.map((category: any) => ({
+          id: String(category?.id || category?.name || 'general'),
+          name: String(category?.name || 'General'),
+          itemCount: Number(category?.itemCount || 0),
+        }))
+      : [];
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+
+    console.error('Error fetching branch menu categories:', error);
+    return [];
+  }
+};
+
+export const fetchBranchMenuItems = async (
+  branchId: string,
+  params: { categoryId: string; cursor?: string | null; limit?: number; channel?: string },
+  signal?: AbortSignal,
+): Promise<BranchMenuCategoryItemsPayload> => {
+  const normalizedBranchId = String(branchId || '').trim();
+  const normalizedCategoryId = String(params.categoryId || '').trim();
+
+  if (!normalizedBranchId || !normalizedCategoryId) {
+    return {
+      category: null,
+      items: [],
+      nextCursor: null,
+      total: 0,
+    };
+  }
+
+  const searchParams = new URLSearchParams({
+    categoryId: normalizedCategoryId,
+    limit: String(params.limit || 12),
+    channel: params.channel || 'delivery',
+  });
+
+  if (params.cursor) {
+    searchParams.set('cursor', params.cursor);
+  }
+
+  const response = await fetch(
+    `/api/menu/branch/${encodeURIComponent(normalizedBranchId)}/items?${searchParams.toString()}`,
+    {
+      cache: 'no-store',
+      signal,
+    },
+  );
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data?.error || 'Could not load menu items');
+  }
+
+  const payload = data?.data || data;
+  const categoryName = String(payload?.category?.name || 'General');
+  const items = Array.isArray(payload?.items)
+    ? payload.items.map((item: any) => mapMenuItem(item, categoryName))
+    : [];
+
+  return {
+    category: payload?.category
+      ? {
+          id: String(payload.category.id || normalizedCategoryId),
+          name: categoryName,
+        }
+      : null,
+    items,
+    nextCursor: payload?.nextCursor ? String(payload.nextCursor) : null,
+    total: Number(payload?.total || items.length),
+  };
 };
 
 export const fetchBranches = async (): Promise<any[]> => {

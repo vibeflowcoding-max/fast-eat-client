@@ -48,6 +48,15 @@ function getRailState(params: { loading?: boolean; error?: string | null; hasDat
     return 'success' as const;
 }
 
+function isTransientNavigationError(error: string | null | undefined) {
+    if (!error) {
+        return false;
+    }
+
+    const normalized = error.toLowerCase();
+    return normalized.includes('abort') || normalized.includes('signal is aborted');
+}
+
 function getEmptyStateConfig(variant: RailEmptyVariant, t: ReturnType<typeof useTranslations>): { message: string; action?: Omit<RailAction, 'onClick'> } {
     if (variant === 'query') {
         return {
@@ -182,14 +191,16 @@ export default function RestaurantRail({
         }
 
         if (railState === 'error') {
+            const safeErrorMessage = isTransientNavigationError(error) ? null : error;
+
             if (!statePolishV1) {
-                return <HomeErrorState message={error || t('error.loadSection')} onRetry={onRetry} />;
+                return <HomeErrorState message={safeErrorMessage || t('error.loadSection')} onRetry={onRetry} />;
             }
 
             return (
                 <HomeErrorState
                     title={t('error.title')}
-                    message={error || t('error.retryInSeconds')}
+                    message={safeErrorMessage || t('error.retryInSeconds')}
                     onRetry={onRetry ? handleRetry : undefined}
                     fallbackLabel={onErrorFallback ? t('error.clearFilters') : undefined}
                     onFallback={onErrorFallback ? handleErrorFallback : undefined}

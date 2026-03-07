@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { fetchFastEat, getSafeUpstreamErrorMessage } from '@/app/api/_server/upstreams/fast-eat';
+import { registerClientWithSupabase } from '@/server/auth/client-auth';
 
 const registerSchema = z.object({
   email: z.string().trim().email(),
-  password: z.string().min(8),
+  password: z.string().min(6),
   fullName: z.string().trim().min(2).optional(),
   name: z.string().trim().min(2).optional(),
+  phone: z.string().trim().min(1).optional(),
+  address: z.object({
+    urlAddress: z.string().trim().optional(),
+    buildingType: z.string().trim().optional(),
+    unitDetails: z.string().trim().optional(),
+    deliveryNotes: z.string().trim().optional(),
+  }).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -18,24 +25,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid registration payload' }, { status: 400 });
     }
 
-    const { response, payload } = await fetchFastEat('/api/auth/client/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(parsed.data),
-    });
+    const fullName = parsed.data.fullName ?? parsed.data.name ?? '';
+    const phone = parsed.data.phone ?? '';
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: getSafeUpstreamErrorMessage(payload, 'Client register proxy failed') },
-        { status: response.status },
-      );
+    if (!fullName.trim()) {
+      return NextResponse.json({ error: 'fullName is required' }, { status: 400 });
     }
 
-    return NextResponse.json(payload, { status: response.status });
+    if (!phone.trim()) {
+      return NextResponse.json({ error: 'phone is required' }, { status: 400 });
+    }
+
+    const payload = await registerClientWithSupabase({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      fullName,
+      phone,
+      address: parsed.data.address,
+    });
+
+    return NextResponse.json(payload, { status: 201 });
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Client register failed';
+    const status = message.includes('Este email ya existe')
+      ? 409
+      : message.includes('Ya existe una cuenta asociada')
+        ? 409
+        : message.includes('Error en registro de cliente')
+          ? 400
+          : 500;
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Client register proxy failed' },
-      { status: 500 }
+      { error: message },
+      { status }
     );
   }
 }

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { fetchFastEat, getSafeUpstreamErrorMessage } from '@/app/api/_server/upstreams/fast-eat';
+import {
+  autocompletePlacesPayload,
+  geocodeAddressPayload,
+  getDirectionsPayload,
+  getMapsConfigPayload,
+  getPlaceDetailsPayload,
+  reverseGeocodePayload,
+} from '@/server/maps/google';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,30 +66,29 @@ export async function GET(request: NextRequest) {
 
     const { action, input, placeId, lat, lng, radius, language } = parsed.data;
 
-    let upstreamPath = '/api/maps/v1/config';
+    if (action === 'config') {
+      return NextResponse.json({ success: true, data: await getMapsConfigPayload() });
+    }
+
     if (action === 'autocomplete') {
       if (!input) {
         return NextResponse.json({ error: 'input is required' }, { status: 400 });
       }
 
-      upstreamPath = `/api/maps/v1/places/autocomplete${buildQueryString({ input, lat, lng, radius, language })}`;
-    } else if (action === 'place-details') {
-      if (!placeId) {
-        return NextResponse.json({ error: 'placeId is required' }, { status: 400 });
-      }
-
-      upstreamPath = `/api/maps/v1/places/${encodeURIComponent(placeId)}${buildQueryString({ language })}`;
+      return NextResponse.json({
+        success: true,
+        data: await autocompletePlacesPayload({ input, lat, lng, radius, language }),
+      });
     }
 
-    const { response, payload } = await fetchFastEat(upstreamPath, { method: 'GET' });
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: getSafeUpstreamErrorMessage(payload, 'Maps request failed') },
-        { status: response.status },
-      );
+    if (!placeId) {
+      return NextResponse.json({ error: 'placeId is required' }, { status: 400 });
     }
 
-    return NextResponse.json(payload);
+    return NextResponse.json({
+      success: true,
+      data: await getPlaceDetailsPayload(placeId, language),
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Maps request failed' },
@@ -99,52 +105,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid maps request body' }, { status: 400 });
     }
 
-    let upstreamPath = '/api/maps/v1/geocode';
-    let upstreamBody: Record<string, unknown> = {};
-
     switch (parsed.data.action) {
       case 'geocode':
-        upstreamPath = '/api/maps/v1/geocode';
-        upstreamBody = {
-          address: parsed.data.address,
-          language: parsed.data.language,
-          region: parsed.data.region,
-        };
-        break;
+        return NextResponse.json({
+          success: true,
+          data: await geocodeAddressPayload(parsed.data.address, parsed.data.language, parsed.data.region),
+        });
       case 'reverse-geocode':
-        upstreamPath = '/api/maps/v1/reverse-geocode';
-        upstreamBody = {
-          lat: parsed.data.lat,
-          lng: parsed.data.lng,
-          language: parsed.data.language,
-        };
-        break;
+        return NextResponse.json({
+          success: true,
+          data: await reverseGeocodePayload(parsed.data.lat, parsed.data.lng, parsed.data.language),
+        });
       case 'directions':
-        upstreamPath = '/api/maps/v1/directions';
-        upstreamBody = {
-          origin: parsed.data.origin,
-          destination: parsed.data.destination,
-          mode: parsed.data.mode ?? 'driving',
-        };
-        break;
+        return NextResponse.json({
+          success: true,
+          data: await getDirectionsPayload(parsed.data.origin, parsed.data.destination, parsed.data.mode ?? 'driving'),
+        });
     }
-
-    const { response, payload } = await fetchFastEat(upstreamPath, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(upstreamBody),
-    });
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: getSafeUpstreamErrorMessage(payload, 'Maps request failed') },
-        { status: response.status },
-      );
-    }
-
-    return NextResponse.json(payload);
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Maps request failed' },

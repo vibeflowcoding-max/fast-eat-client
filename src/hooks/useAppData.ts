@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useCartStore } from '../store';
-import { fetchMenuFromAPI, fetchRestaurantInfo, getCartFromN8N, fetchTableQuantity } from '../services/api';
+import { fetchBranchMenuCategories, fetchBranchMenuItems, fetchBranchShell, getCartFromN8N } from '../services/api';
 import { MenuItem, CartItem } from '../types';
 import { APP_CONSTANTS } from '../constants';
 
@@ -24,6 +24,84 @@ export const useAppData = () => {
   const [error, setError] = useState<string | null>(null);
   const [tableQuantity, setTableQuantity] = useState<number>(0);
   const requestCycleRef = useRef(0);
+  const categoryIdByNameRef = useRef<Record<string, string>>({});
+  const loadedCategoryIdsRef = useRef<Set<string>>(new Set());
+  const inFlightCategoryIdsRef = useRef<Set<string>>(new Set());
+  const categoryOrderRef = useRef<string[]>([]);
+
+  const mergeMenuItems = useCallback((incomingItems: MenuItem[]) => {
+    setMenuItems((previous) => {
+      const merged = new Map<string, MenuItem>();
+
+      previous.forEach((item) => {
+        merged.set(String(item.id), item);
+      });
+
+      incomingItems.forEach((item) => {
+        merged.set(String(item.id), item);
+      });
+
+      const categoryOrder = categoryOrderRef.current;
+      return Array.from(merged.values()).sort((left, right) => {
+        const leftIndex = categoryOrder.indexOf(left.category);
+        const rightIndex = categoryOrder.indexOf(right.category);
+
+        if (leftIndex !== rightIndex) {
+          return (leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex)
+            - (rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex);
+        }
+
+        return left.name.localeCompare(right.name);
+      });
+    });
+  }, [setMenuItems]);
+
+  const loadCategoryItems = useCallback(async (
+    branch: string,
+    categoryName: string,
+    signal?: AbortSignal,
+  ) => {
+    const categoryId = categoryIdByNameRef.current[categoryName];
+    if (!categoryId || loadedCategoryIdsRef.current.has(categoryId) || inFlightCategoryIdsRef.current.has(categoryId)) {
+      return [] as MenuItem[];
+    }
+
+    inFlightCategoryIdsRef.current.add(categoryId);
+
+    try {
+      let cursor: string | null = null;
+      const aggregatedItems: MenuItem[] = [];
+
+      do {
+        const payload = await fetchBranchMenuItems(
+          branch,
+          {
+            categoryId,
+            cursor,
+            limit: 24,
+            channel: 'delivery',
+          },
+          signal,
+        );
+
+        if (Array.isArray(payload.items) && payload.items.length > 0) {
+          aggregatedItems.push(...payload.items.map((item) => ({
+            ...item,
+            category: payload.category?.name || categoryName,
+          })));
+        }
+
+        cursor = payload.nextCursor;
+      } while (cursor && !signal?.aborted);
+
+      loadedCategoryIdsRef.current.add(categoryId);
+      mergeMenuItems(aggregatedItems);
+
+      return aggregatedItems;
+    } finally {
+      inFlightCategoryIdsRef.current.delete(categoryId);
+    }
+  }, [mergeMenuItems]);
 
   const initAppData = useCallback(async (signal?: AbortSignal) => {
     const cycle = Date.now();
@@ -39,55 +117,102 @@ export const useAppData = () => {
 
     setLoading(true);
     setError(null);
+    setMenuItems([]);
+    setCategories([]);
+    setActiveCategory('');
+    setTableQuantity(0);
+    categoryIdByNameRef.current = {};
+    categoryOrderRef.current = [];
+    loadedCategoryIdsRef.current = new Set();
+    inFlightCategoryIdsRef.current = new Set();
 
     try {
-      // Step A: parallel — restInfo and tableQty are independent, run together
-      const [infoResult, tableResult] = await Promise.allSettled([
-        fetchRestaurantInfo(branchId, signal),
-        fetchTableQuantity(branchId, signal),
+      const [shellResult, categoriesResult] = await Promise.allSettled([
+        fetchBranchShell(branchId, signal),
+        fetchBranchMenuCategories(branchId, signal),
       ]);
 
-      if (infoResult.status === 'fulfilled' && infoResult.value && isCurrentCycle()) {
-        setRestaurantInfo(infoResult.value);
-      } else if (infoResult.status === 'rejected' && !isAbortError(infoResult.reason)) {
-        console.error("Failed to fetch restaurant info", infoResult.reason);
-      }
-
-      if (tableResult.status === 'fulfilled' && tableResult.value?.is_available && tableResult.value.quantity > 0 && isCurrentCycle()) {
-        setTableQuantity(tableResult.value.quantity);
-      } else if (tableResult.status === 'rejected' && !isAbortError(tableResult.reason)) {
-        console.error("Failed to fetch table quantity", tableResult.reason);
-      }
-
-      // Step B: critical path — fetch menu (unblocks UI immediately after)
-      let items: MenuItem[] = [];
-      let apiCategories: string[] = [];
-      try {
-        const menuResult = await fetchMenuFromAPI(branchId, signal);
-        items = menuResult.items;
-        apiCategories = menuResult.categories;
-
-        if (!isCurrentCycle()) {
-          return;
+      if (shellResult.status === 'fulfilled' && shellResult.value && isCurrentCycle()) {
+        if (shellResult.value.restaurant) {
+          setRestaurantInfo(shellResult.value.restaurant);
         }
+        setTableQuantity(shellResult.value.isTableAvailable ? shellResult.value.tableQuantity : 0);
+      } else if (shellResult.status === 'rejected' && !isAbortError(shellResult.reason)) {
+        console.error('Failed to fetch branch shell', shellResult.reason);
+      }
 
-        setMenuItems(items);
-        const cats = apiCategories.length > 0 ? apiCategories : Array.from(new Set(items.map(i => i.category)));
-        setCategories(cats);
-        if (items.length > 0) setActiveCategory(apiCategories[0] || items[0].category);
+      const categorySummaries = categoriesResult.status === 'fulfilled' ? categoriesResult.value : [];
+      if (categoriesResult.status === 'rejected' && !isAbortError(categoriesResult.reason)) {
+        console.error('Failed to fetch menu categories', categoriesResult.reason);
+      }
+
+      const nextCategories = Array.isArray(categorySummaries)
+        ? categorySummaries.map((category) => String(category.name || 'General'))
+        : [];
+
+      categoryIdByNameRef.current = Object.fromEntries(
+        (Array.isArray(categorySummaries) ? categorySummaries : []).map((category) => [
+          String(category.name || 'General'),
+          String(category.id || category.name || 'general'),
+        ]),
+      );
+      categoryOrderRef.current = nextCategories;
+
+      if (isCurrentCycle()) {
+        setCategories(nextCategories);
+      }
+
+      if (nextCategories.length === 0) {
+        if (isCurrentCycle()) {
+          setLoading(false);
+        }
+        return;
+      }
+
+      const initialCategory = nextCategories[0];
+      if (isCurrentCycle()) {
+        setActiveCategory(initialCategory);
+      }
+
+      let initialItems: MenuItem[] = [];
+      try {
+        initialItems = await loadCategoryItems(branchId, initialCategory, signal);
       } catch (e) {
         if (isAbortError(e)) {
           return;
         }
 
-        console.error("Failed to fetch menu items", e);
+        console.error('Failed to fetch initial menu category', e);
         if (isCurrentCycle()) {
           setError(APP_CONSTANTS.MESSAGES.LOAD_ERROR);
         }
       }
 
-      // Step C: fire-and-forget cart sync — runs in background, never stalls the menu
-      if (items.length > 0 && fromNumber) {
+      if (isCurrentCycle()) {
+        setLoading(false);
+      }
+
+      const remainingCategories = nextCategories.slice(1);
+      if (remainingCategories.length > 0) {
+        void (async () => {
+          for (const categoryName of remainingCategories) {
+            if (!isCurrentCycle()) {
+              return;
+            }
+
+            try {
+              await loadCategoryItems(branchId, categoryName, signal);
+            } catch (backgroundError) {
+              if (isAbortError(backgroundError)) {
+                return;
+              }
+              console.error('Failed to fetch deferred menu category', backgroundError);
+            }
+          }
+        })();
+      }
+
+      if (initialItems.length > 0 && fromNumber) {
         getCartFromN8N(branchId, fromNumber, isTestMode)
           .then((serverItems) => {
             if (!serverItems || !Array.isArray(serverItems) || !isCurrentCycle()) return;
@@ -98,7 +223,8 @@ export const useAppData = () => {
               const itemQty = sItem.cantidad || sItem.qty;
               const itemNotes = sItem.detalles || sItem.notes || '';
 
-              const menuMatch = items.find(m => String(m.id) === String(itemId));
+              const menuMatch = initialItems.find(m => String(m.id) === String(itemId))
+                || useCartStore.getState().items.find(m => String(m.id) === String(itemId));
               return {
                 ...(menuMatch || {
                   id: itemId,
@@ -117,14 +243,14 @@ export const useAppData = () => {
               setItems(syncedCart);
             }
           })
-          .catch((e) => console.error("Failed to sync cart from server", e));
+          .catch((e) => console.error('Failed to sync cart from server', e));
       }
     } catch (e) {
       if (isAbortError(e)) {
         return;
       }
 
-      console.error("Fatal error during app data initialization", e);
+      console.error('Fatal error during app data initialization', e);
       if (isCurrentCycle()) {
         setError(APP_CONSTANTS.MESSAGES.LOAD_ERROR);
       }
@@ -134,7 +260,27 @@ export const useAppData = () => {
         setLoading(false);
       }
     }
-  }, [branchId, fromNumber, isTestMode, setItems, setRestaurantInfo]);
+  }, [branchId, fromNumber, isTestMode, loadCategoryItems, setItems, setRestaurantInfo]);
+
+  useEffect(() => {
+    const normalizedActiveCategory = String(activeCategory || '').trim();
+    const categoryId = categoryIdByNameRef.current[normalizedActiveCategory];
+
+    if (!branchId || !normalizedActiveCategory || !categoryId || loadedCategoryIdsRef.current.has(categoryId)) {
+      return;
+    }
+
+    const controller = new AbortController();
+    void loadCategoryItems(branchId, normalizedActiveCategory, controller.signal).catch((loadError) => {
+      if (!isAbortError(loadError)) {
+        console.error('Failed to load active category', loadError);
+      }
+    });
+
+    return () => {
+      controller.abort();
+    };
+  }, [activeCategory, branchId, loadCategoryItems]);
 
   useEffect(() => {
     const controller = new AbortController();

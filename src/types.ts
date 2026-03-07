@@ -117,6 +117,74 @@ export interface RestaurantInfo {
   updated_at: string;
 }
 
+export interface BranchShellPayload {
+  branchId: string;
+  restaurant: RestaurantInfo | null;
+  tableQuantity: number;
+  isTableAvailable: boolean;
+}
+
+export interface CheckoutFeeRates {
+  serviceFeeRate: number;
+  platformFeeRate: number;
+  source?: string;
+}
+
+export interface BranchCheckoutContextPayload extends BranchShellPayload {
+  feeRates: CheckoutFeeRates;
+}
+
+export interface BranchMenuCategorySummary {
+  id: string;
+  name: string;
+  itemCount: number;
+}
+
+export interface BranchMenuCategoryItemsPayload {
+  category: {
+    id: string;
+    name: string;
+  } | null;
+  items: MenuItem[];
+  nextCursor: string | null;
+  total: number;
+}
+
+export interface ClientBootstrapPayload {
+  authUserId: string;
+  customerId: string | null;
+  profile: {
+    userId: string;
+    email: string | null;
+    fullName: string | null;
+    phone: string | null;
+    urlGoogleMaps: string | null;
+  };
+  customer: {
+    id: string;
+    name: string | null;
+    phone: string | null;
+    email: string | null;
+  } | null;
+  primaryAddress: {
+    id: string;
+    customerId: string;
+    urlAddress: string | null;
+    buildingType: 'Apartment' | 'Residential Building' | 'Hotel' | 'Office Building' | 'Other' | string;
+    unitDetails: string | null;
+    deliveryNotes: string;
+    lat: number | null;
+    lng: number | null;
+    formattedAddress: string | null;
+    placeId: string | null;
+  } | null;
+  completion: {
+    hasProfile: boolean;
+    hasPhone: boolean;
+    hasAddress: boolean;
+  };
+}
+
 export interface MCPOrderPayload {
   tool: string;
   arguments: {

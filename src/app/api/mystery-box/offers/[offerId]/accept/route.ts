@@ -1,31 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-function getApiUrl(): string {
-  const apiUrl = process.env.FAST_EAT_API_URL?.trim();
-  if (!apiUrl) {
-    throw new Error('FAST_EAT_API_URL is not configured');
-  }
-
-  return apiUrl.replace(/\/$/, '');
-}
+import { resolveAuthenticatedUser } from '@/app/api/_lib/auth';
+import { acceptMysteryBoxOfferLocal } from '@/server/consumer/personalization';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest, context: { params: Promise<{ offerId: string }> }) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
+    const resolvedUser = await resolveAuthenticatedUser(request);
+    if (resolvedUser instanceof NextResponse) {
+      return resolvedUser;
     }
 
     const { offerId } = await context.params;
-    const response = await fetch(`${getApiUrl()}/api/consumer/v1/mystery-box/offers/${encodeURIComponent(offerId)}/accept`, {
-      method: 'POST',
-      headers: { Authorization: authHeader },
-    });
-    const data = await response.json().catch(() => ({}));
-    return NextResponse.json(data, { status: response.status });
+    const data = await acceptMysteryBoxOfferLocal(resolvedUser.userId, offerId);
+    return NextResponse.json({ success: true, data }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Mystery-box accept proxy failed' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Mystery-box accept request failed' }, { status: 500 });
   }
 }
