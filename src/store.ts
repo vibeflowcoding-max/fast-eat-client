@@ -1,14 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { AuctionState, BidNotification, CartItem, DeliveryBid, UserLocation } from './types';
+import { AuctionState, BidNotification, CartItem, DeliveryBid, OrderMetadata, PersistedCartRecord, UserLocation } from './types';
 import { AppLocale, DEFAULT_LOCALE, normalizeLocale } from '@/i18n/config';
 import { normalizePhoneWithSinglePlus } from '@/lib/phone';
+import { DEFAULT_ORDER_METADATA } from '@/lib/order-metadata';
+import type { RestaurantInfo } from './types';
 
 import { OrderUpdate } from './hooks/useOrderTracking';
 
 interface CartState {
   items: CartItem[];
-  expirationTime: number | null;
   branchId: string;
   fromNumber: string;
   customerId: string;
@@ -46,6 +47,10 @@ interface CartState {
     orderHistorySummary: { total: number; recent: any[] } | null;
     settings: { shareActivity: boolean; dietaryProfile: any } | null;
   } | null;
+  savedCarts: PersistedCartRecord[];
+  savedCartsHydrated: boolean;
+  savedCartsError: string | null;
+  checkoutDraft: OrderMetadata;
 
   // Group Cart State
   groupSessionId: string | null;
@@ -60,12 +65,12 @@ interface CartState {
   // Social Settings
   shareActivity: boolean;
   toggleShareActivity: (share: boolean) => void;
+  setCheckoutDraft: (value: OrderMetadata | ((previous: OrderMetadata) => OrderMetadata)) => void;
 
   setItems: (items: CartItem[]) => void;
   updateItem: (item: CartItem) => void;
   removeItem: (itemId: string) => void;
   clearCart: () => void;
-  setExpirationTime: (time: number | null) => void;
   setBranchId: (id: string) => void;
   setFromNumber: (num: string) => void;
   setCustomerId: (id: string) => void;
@@ -93,6 +98,19 @@ interface CartState {
   clearAuthSession: () => void;
   setAuthHydrated: (value: boolean) => void;
   setLocale: (locale: AppLocale) => void;
+  setSavedCarts: (carts: PersistedCartRecord[]) => void;
+  upsertSavedCart: (cart: PersistedCartRecord) => void;
+  removeSavedCart: (cartId: string) => void;
+  setSavedCartsHydrated: (value: boolean) => void;
+  setSavedCartsError: (value: string | null) => void;
+  restorePersistedCart: (payload: {
+    branchId: string;
+    items: CartItem[];
+    checkoutDraft: OrderMetadata;
+    restaurantInfo: RestaurantInfo | null;
+    customerName?: string | null;
+    customerPhone?: string | null;
+  }) => void;
   hydrateClientContext: (payload: {
     customerId?: string | null;
     customerName?: string | null;
@@ -109,7 +127,6 @@ export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
       items: [],
-      expirationTime: null,
       branchId: '',
       fromNumber: '',
       customerId: '',
@@ -132,6 +149,10 @@ export const useCartStore = create<CartState>()(
       authHydrated: false,
       locale: DEFAULT_LOCALE,
       clientContext: null,
+      savedCarts: [],
+      savedCartsHydrated: false,
+      savedCartsError: null,
+      checkoutDraft: DEFAULT_ORDER_METADATA,
 
       // Group Cart Initial State
       groupSessionId: null,
@@ -143,6 +164,19 @@ export const useCartStore = create<CartState>()(
       // Social Settings Initial State
       shareActivity: false,
       toggleShareActivity: (share) => set({ shareActivity: share }),
+      setCheckoutDraft: (value) => set((state) => ({
+        checkoutDraft: typeof value === 'function' ? value(state.checkoutDraft) : value,
+      })),
+      setSavedCarts: (savedCarts) => set({ savedCarts }),
+      upsertSavedCart: (savedCart) => set((state) => ({
+        savedCarts: [savedCart, ...state.savedCarts.filter((entry) => entry.id !== savedCart.id && entry.branchId !== savedCart.branchId)]
+          .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()),
+      })),
+      removeSavedCart: (cartId) => set((state) => ({
+        savedCarts: state.savedCarts.filter((entry) => entry.id !== cartId),
+      })),
+      setSavedCartsHydrated: (savedCartsHydrated) => set({ savedCartsHydrated }),
+      setSavedCartsError: (savedCartsError) => set({ savedCartsError }),
 
       setItems: (items) => set({ items }),
       updateItem: (newItem) => set((state) => {
@@ -182,8 +216,7 @@ export const useCartStore = create<CartState>()(
         items: []
       }),
 
-      clearCart: () => set({ items: [], expirationTime: null }),
-      setExpirationTime: (time) => set({ expirationTime: time }),
+      clearCart: () => set({ items: [] }),
       setBranchId: (branchId) => set((state) => {
         const normalizedNextBranchId = String(branchId || '').trim();
         const normalizedCurrentBranchId = String(state.branchId || '').trim();
@@ -196,7 +229,20 @@ export const useCartStore = create<CartState>()(
           return {
             branchId: normalizedNextBranchId,
             items: [],
-            expirationTime: null,
+            checkoutDraft: {
+              ...state.checkoutDraft,
+              paymentMethod: '',
+              orderType: '',
+              address: '',
+              gpsLocation: '',
+              customerLatitude: undefined,
+              customerLongitude: undefined,
+              locationOverriddenFromProfile: false,
+              locationDifferenceAcknowledged: false,
+              tableNumber: undefined,
+              scheduledFor: null,
+              source: 'client',
+            },
             activeOrders: {},
             bidsByOrderId: {},
             bidNotifications: [],
@@ -329,7 +375,7 @@ export const useCartStore = create<CartState>()(
       }),
       resetSession: () => set({
         items: [],
-        expirationTime: null,
+        checkoutDraft: DEFAULT_ORDER_METADATA,
         branchId: '',
         fromNumber: '',
         customerId: '',
@@ -352,7 +398,6 @@ export const useCartStore = create<CartState>()(
       }),
       clearAuthSession: () => set({
         items: [],
-        expirationTime: null,
         branchId: '',
         fromNumber: '',
         customerId: '',
@@ -368,6 +413,7 @@ export const useCartStore = create<CartState>()(
         customerAddress: null,
         profilePromptDismissedAt: null,
         dietaryProfile: null,
+        checkoutDraft: DEFAULT_ORDER_METADATA,
         authUserId: null,
         authEmail: null,
         isAuthenticated: false,
@@ -379,9 +425,30 @@ export const useCartStore = create<CartState>()(
         groupParticipants: [],
         shareActivity: false,
         clientContext: null,
+        savedCarts: [],
+        savedCartsHydrated: false,
+        savedCartsError: null,
       }),
       setAuthHydrated: (value) => set({ authHydrated: value }),
       setLocale: (locale) => set({ locale: normalizeLocale(locale) }),
+      restorePersistedCart: (payload) => set((state) => ({
+        branchId: payload.branchId,
+        items: payload.items,
+        restaurantInfo: payload.restaurantInfo,
+        checkoutDraft: {
+          ...DEFAULT_ORDER_METADATA,
+          ...payload.checkoutDraft,
+          customerName: payload.checkoutDraft.customerName || payload.customerName || state.customerName,
+          customerPhone: normalizePhoneWithSinglePlus(payload.checkoutDraft.customerPhone || payload.customerPhone || state.fromNumber) || state.fromNumber,
+        },
+        customerName: payload.customerName || payload.checkoutDraft.customerName || state.customerName,
+        fromNumber: normalizePhoneWithSinglePlus(payload.customerPhone || payload.checkoutDraft.customerPhone || state.fromNumber) || state.fromNumber,
+        groupSessionId: null,
+        isHost: false,
+        participantId: null,
+        participantName: null,
+        groupParticipants: [],
+      })),
       hydrateClientContext: (payload) => set((state) => {
         const hasCustomerAddress = Object.prototype.hasOwnProperty.call(payload, 'customerAddress');
         const nextCustomerAddress = hasCustomerAddress

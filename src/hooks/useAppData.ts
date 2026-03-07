@@ -4,6 +4,10 @@ import { fetchMenuFromAPI, fetchRestaurantInfo, getCartFromN8N, fetchTableQuanti
 import { MenuItem, CartItem } from '../types';
 import { APP_CONSTANTS } from '../constants';
 
+const isAbortError = (error: unknown) => {
+  return error instanceof DOMException && error.name === 'AbortError';
+};
+
 export const useAppData = () => {
   const {
     branchId,
@@ -11,8 +15,6 @@ export const useAppData = () => {
     isTestMode,
     setRestaurantInfo,
     setItems,
-    expirationTime,
-    setExpirationTime,
   } = useCartStore();
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -47,21 +49,14 @@ export const useAppData = () => {
 
       if (infoResult.status === 'fulfilled' && infoResult.value && isCurrentCycle()) {
         setRestaurantInfo(infoResult.value);
-      } else if (infoResult.status === 'rejected') {
+      } else if (infoResult.status === 'rejected' && !isAbortError(infoResult.reason)) {
         console.error("Failed to fetch restaurant info", infoResult.reason);
       }
 
       if (tableResult.status === 'fulfilled' && tableResult.value?.is_available && tableResult.value.quantity > 0 && isCurrentCycle()) {
         setTableQuantity(tableResult.value.quantity);
-      } else if (tableResult.status === 'rejected') {
+      } else if (tableResult.status === 'rejected' && !isAbortError(tableResult.reason)) {
         console.error("Failed to fetch table quantity", tableResult.reason);
-      }
-
-      if (!fromNumber) {
-        if (isCurrentCycle()) {
-          setLoading(false);
-        }
-        return;
       }
 
       // Step B: critical path — fetch menu (unblocks UI immediately after)
@@ -81,6 +76,10 @@ export const useAppData = () => {
         setCategories(cats);
         if (items.length > 0) setActiveCategory(apiCategories[0] || items[0].category);
       } catch (e) {
+        if (isAbortError(e)) {
+          return;
+        }
+
         console.error("Failed to fetch menu items", e);
         if (isCurrentCycle()) {
           setError(APP_CONSTANTS.MESSAGES.LOAD_ERROR);
@@ -116,14 +115,15 @@ export const useAppData = () => {
 
             if (syncedCart.length > 0) {
               setItems(syncedCart);
-              if (!expirationTime) {
-                setExpirationTime(Date.now() + 40 * 60 * 1000);
-              }
             }
           })
           .catch((e) => console.error("Failed to sync cart from server", e));
       }
     } catch (e) {
+      if (isAbortError(e)) {
+        return;
+      }
+
       console.error("Fatal error during app data initialization", e);
       if (isCurrentCycle()) {
         setError(APP_CONSTANTS.MESSAGES.LOAD_ERROR);
@@ -134,7 +134,7 @@ export const useAppData = () => {
         setLoading(false);
       }
     }
-  }, [branchId, expirationTime, fromNumber, isTestMode, setExpirationTime, setItems, setRestaurantInfo]);
+  }, [branchId, fromNumber, isTestMode, setItems, setRestaurantInfo]);
 
   useEffect(() => {
     const controller = new AbortController();

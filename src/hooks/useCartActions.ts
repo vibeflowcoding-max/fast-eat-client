@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useCartStore } from '../store';
-import { sendChatToN8N, submitOrderToMCP, CartAction } from '../services/api';
+import { sendChatToN8N, submitOrderToMCP, CartAction, saveOrderSplitDraft } from '../services/api';
 import { CartItem, OrderMetadata } from '../types';
 import { normalizePhoneWithSinglePlus } from '@/lib/phone';
 import { getAuthenticatedJsonHeaders } from '@/lib/client-auth';
@@ -11,8 +11,6 @@ export const useCartActions = () => {
     branchId,
     fromNumber,
     isTestMode,
-    expirationTime,
-    setExpirationTime,
     updateItem,
     removeItem,
     clearCart,
@@ -20,7 +18,8 @@ export const useCartActions = () => {
     customerAddress,
     setCustomerAddress,
     setCustomerId,
-    customerName
+    customerName,
+    isAuthenticated,
   } = useCartStore();
 
   const [isSyncing, setIsSyncing] = useState(false);
@@ -51,7 +50,6 @@ export const useCartActions = () => {
         const response = await sendChatToN8N(message, currentCart, branchId, fromNumber, 'carrito', action, { ...item, quantity: newQuantity }, orderMetadata, isTestMode);
 
         if (response.confirmation) {
-          if (!expirationTime) setExpirationTime(Date.now() + 40 * 60 * 1000);
           setChefNotification({ content: response.output, item_ids: response.item_ids });
         } else {
           setChefNotification({ content: "Lo sentimos, hubo un problema al sincronizar. 🏮" });
@@ -99,7 +97,6 @@ export const useCartActions = () => {
     try {
       const res = await sendChatToN8N(message, useCartStore.getState().items, branchId, fromNumber, 'carrito', action, newItem, orderMetadata, isTestMode);
       if (res.confirmation) {
-        if (!expirationTime) setExpirationTime(Date.now() + 40 * 60 * 1000);
         setChefNotification({ content: res.output, item_ids: res.item_ids });
         return true;
       } else {
@@ -204,6 +201,8 @@ export const useCartActions = () => {
 
       const orderResult = await submitOrderToMCP(effectiveCart, finalMetadata, branchId, fromNumber);
       const orderId = orderResult?.order_id || orderResult?.orderId || orderResult?.data?.order_id || orderResult?.data?.orderId;
+      const nestedOrder = orderResult?.data?.order || orderResult?.order || null;
+      const resolvedOrderId = orderId || nestedOrder?.id || null;
       const resolvedCustomerId =
         orderResult?.customer_id ||
         orderResult?.customerId ||
@@ -212,12 +211,16 @@ export const useCartActions = () => {
         orderResult?.data?.customerId ||
         orderResult?.data?.customer?.id ||
         orderResult?.data?.order?.customer_id ||
-        orderResult?.data?.order?.customerId;
+        orderResult?.data?.order?.customerId ||
+        nestedOrder?.customer_id ||
+        nestedOrder?.customerId;
       const orderNumber =
         orderResult?.order_number ||
         orderResult?.orderNumber ||
         orderResult?.data?.order_number ||
         orderResult?.data?.orderNumber ||
+        nestedOrder?.order_number ||
+        nestedOrder?.orderNumber ||
         `ORD-${Date.now().toString().slice(-4)}`;
       const resolvedCustomerTotal =
         orderResult?.customer_total ||
@@ -233,13 +236,21 @@ export const useCartActions = () => {
           ? Number(resolvedCustomerTotal)
           : cartTotal;
 
-      if (orderId) {
+      if (resolvedOrderId) {
         if (typeof resolvedCustomerId === 'string' && resolvedCustomerId.trim()) {
           setCustomerId(resolvedCustomerId.trim());
         }
 
+        if (isAuthenticated && orderMetadata.splitDraft) {
+          try {
+            await saveOrderSplitDraft(resolvedOrderId, orderMetadata.splitDraft);
+          } catch (splitError) {
+            console.warn('Could not persist split draft after order creation', splitError);
+          }
+        }
+
         addActiveOrder({
-          orderId,
+          orderId: resolvedOrderId,
           orderNumber,
           previousStatus: { code: 'PENDING', label: 'Procesando' },
           newStatus: { code: 'PENDING', label: 'Enviado a Cocina' },

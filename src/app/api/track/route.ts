@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
+import { getFastEatApiUrl } from '@/app/api/_server/upstreams/fast-eat';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,13 @@ export async function GET(req: NextRequest) {
   const cookieStore = await cookies();
   const sessionBranchId = cookieStore.get('session_branch_id')?.value;
   const DEFAULT_BRANCH_ID = process.env.DEFAULT_BRANCH_ID;
-  const FAST_EAT_API_URL = process.env.FAST_EAT_API_URL;
+  const FAST_EAT_API_URL = (() => {
+    try {
+      return getFastEatApiUrl();
+    } catch {
+      return null;
+    }
+  })();
 
   const branchId = branchIdFromQuery || sessionBranchId || DEFAULT_BRANCH_ID;
 

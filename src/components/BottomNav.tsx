@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Home, Search, Receipt, User } from 'lucide-react';
+import { Home, Search, Receipt, ShoppingCart, User } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useTranslations } from 'next-intl';
@@ -27,35 +27,17 @@ export default function BottomNav() {
     };
 
     const navItems = [
-        { 
-            id: 'home', label: t('home'), icon: Home, path: '/',
-            activeBg: 'bg-gradient-to-tr from-red-500 to-red-600',
-            glowColor: 'bg-red-500',
-            activeText: 'text-red-600'
-        },
-        { 
-            id: 'search', label: t('search'), icon: Search, path: '/search',
-            activeBg: 'bg-gradient-to-tr from-red-500 to-red-600',
-            glowColor: 'bg-red-500',
-            activeText: 'text-red-600'
-        },
-        { 
-            id: 'orders', label: t('orders'), icon: Receipt, path: '/orders',
-            activeBg: 'bg-gradient-to-tr from-red-500 to-red-600',
-            glowColor: 'bg-red-500',
-            activeText: 'text-red-600'
-        },
-        { 
-            id: 'profile', label: t('profile'), icon: User, path: '/profile',
-            activeBg: 'bg-gradient-to-tr from-red-500 to-red-600',
-            glowColor: 'bg-red-500',
-            activeText: 'text-red-600'
-        },
+        { id: 'home', label: t('home'), icon: Home, path: '/' },
+        { id: 'search', label: t('search'), icon: Search, path: '/search' },
+        { id: 'carts', label: t('carts'), icon: ShoppingCart, path: '/carts' },
+        { id: 'orders', label: t('orders'), icon: Receipt, path: '/orders' },
+        { id: 'profile', label: t('profile'), icon: User, path: '/profile' },
     ];
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md pb-safe">
-            <div className="bg-white/70 backdrop-blur-3xl border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-[2rem] p-2 flex items-center justify-between">
+        <div className="fixed bottom-5 left-1/2 z-40 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 pb-safe">
+            <div className="rounded-[2rem] border border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.88)_0%,rgba(252,245,239,0.96)_100%)] p-2 shadow-[0_18px_50px_-26px_rgba(98,60,29,0.4)] backdrop-blur-2xl">
+                <div className="grid grid-cols-5 gap-1">
                 {navItems.map((item) => {
                     const isActive = pathname === item.path;
                     const Icon = item.icon;
@@ -65,34 +47,35 @@ export default function BottomNav() {
                             key={item.id}
                             type="button"
                             onClick={() => handleNavigation(item.path)}
-                            className="relative flex flex-col items-center justify-center flex-1 h-14 active:scale-90 transition-all duration-300 group"
+                            className="relative flex min-h-[60px] flex-col items-center justify-center rounded-[1.35rem] px-2 py-2 transition-all duration-300 active:scale-[0.98]"
                         >
                             {isActive && (
-                                <div className={`absolute inset-0 m-auto w-10 h-10 rounded-full blur-xl opacity-50 ${item.glowColor}`} />
+                                <div className="absolute inset-x-3 inset-y-1 rounded-[1.15rem] bg-[linear-gradient(180deg,rgba(236,91,19,0.16)_0%,rgba(255,224,204,0.5)_100%)]" />
                             )}
                             
-                            <div className={`relative flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-500 z-10 ${
+                            <div className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-2xl transition-all duration-300 ${
                                 isActive 
-                                    ? `${item.activeBg} text-white shadow-lg -translate-y-2` 
-                                    : 'bg-transparent text-gray-400 group-hover:text-gray-600'
+                                    ? 'bg-[linear-gradient(135deg,var(--color-brand)_0%,#fb923c_100%)] text-white shadow-[0_14px_28px_-18px_rgba(236,91,19,0.8)]' 
+                                    : 'bg-transparent text-[var(--color-text-muted)]'
                             }`}>
                                 <Icon 
-                                    size={22} 
+                                    size={20} 
                                     strokeWidth={isActive ? 2.5 : 2} 
-                                    className={`transition-transform duration-500 ${isActive ? 'scale-110' : 'scale-100'}`}
+                                    className={`transition-transform duration-300 ${isActive ? 'scale-110' : 'scale-100'}`}
                                 />
                             </div>
                             
-                            <span className={`absolute bottom-0 text-[10px] font-black tracking-wide transition-all duration-500 ${
+                            <span className={`relative z-10 mt-1 text-[10px] font-black tracking-[0.08em] transition-colors duration-300 ${
                                 isActive 
-                                    ? `opacity-100 translate-y-1 ${item.activeText}` 
-                                    : 'opacity-0 translate-y-4 text-gray-400'
+                                    ? 'text-[var(--color-brand-strong)]' 
+                                    : 'text-[var(--color-text-muted)]'
                             }`}>
                                 {item.label}
                             </span>
                         </button>
                     );
                 })}
+                </div>
             </div>
         </div>
     );

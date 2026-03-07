@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { fetchFastEat, getSafeUpstreamErrorMessage } from '@/app/api/_server/upstreams/fast-eat';
 import { postN8nWebhook } from '@/app/api/_server/upstreams/n8n';
+import { getSupabaseServer } from '@/lib/supabase-server';
 
 const n8nOrderSchema = z.object({
   message: z.string().trim().min(1),
@@ -17,6 +18,36 @@ const n8nOrderSchema = z.object({
 const mcpOrderSchema = z.object({
   tool: z.string().trim().min(1),
   arguments: z.record(z.string(), z.unknown()).optional(),
+});
+
+const clientConsumerOrderSchema = z.object({
+  branchId: z.string().trim().min(1),
+  totalAmount: z.number(),
+  customerName: z.string().trim().min(1),
+  customerPhone: z.string().trim().min(1),
+  paymentMethod: z.string().trim().optional().default('cash'),
+  orderType: z.string().trim().optional().default('pickup'),
+  source: z.string().trim().optional().default('client'),
+  address: z.string().trim().optional(),
+  customerLatitude: z.number().optional(),
+  customerLongitude: z.number().optional(),
+  scheduledFor: z.string().trim().nullable().optional(),
+  optOutCutlery: z.boolean().optional(),
+  tableNumber: z.string().trim().optional(),
+  items: z.array(z.object({
+    item_id: z.string().trim().optional(),
+    productId: z.string().trim().optional(),
+    id: z.string().trim().optional(),
+    variantId: z.string().trim().nullable().optional(),
+    variant_id: z.string().trim().nullable().optional(),
+    quantity: z.number(),
+    price: z.number().optional(),
+    notes: z.string().optional(),
+    modifiers: z.array(z.object({
+      modifier_item_id: z.string().trim(),
+      quantity: z.number().optional(),
+    })).optional(),
+  })).min(1),
 });
 
 function getRecordValue(record: Record<string, unknown>, key: string) {
@@ -56,6 +87,67 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json(data);
+    }
+
+    const parsedClientConsumerPayload = clientConsumerOrderSchema.safeParse(payload);
+    if (parsedClientConsumerPayload.success) {
+      const apiUrl = process.env.FAST_EAT_API_URL?.trim();
+      if (!apiUrl) {
+        return NextResponse.json({ success: false, message: 'FAST_EAT_API_URL is not configured' }, { status: 500 });
+      }
+
+      const body = parsedClientConsumerPayload.data;
+      const supabaseServer = getSupabaseServer();
+      const { data: branchRecord, error: branchError } = await (supabaseServer as any)
+        .from('branches')
+        .select('id, restaurant_id')
+        .eq('id', body.branchId)
+        .maybeSingle();
+
+      if (branchError || !branchRecord?.restaurant_id) {
+        return NextResponse.json({ success: false, message: 'Could not resolve restaurant for branch' }, { status: 400 });
+      }
+
+      const serviceModeRaw = String(body.orderType || 'pickup').toLowerCase();
+      const normalizedOrderType = serviceModeRaw === 'delivery' ? 'delivery' : (serviceModeRaw === 'dine_in' ? 'dine-in' : 'pickup');
+
+      const upstreamResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/api/consumer/v1/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          restaurant_id: String(branchRecord.restaurant_id),
+          customer_name: body.customerName,
+          customer_phone: body.customerPhone,
+          delivery_address: body.address || null,
+          total_amount: body.totalAmount,
+          order_type: normalizedOrderType,
+          source: body.source || 'client',
+          customerLatitude: body.customerLatitude,
+          customerLongitude: body.customerLongitude,
+          scheduledFor: body.scheduledFor || undefined,
+          optOutCutlery: Boolean(body.optOutCutlery),
+          metadata: {
+            branchId: body.branchId,
+            tableNumber: body.tableNumber || null,
+          },
+          items: body.items.map((item) => ({
+            item_id: item.item_id || item.productId || item.id,
+            variant_id: item.variantId || item.variant_id || undefined,
+            quantity: item.quantity,
+            notes: item.notes || undefined,
+            modifiers: (item.modifiers || []).map((modifier) => ({
+              modifier_item_id: modifier.modifier_item_id,
+              quantity: modifier.quantity || 1,
+            })),
+          })),
+        }),
+      });
+
+      const upstreamPayload = await upstreamResponse.json().catch(() => ({}));
+      return NextResponse.json(upstreamPayload, { status: upstreamResponse.status });
     }
 
     const ORDER_PATH = '/mcp/order';

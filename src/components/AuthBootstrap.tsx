@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { isPublicAnonymousPath } from '@/lib/public-routes';
 import { useCartStore } from '@/store';
 import { normalizePhoneWithSinglePlus } from '@/lib/phone';
 import { extractGoogleMapsUrl, parseCoordsFromGoogleMapsUrl } from '@/lib/location';
@@ -17,6 +18,9 @@ export default function AuthBootstrap() {
     clearAuthSession,
     setAuthHydrated,
     hydrateClientContext,
+    setSavedCarts,
+    setSavedCartsHydrated,
+    setSavedCartsError,
   } = useCartStore();
   const lastHydratedTokenRef = useRef<string | null>(null);
 
@@ -43,7 +47,9 @@ export default function AuthBootstrap() {
       }
 
       try {
-        const [profileResponse, contextResponse] = await Promise.all([
+        setSavedCartsError(null);
+
+        const [profileResponse, contextResponse, cartsResponse] = await Promise.all([
           fetchWithTimeout('/api/profile/me', {
             method: 'GET',
             headers: {
@@ -52,6 +58,13 @@ export default function AuthBootstrap() {
             cache: 'no-store',
           }),
           fetchWithTimeout('/api/consumer/me/context', {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+            cache: 'no-store',
+          }, 10000),
+          fetchWithTimeout('/api/carts', {
             method: 'GET',
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -94,6 +107,16 @@ export default function AuthBootstrap() {
                 }
               : null,
           });
+
+          if (cartsResponse.ok) {
+            const cartsPayload = await cartsResponse.json().catch(() => ({}));
+            setSavedCarts(Array.isArray(cartsPayload?.carts) ? cartsPayload.carts : []);
+          } else {
+            const cartsPayload = await cartsResponse.json().catch(() => ({}));
+            setSavedCartsError(typeof cartsPayload?.error === 'string' ? cartsPayload.error : 'Could not load saved carts');
+          }
+
+          setSavedCartsHydrated(true);
 
           lastHydratedTokenRef.current = accessToken;
           return;
@@ -141,9 +164,20 @@ export default function AuthBootstrap() {
           orderHistorySummary: payload?.orderHistorySummary ?? null,
           settings: payload?.settings ?? null,
         });
+
+        if (cartsResponse.ok) {
+          const cartsPayload = await cartsResponse.json().catch(() => ({}));
+          setSavedCarts(Array.isArray(cartsPayload?.carts) ? cartsPayload.carts : []);
+        } else {
+          const cartsPayload = await cartsResponse.json().catch(() => ({}));
+          setSavedCartsError(typeof cartsPayload?.error === 'string' ? cartsPayload.error : 'Could not load saved carts');
+        }
+
+        setSavedCartsHydrated(true);
         lastHydratedTokenRef.current = accessToken;
       } catch {
         // Fail silently in bootstrap so app can continue rendering.
+        setSavedCartsHydrated(true);
       }
     }
 
@@ -170,7 +204,7 @@ export default function AuthBootstrap() {
         clearAuthSession();
         lastHydratedTokenRef.current = null;
 
-        if (!AUTH_ROUTES.has(pathname)) {
+        if (!AUTH_ROUTES.has(pathname) && !isPublicAnonymousPath(pathname)) {
           const nextParam = encodeURIComponent(pathname || '/');
           router.replace(`/auth/sign-in?next=${nextParam}`);
         }
@@ -202,7 +236,7 @@ export default function AuthBootstrap() {
       } else {
         clearAuthSession();
         lastHydratedTokenRef.current = null;
-        if (!AUTH_ROUTES.has(pathname)) {
+        if (!AUTH_ROUTES.has(pathname) && !isPublicAnonymousPath(pathname)) {
           const nextParam = encodeURIComponent(pathname || '/');
           router.replace(`/auth/sign-in?next=${nextParam}`);
         }
@@ -213,7 +247,7 @@ export default function AuthBootstrap() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [pathname, router, setAuthSession, clearAuthSession, setAuthHydrated, hydrateClientContext]);
+  }, [pathname, router, setAuthSession, clearAuthSession, setAuthHydrated, hydrateClientContext, setSavedCarts, setSavedCartsError, setSavedCartsHydrated]);
 
   return null;
 }

@@ -27,7 +27,8 @@ export function useDietaryGuardian() {
         if (!dietaryProfile || (
             dietaryProfile.diet === 'none' &&
             dietaryProfile.allergies.length === 0 &&
-            dietaryProfile.intolerances.length === 0
+            dietaryProfile.intolerances.length === 0 &&
+            (dietaryProfile.dislikedIngredients?.length || 0) === 0
         )) {
             return null;
         }
@@ -73,7 +74,12 @@ export function useDietaryGuardian() {
 
     return {
         checkItem,
-        isActive: !!dietaryProfile && (dietaryProfile.diet !== 'none' || dietaryProfile.allergies.length > 0 || dietaryProfile.intolerances.length > 0),
+        isActive: !!dietaryProfile && (
+            dietaryProfile.diet !== 'none'
+            || dietaryProfile.allergies.length > 0
+            || dietaryProfile.intolerances.length > 0
+            || (dietaryProfile.dislikedIngredients?.length || 0) > 0
+        ),
         loadingMap,
         resultsMap
     };

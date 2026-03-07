@@ -1,4 +1,4 @@
-function getFastEatApiUrl(): string {
+export function getFastEatApiUrl(): string {
   const apiUrl = process.env.FAST_EAT_API_URL?.trim();
 
   if (!apiUrl) {

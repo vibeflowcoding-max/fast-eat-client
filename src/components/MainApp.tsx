@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { MenuItem, OrderMetadata } from '@/types';
+import { MenuItem, OrderMetadata, SelectedModifier } from '@/types';
 import MenuItemCard from '@/components/MenuItemCard';
 import { useCartStore } from '@/store';
 import { CartAction } from '@/services/api';
@@ -14,16 +14,16 @@ import {
     extractGoogleMapsUrl,
     parseCoordsFromGoogleMapsUrl,
 } from '@/lib/location';
+import { getCategoryActivationThreshold, getCategoryScrollTop } from '@/lib/menu-scroll';
 import { DEFAULT_ORDER_MAP_CENTER, resolveOrderLocationOpenContext } from '@/lib/order-location';
+import { DEFAULT_ORDER_METADATA } from '@/lib/order-metadata';
 import type { BuildingType } from '@/components/AddressDetailsModal';
 import { supabase } from '@/lib/supabase';
 
 // Components
 import LoadingScreen from '@/components/LoadingScreen';
-import PhonePrompt from '@/components/PhonePrompt';
 import Hero from '@/components/Hero';
 import Navbar from '@/components/Navbar';
-import ExpirationTimer from '@/components/ExpirationTimer';
 import MenuSkeleton from '@/components/MenuSkeleton';
 import MenuError from '@/components/MenuError';
 
@@ -60,7 +60,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     // Store
     const {
         items: cart,
-        expirationTime,
         branchId,
         fromNumber,
         customerId,
@@ -72,9 +71,11 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         setCustomerAddress,
         toggleTestMode,
         customerName,
+        checkoutDraft: orderMetadata,
         isAuthenticated
     } = useCartStore();
     const setCustomerId = useCartStore(state => state.setCustomerId);
+    const setOrderMetadata = useCartStore(state => state.setCheckoutDraft);
 
     // Data Loading Hook
     const {
@@ -104,18 +105,16 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     const [highlightedItemId] = useState<string | null>(null);
     const [paymentOptions, setPaymentOptions] = useState<{ id: string, label: string }[]>([]);
     const [serviceOptions, setServiceOptions] = useState<{ id: string, label: string }[]>([]);
-    const [showPhonePrompt, setShowPhonePrompt] = useState(false);
-    const [countryCode, setCountryCode] = useState('506');
-    const [phoneBody, setPhoneBody] = useState('');
-    const [initialCustomerName, setInitialCustomerName] = useState('');
     const [selectedItemForModal, setSelectedItemForModal] = useState<MenuItem | null>(null);
     const [modalQuantity, setModalQuantity] = useState(1);
     const [modalNotes, setModalNotes] = useState('');
+    const [modalSelectedVariantId, setModalSelectedVariantId] = useState<string | null>(null);
+    const [modalSelectedModifiers, setModalSelectedModifiers] = useState<SelectedModifier[]>([]);
+    const [modalError, setModalError] = useState<string | null>(null);
     const [isModalSyncing, setIsModalSyncing] = useState(false);
     const [, setShowScrollArrow] = useState(false);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
-    const [timeLeftStr, setTimeLeftStr] = useState<string>('');
     const [showHistory, setShowHistory] = useState(false);
     const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
     const [isConfirming, setIsConfirming] = useState(false);
@@ -136,18 +135,26 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     const tabsRef = useRef<HTMLDivElement>(null);
     const modalScrollRef = useRef<HTMLDivElement>(null);
     const categorySectionRefs = useRef<Record<string, HTMLElement | null>>({});
+    const pendingCategoryNavigationRef = useRef<string | null>(null);
+    const pendingCategoryNavigationTimeoutRef = useRef<number | null>(null);
 
-    const [orderMetadata, setOrderMetadata] = useState<OrderMetadata>({
-        customerName: '',
-        customerPhone: '',
-        paymentMethod: '',
-        orderType: '',
-        source: 'client',
-        address: '',
-        gpsLocation: '',
-        locationOverriddenFromProfile: false,
-        locationDifferenceAcknowledged: false,
-    });
+    const clearPendingCategoryNavigation = useCallback(() => {
+        pendingCategoryNavigationRef.current = null;
+
+        if (pendingCategoryNavigationTimeoutRef.current !== null) {
+            window.clearTimeout(pendingCategoryNavigationTimeoutRef.current);
+            pendingCategoryNavigationTimeoutRef.current = null;
+        }
+    }, []);
+
+    const beginPendingCategoryNavigation = useCallback((category: string) => {
+        clearPendingCategoryNavigation();
+        pendingCategoryNavigationRef.current = category;
+        pendingCategoryNavigationTimeoutRef.current = window.setTimeout(() => {
+            pendingCategoryNavigationRef.current = null;
+            pendingCategoryNavigationTimeoutRef.current = null;
+        }, 1200);
+    }, [clearPendingCategoryNavigation]);
 
     const handleAddToCart = useCallback(
         (newItem: Parameters<typeof addToCart>[0]) => addToCart(newItem, orderMetadata),
@@ -184,8 +191,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         setIsResolving(true);
 
         const savedMetadata = localStorage.getItem('izakaya_metadata');
-        if (savedMetadata) setOrderMetadata(JSON.parse(savedMetadata));
-        setInitialCustomerName(localStorage.getItem('izakaya_user_name') || '');
+        if (savedMetadata) setOrderMetadata(JSON.parse(savedMetadata) as OrderMetadata);
 
         const urlBranch = searchParams.get('branch_id');
         const urlPhone = searchParams.get('fromNumber');
@@ -219,10 +225,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                     gpsLocation: ''
                     // customerName and customerPhone are PRESERVED from prev
                 }));
-                // setInitialCustomerName(''); // KEEP THIS
-                setPhoneBody('');
-                // setShowPhonePrompt(true); // DO NOT FORCE PROMPT if we have data
-
                 // Clear restaurant info to prevent stale data "flash"
                 // This triggers the LoadingScreen because if (!restaurantInfo && loading) it shows loader
                 if (useCartStore.getState().setRestaurantInfo) {
@@ -312,17 +314,15 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             } else {
                 setFromNumber('');
                 setCustomerId('');
-                setShowPhonePrompt(true);
             }
         } else if (!isAuthenticated) {
             const storedPhone = normalizePhone(useCartStore.getState().fromNumber || '');
             if (!isValidPhone(storedPhone)) {
                 setFromNumber('');
                 setCustomerId('');
-                setShowPhonePrompt(true);
             }
         }
-    }, [initialBranchId, isAuthenticated, isValidPhone, normalizePhone, pathname, router, searchParams, setBranchId, setCustomerId, setFromNumber]);
+    }, [initialBranchId, isAuthenticated, isValidPhone, normalizePhone, pathname, router, searchParams, setBranchId, setCustomerId, setFromNumber, setOrderMetadata]);
 
     // Sync Global Customer Name to Local Metadata
     useEffect(() => {
@@ -339,7 +339,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                 customerPhone: nextPhone,
             };
         });
-    }, [customerName, fromNumber]);
+    }, [customerName, fromNumber, setOrderMetadata]);
 
     // Persistence of Metadata
     useEffect(() => {
@@ -399,7 +399,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                 locationDifferenceAcknowledged: false,
             };
         });
-    }, [profileLocation]);
+    }, [profileLocation, setOrderMetadata]);
 
     const persistProfileLocation = async (input: {
         position: { lat: number; lng: number };
@@ -604,29 +604,13 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         }
     };
 
-    // Expiration Timer Effect
-    useEffect(() => {
-        if (!expirationTime) return;
-        const interval = setInterval(() => {
-            const now = Date.now();
-            const diff = expirationTime - now;
-            if (diff <= 0) {
-                clearInterval(interval);
-                useCartStore.getState().clearCart();
-                setChefNotification({ content: "⌛ El tiempo del carrito ha expirado. Por favor, inicia un nuevo pedido." });
-            } else {
-                const minutes = Math.floor(diff / 60000);
-                const seconds = Math.floor((diff % 60000) / 1000);
-                setTimeLeftStr(`${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
-            }
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [expirationTime, setChefNotification]);
-
     // Update payment/service options when restaurantInfo changes
     useEffect(() => {
         if (restaurantInfo) {
-            const pOptions = restaurantInfo.payment_methods.map(pm => {
+            const paymentMethods = Array.isArray(restaurantInfo.payment_methods) ? restaurantInfo.payment_methods : [];
+            const serviceModes = Array.isArray(restaurantInfo.service_modes) ? restaurantInfo.service_modes : [];
+
+            const pOptions = paymentMethods.map(pm => {
                 if (pm === 'cash') return { id: 'cash', label: '💴 Efectivo' };
                 if (pm === 'card') return { id: 'card', label: '💳 Tarjeta (Datáfono)' };
                 if (pm === 'sinpe') return { id: 'sinpe', label: '📱 SINPE Móvil' };
@@ -634,7 +618,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             });
             setPaymentOptions(pOptions);
 
-            const sOptions = restaurantInfo.service_modes.map(sm => {
+            const sOptions = serviceModes.map(sm => {
                 if (sm === 'pickup') return { id: 'pickup', label: '🥡 Para recoger' };
                 if (sm === 'delivery') return { id: 'delivery', label: '🛵 Envío a casa' };
                 if (sm === 'dine_in') return { id: 'dine_in', label: '🍱 Comer en el restaurante' };
@@ -643,24 +627,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             setServiceOptions(sOptions);
         }
     }, [restaurantInfo]);
-
-    const handlePhoneSubmit = () => {
-        const cleanCC = countryCode.replace(/\D/g, '');
-        const cleanBody = phoneBody.replace(/\D/g, '');
-        const cleanName = initialCustomerName.trim();
-
-        const expectedLocalLength = cleanCC === '506' ? 8 : 6;
-        if (cleanBody.length < expectedLocalLength || cleanName.length < 2) return;
-
-        const fullNum = `${cleanCC}${cleanBody}`;
-        if (!isValidPhone(fullNum)) return;
-
-        setFromNumber(fullNum);
-        setCustomerId('');
-        useCartStore.getState().setCustomerName(cleanName);
-        setOrderMetadata(prev => ({ ...prev, customerPhone: fullNum, customerName: cleanName }));
-        setShowPhonePrompt(false);
-    };
 
     const checkScroll = () => {
         if (tabsRef.current) {
@@ -696,6 +662,9 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             setSelectedItemForModal(item);
             setModalQuantity(inCart ? inCart.quantity : 1);
             setModalNotes(inCart ? inCart.notes : '');
+            setModalSelectedVariantId(inCart?.variantId || item.defaultVariantId || item.variants?.find((variant) => variant.isDefault)?.id || item.variants?.[0]?.id || null);
+            setModalSelectedModifiers(inCart?.selectedModifiers || []);
+            setModalError(null);
             if (item.category !== activeCategory) {
                 setActiveCategory(item.category);
             }
@@ -704,8 +673,41 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
 
     const handleModalConfirm = async () => {
         if (selectedItemForModal) {
+            const selectedVariant = (selectedItemForModal.variants || []).find((variant) => variant.id === modalSelectedVariantId)
+                || selectedItemForModal.variants?.find((variant) => variant.isDefault)
+                || selectedItemForModal.variants?.[0]
+                || null;
+
+            for (const group of selectedItemForModal.modifierGroups || []) {
+                const selectedCount = modalSelectedModifiers
+                    .filter((modifier) => modifier.groupId === group.id)
+                    .reduce((sum, modifier) => sum + modifier.quantity, 0);
+
+                if (group.required && selectedCount < Math.max(1, group.minSelection)) {
+                    setModalError(`Selecciona ${Math.max(1, group.minSelection)} opción(es) en ${group.name}.`);
+                    return;
+                }
+
+                if (group.maxSelection != null && selectedCount > group.maxSelection) {
+                    setModalError(`Puedes elegir hasta ${group.maxSelection} opción(es) en ${group.name}.`);
+                    return;
+                }
+            }
+
+            setModalError(null);
             setIsModalSyncing(true);
-            const success = await addToCart({ ...selectedItemForModal, quantity: modalQuantity, notes: modalNotes }, orderMetadata);
+            const modifiersTotal = modalSelectedModifiers.reduce((sum, modifier) => sum + modifier.priceDelta * modifier.quantity, 0);
+            const unitPrice = Number(((selectedVariant?.price ?? selectedItemForModal.price) + modifiersTotal).toFixed(2));
+            const success = await addToCart({
+                ...selectedItemForModal,
+                price: unitPrice,
+                quantity: modalQuantity,
+                notes: modalNotes,
+                variantId: selectedVariant?.id || null,
+                variantName: selectedVariant?.name || null,
+                selectedModifiers: modalSelectedModifiers,
+                lineTotal: Number((unitPrice * modalQuantity).toFixed(2)),
+            }, orderMetadata);
             setIsModalSyncing(false);
             if (success) setSelectedItemForModal(null);
         }
@@ -755,27 +757,58 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         setActiveCategory(category);
 
         if (searchQuery.trim()) {
+            clearPendingCategoryNavigation();
             return;
         }
 
         if (category === 'Todos') {
+            clearPendingCategoryNavigation();
             window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
 
         const section = categorySectionRefs.current[category];
         if (section) {
-            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            beginPendingCategoryNavigation(category);
+            window.scrollTo({
+                top: getCategoryScrollTop(section),
+                behavior: 'smooth',
+            });
+            return;
         }
+
+        clearPendingCategoryNavigation();
     };
 
     useEffect(() => {
         if (searchQuery.trim() || categorySections.length === 0) {
+            clearPendingCategoryNavigation();
             return;
         }
 
         const handleScroll = () => {
-            const threshold = 180;
+            const threshold = getCategoryActivationThreshold();
+            const pendingCategory = pendingCategoryNavigationRef.current;
+
+            if (pendingCategory) {
+                const pendingSection = categorySectionRefs.current[pendingCategory];
+
+                if (pendingSection) {
+                    const pendingRect = pendingSection.getBoundingClientRect();
+                    const hasReachedPendingSection = pendingRect.top <= threshold && pendingRect.bottom > threshold;
+
+                    if (hasReachedPendingSection) {
+                        clearPendingCategoryNavigation();
+
+                        if (activeCategory !== pendingCategory) {
+                            setActiveCategory(pendingCategory);
+                        }
+                    }
+                }
+
+                return;
+            }
+
             const active = categorySections.find((section) => {
                 const element = categorySectionRefs.current[section.category];
                 if (!element) {
@@ -793,7 +826,13 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
 
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [activeCategory, categorySections, searchQuery, setActiveCategory]);
+    }, [activeCategory, categorySections, clearPendingCategoryNavigation, searchQuery, setActiveCategory]);
+
+    useEffect(() => {
+        return () => {
+            clearPendingCategoryNavigation();
+        };
+    }, [clearPendingCategoryNavigation]);
 
     const groupSessionId = useCartStore(state => state.groupSessionId);
     const groupParticipants = useCartStore(state => state.groupParticipants);
@@ -830,16 +869,11 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         if (success) {
             setIsConfirming(false);
             setOrderMetadata(prev => ({
-                ...prev,
-                paymentMethod: 'cash',
-                orderType: 'pickup',
-                address: '',
-                gpsLocation: '',
+                ...DEFAULT_ORDER_METADATA,
+                customerName: prev.customerName,
+                customerPhone: prev.customerPhone,
                 customerLatitude: undefined,
                 customerLongitude: undefined,
-                locationOverriddenFromProfile: false,
-                locationDifferenceAcknowledged: false,
-                source: 'client'
             }));
         }
     };
@@ -871,19 +905,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         );
     };
 
-    if (showPhonePrompt && !isAuthenticated) return (
-        <PhonePrompt
-            restaurantInfo={restaurantInfo}
-            initialCustomerName={initialCustomerName}
-            setInitialCustomerName={setInitialCustomerName}
-            countryCode={countryCode}
-            setCountryCode={setCountryCode}
-            phoneBody={phoneBody}
-            setPhoneBody={setPhoneBody}
-            handlePhoneSubmit={handlePhoneSubmit}
-        />
-    );
-
     // BLOCKER: Show generic loading while resolving URL
     if (isResolving) {
         return <LoadingScreen />;
@@ -901,10 +922,6 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
 
     return (
         <div className="min-h-screen relative japanese-pattern pb-24">
-            {expirationTime && cart.length > 0 && (
-                <ExpirationTimer timeLeftStr={timeLeftStr} />
-            )}
-
             {showClearCartConfirm && (
                 <ConfirmModal
                     title="¿Vaciar Mi Pedido?"
@@ -985,6 +1002,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                                 onAddToCart={handleAddToCart}
                                 currentQuantity={itemQuantities[item.id] || 0}
                                 isHighlighted={highlightedItemId === String(item.id)}
+                                onOpenDetails={handleOpenItemModal}
                             />
                         ))
                     ) : (
@@ -1005,6 +1023,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                                     onAddToCart={handleAddToCart}
                                     currentQuantity={itemQuantities[item.id] || 0}
                                     isHighlighted={highlightedItemId === String(item.id)}
+                                    onOpenDetails={handleOpenItemModal}
                                 />
                             ))
                         ])
@@ -1019,11 +1038,16 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                     setQuantity={setModalQuantity}
                     notes={modalNotes}
                     setNotes={setModalNotes}
+                    selectedVariantId={modalSelectedVariantId}
+                    setSelectedVariantId={setModalSelectedVariantId}
+                    selectedModifiers={modalSelectedModifiers}
+                    setSelectedModifiers={setModalSelectedModifiers}
                     onClose={() => setSelectedItemForModal(null)}
                     onConfirm={handleModalConfirm}
                     isSyncing={isModalSyncing}
                     modalScrollRef={modalScrollRef}
                     onScroll={handleModalScroll}
+                    errorMessage={modalError}
                 />
             )}
 
@@ -1062,6 +1086,14 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                     locationServicePrompt={locationServicePrompt}
                     isAutoSavingProfileLocation={isAutoSavingProfileLocation}
                     tableQuantity={tableQuantity}
+                    onOpenCheckoutPage={() => {
+                        setIsConfirming(false);
+                        router.push('/checkout');
+                    }}
+                    onOpenCartsPage={() => {
+                        setIsConfirming(false);
+                        router.push('/carts');
+                    }}
                 />
             )}
 

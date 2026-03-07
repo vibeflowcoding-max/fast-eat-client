@@ -154,20 +154,20 @@ export default function RestaurantRail({
     const renderEmptyState = () => {
         if (!statePolishV1) {
             return (
-                <div className="text-center py-8 border border-dashed border-gray-200 rounded-2xl bg-white">
-                    <p className="text-sm text-gray-500">{t('empty.default')}</p>
+                <div className="ui-panel text-center rounded-[1.75rem] border-dashed py-8">
+                    <p className="text-sm text-[var(--color-text-muted)]">{t('empty.default')}</p>
                 </div>
             );
         }
 
         return (
-            <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-6 text-center">
-                <p className="text-sm text-gray-600">{emptyStateConfig.message}</p>
+            <div className="ui-panel rounded-[1.75rem] border-dashed px-4 py-6 text-center">
+                <p className="text-sm text-[var(--color-text-muted)]">{emptyStateConfig.message}</p>
                 {emptyStateConfig.action && onEmptyAction && (
                     <button
                         type="button"
                         onClick={handleEmptyAction}
-                        className="mt-3 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700"
+                        className="ui-btn-secondary mt-3 rounded-full px-4 py-2 text-sm font-semibold"
                     >
                         {emptyStateConfig.action.label}
                     </button>

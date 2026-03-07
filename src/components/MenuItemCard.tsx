@@ -4,16 +4,17 @@
 import React, { useState, useEffect } from 'react';
 import { MenuItem, CartItem } from '../types';
 import { useDietaryGuardian } from '../features/home-discovery/hooks/useDietaryGuardian';
-import { ShieldCheck, ShieldAlert, Loader2, Camera } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Loader2, Plus, Pencil } from 'lucide-react';
 
 interface MenuItemCardProps {
   item: MenuItem;
   onAddToCart: (cartItem: CartItem) => Promise<boolean>;
   currentQuantity: number;
   isHighlighted?: boolean;
+  onOpenDetails?: (itemId: string) => void;
 }
 
-const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQuantity, isHighlighted }) => {
+const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQuantity, isHighlighted, onOpenDetails }) => {
   const [quantity, setQuantity] = useState(currentQuantity > 0 ? currentQuantity : 1);
   const [notes, setNotes] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -24,7 +25,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
   });
 
   const { isActive, checkItem, loadingMap, resultsMap } = useDietaryGuardian();
-  const isDietaryGuardianEnabled = process.env.NEXT_PUBLIC_HOME_DIETARY_GUARDIAN?.toLowerCase() === 'true';
+  const isDietaryGuardianEnabled = process.env.NEXT_PUBLIC_HOME_DIETARY_GUARDIAN?.toLowerCase() !== 'false';
 
   useEffect(() => {
     if (!isDietaryGuardianEnabled || !isActive || resultsMap[item.id] || loadingMap[item.id]) return;
@@ -54,6 +55,21 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
     setIsSyncing(false);
   };
 
+  const handleQuickAdd = async () => {
+    if (item.hasStructuredCustomization && onOpenDetails) {
+      onOpenDetails(item.id);
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncError(null);
+    const success = await onAddToCart({ ...item, quantity: 1, notes: '' });
+    if (!success) {
+      setSyncError('Error al sincronizar. Reintente por favor.');
+    }
+    setIsSyncing(false);
+  };
+
   const handleRemove = async () => {
     setIsSyncing(true);
     setSyncError(null);
@@ -68,152 +84,162 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
     setIsSyncing(false);
   };
 
-  // Gamification: Simulate some items having community uploaded photos
-  const hasCommunityPhotos = (item.name.length % 3 === 0);
-
   return (
-    <div
+    <article
       id={`item-${item.id}`}
-      className={`
-        bg-white rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.04)] transition-all duration-500 
-        hover:shadow-[0_25px_60px_rgba(0,0,0,0.1)] hover:-translate-y-2 border-2 flex flex-col h-full group relative
-        ${isHighlighted ? 'border-[var(--color-brand)] ring-4 ring-[var(--color-brand)]/20 scale-105 z-10' : 'border-gray-100'}
-      `}
+      className={`ui-list-card rounded-2xl border p-4 transition-colors ${isHighlighted ? 'border-[var(--color-brand)]' : 'border-[var(--color-border)]'}`}
     >
-
-      {currentQuantity > 0 && !isAdding && (
-        <div className="absolute top-3 left-3 md:top-4 md:left-4 z-20 ui-btn-primary px-3 py-1.5 md:px-4 md:py-2 rounded-xl md:rounded-2xl shadow-xl animate-bounce flex items-center gap-1.5 md:gap-2 border border-white/20">
-          <span className="text-[8px] md:text-[10px] font-black tracking-widest uppercase opacity-70">En Carrito:</span>
-          <span className="text-xs md:text-sm font-black">{currentQuantity}</span>
-        </div>
-      )}
-
-      {isHighlighted && (
-        <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20 bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest animate-pulse shadow-lg shadow-red-500/20">
-          ✨ ¡Sugerencia IA!
-        </div>
-      )}
-
-      <div className="relative h-44 md:h-72 overflow-hidden">
-        <img
-          src={item.image}
-          alt={item.name}
-          className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-1000"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = `https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&q=80&w=800`;
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-end p-4 md:p-8">
-          <p className="text-white text-[10px] md:text-xs font-bold italic opacity-80 leading-relaxed">
-            {currentQuantity > 0 ? 'Modifica tu selección' : 'Personaliza tu pedido'}
-          </p>
-        </div>
-        <div className="absolute bottom-3 left-3 md:bottom-6 md:left-6 bg-white/95 backdrop-blur-md px-4 py-1.5 md:px-6 md:py-2 rounded-xl md:rounded-2xl shadow-xl border border-white/50">
-          <span className="text-black font-black text-sm md:text-lg tracking-tighter">₡{item.price.toLocaleString()}</span>
-        </div>
-        {hasCommunityPhotos && (
-          <div className="absolute bottom-3 right-3 md:bottom-4 md:right-4 bg-white/20 backdrop-blur-xl text-white px-2.5 py-1.5 md:px-3 md:py-2 rounded-full flex items-center gap-2 border border-white/30 shadow-2xl cursor-help transition-all hover:scale-105 hover:bg-white/30" title="Este plato tiene fotos reales subidas por la comunidad">
-            <Camera className="w-3 h-3 md:w-3.5 md:h-3.5 drop-shadow-md" />
-            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-tighter">Fotos Reales</span>
+      <div className="flex items-start gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-bold leading-tight text-[var(--color-text)]">
+              {item.name}
+            </h3>
+            {isHighlighted ? (
+              <span className="ui-status-pill !px-2 !py-0.5 text-[10px]">IA</span>
+            ) : null}
           </div>
-        )}
-      </div>
 
-      <div className="p-5 md:p-10 flex-grow flex flex-col">
-        <h3 className="text-xl md:text-3xl font-black mb-1.5 md:mb-3 text-gray-900 tracking-tighter leading-none uppercase group-hover:text-[var(--color-brand)] transition-colors duration-300 line-clamp-1">
-          {item.name}
-        </h3>
+          <p className="mt-1 text-sm leading-5 text-[var(--color-text-muted)] line-clamp-2">
+            {item.description}
+          </p>
 
-        {/* Dietary Guardian Badge */}
-        {isDietaryGuardianEnabled && isActive && (
-          <div className="mb-4">
+          {item.hasStructuredCustomization ? (
+            <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-brand)]">
+              Personalizable con extras y selecciones
+            </p>
+          ) : null}
+
+          {isDietaryGuardianEnabled && isActive && (
+            <div className="mt-3">
             {loadingMap[item.id] ? (
-              <div className="ui-panel-soft flex items-center gap-2 text-[10px] font-bold ui-text-muted w-fit px-3 py-1.5 rounded-full italic">
+              <div className="ui-panel-soft flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-bold italic ui-text-muted">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 <span>Analizando ingredientes...</span>
               </div>
             ) : resultsMap[item.id] ? (
               <div
-                className={`flex items-start gap-2.5 text-[10px] md:text-xs font-bold max-w-full px-3.5 py-2.5 rounded-2xl border-2 shadow-sm ${resultsMap[item.id].is_safe
+                className={`flex max-w-full items-start gap-2 rounded-2xl px-3 py-2 text-[10px] font-bold shadow-sm ${resultsMap[item.id].is_safe
                   ? 'ui-state-success shadow-emerald-500/5'
                   : 'ui-state-danger shadow-red-500/5'
                   }`}
               >
                 {resultsMap[item.id].is_safe ? (
-                  <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-500 mt-0.5" />
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                 ) : (
-                  <ShieldAlert className="w-4 h-4 shrink-0 text-[var(--color-brand)] mt-0.5" />
+                  <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-brand)]" />
                 )}
-                <span className="leading-relaxed break-words flex-1 italic">&ldquo;{resultsMap[item.id].reason}&rdquo;</span>
+                <span className="flex-1 break-words leading-relaxed italic">&ldquo;{resultsMap[item.id].reason}&rdquo;</span>
               </div>
             ) : null}
+            </div>
+          )}
+
+          <div className="mt-3 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-base font-bold text-[var(--color-brand)]">₡{item.price.toLocaleString()}</p>
+              {currentQuantity > 0 ? (
+                <p className="mt-1 text-[11px] font-semibold text-[var(--color-text-muted)]">
+                  {currentQuantity} en tu pedido
+                </p>
+              ) : null}
+            </div>
           </div>
-        )}
+        </div>
 
-        <p className="text-gray-400 text-[11px] md:text-sm mb-4 md:mb-8 leading-relaxed flex-grow font-medium line-clamp-2 md:line-clamp-3">
-          {item.description}
-        </p>
+        <div className="relative h-24 w-24 shrink-0 overflow-visible rounded-xl bg-[var(--color-surface-muted)]">
+          {item.image ? (
+            <img
+              src={item.image}
+              alt={item.name}
+              className="h-full w-full rounded-xl object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&q=80&w=800';
+              }}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center rounded-xl bg-[var(--color-surface-strong)] text-[var(--color-text-muted)]">
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em]">Sin foto</span>
+            </div>
+          )}
 
-        {!isAdding ? (
+          {currentQuantity > 0 ? (
+            <div className="absolute left-2 top-2 rounded-full bg-white/92 px-2 py-1 text-[10px] font-bold text-[var(--color-text)] shadow-sm">
+              {currentQuantity}
+            </div>
+          ) : null}
+
           <button
-            onClick={() => setIsAdding(true)}
-            className={`w-full py-3.5 md:py-5 rounded-xl md:rounded-[2rem] transition-all duration-300 uppercase text-[9px] md:text-[11px] font-black tracking-[0.2em] md:tracking-[0.3em] shadow-lg active:scale-95 ${currentQuantity > 0
-              ? 'ui-chip-brand border-2 hover:bg-[var(--color-brand)] hover:text-white'
-              : 'bg-gray-900 text-white hover:bg-[var(--color-brand)]'
-              }`}
+            type="button"
+            disabled={isSyncing}
+            aria-label={currentQuantity > 0 ? `Editar ${item.name}` : `Añadir ${item.name}`}
+            onClick={() => {
+              if (item.hasStructuredCustomization && onOpenDetails) {
+                onOpenDetails(item.id);
+                return;
+              }
+
+              if (currentQuantity > 0) {
+                setIsAdding((previous) => !previous);
+                setSyncError(null);
+                return;
+              }
+
+              void handleQuickAdd();
+            }}
+            className="ui-btn-primary absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-full border border-white shadow-lg disabled:opacity-60"
           >
-            {currentQuantity > 0 ? 'Editar' : 'Añadir'}
+            {currentQuantity > 0 ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           </button>
-        ) : (
-          <div className="space-y-4 md:space-y-6 animate-fadeIn relative">
+        </div>
+      </div>
+
+      {syncError ? (
+        <p className="mt-3 text-[11px] font-semibold text-[var(--color-brand)]">{syncError}</p>
+      ) : null}
+
+      {isAdding ? (
+        <div className="animate-fadeIn relative mt-4 space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4">
             {isSyncing && (
-              <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center backdrop-blur-[2px] rounded-xl">
-                <div className="w-8 h-8 border-4 border-black border-t-[var(--color-brand)] rounded-full animate-spin"></div>
+              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/80 backdrop-blur-[2px]">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-black border-t-[var(--color-brand)]"></div>
               </div>
             )}
 
-            <div className="flex items-center justify-between gap-2 md:gap-4 bg-gray-50/50 p-1.5 md:p-2 rounded-xl md:rounded-[2rem] border border-gray-100">
-              <span className="text-[8px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest pl-3 md:pl-5 hidden sm:block">Cant.</span>
-              <div className="flex items-center bg-white rounded-lg md:rounded-[1.5rem] shadow-sm border border-gray-200 overflow-hidden flex-grow sm:flex-grow-0">
-                <button disabled={isSyncing} onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center hover:bg-[var(--color-brand-soft)] text-gray-800 hover:text-[var(--color-brand)] font-bold text-xl md:text-2xl transition-all disabled:opacity-30">−</button>
-                <div className="w-8 md:w-12 text-center"><span className="font-black text-black text-sm md:text-lg">{quantity}</span></div>
-                <button disabled={isSyncing} onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center hover:bg-[var(--color-brand-soft)] text-gray-800 hover:text-[var(--color-brand)] font-bold text-xl md:text-2xl transition-all disabled:opacity-30">+</button>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Cantidad</span>
+              <div className="flex items-center overflow-hidden rounded-full border border-[var(--color-border)] bg-white shadow-sm">
+                <button type="button" aria-label={`Reducir cantidad de ${item.name}`} disabled={isSyncing} onClick={() => setQuantity(Math.max(1, quantity - 1))} className="flex h-10 w-10 items-center justify-center text-xl font-bold text-[var(--color-text)] transition-colors hover:bg-[var(--color-brand-soft)] disabled:opacity-30">−</button>
+                <div className="w-10 text-center text-sm font-bold text-[var(--color-text)]">{quantity}</div>
+                <button type="button" aria-label={`Aumentar cantidad de ${item.name}`} disabled={isSyncing} onClick={() => setQuantity(quantity + 1)} className="flex h-10 w-10 items-center justify-center text-xl font-bold text-[var(--color-text)] transition-colors hover:bg-[var(--color-brand-soft)] disabled:opacity-30">+</button>
               </div>
             </div>
-            <div className="relative">
+
+            <div>
               <textarea
                 disabled={isSyncing}
                 placeholder="Notas (ej. sin cebolla)..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                rows={1}
-                className="w-full px-4 py-3 md:p-6 text-[11px] md:text-sm border border-gray-100 rounded-xl md:rounded-[2rem] focus:outline-none focus:border-[var(--color-brand)]/30 font-bold transition-all bg-gray-50/50 text-gray-900 placeholder:text-gray-400 resize-none shadow-inner disabled:opacity-50"
+                rows={2}
+                className="ui-textarea w-full rounded-2xl px-4 py-3 text-sm disabled:opacity-50"
               />
             </div>
 
-            {syncError && (
-              <p className="text-[9px] font-black text-[var(--color-brand)] uppercase text-center animate-pulse">
-                {syncError}
-              </p>
-            )}
-
-            <div className="flex flex-col gap-2">
-              <div className="flex gap-2">
-                <button disabled={isSyncing} onClick={() => { setIsAdding(false); setSyncError(null); }} className="flex-[0.35] py-3.5 md:py-5 text-[8px] md:text-[10px] font-black border border-gray-200 text-gray-400 rounded-lg md:rounded-2xl uppercase tracking-widest hover:text-gray-900 hover:border-gray-900 disabled:opacity-30">Cerrar</button>
-                <button disabled={isSyncing} onClick={handleUpdate} className="flex-1 py-3.5 md:py-5 text-[8px] md:text-[10px] font-black ui-btn-primary rounded-lg md:rounded-2xl shadow-lg shadow-red-600/20 uppercase tracking-widest transition-all active:scale-95 disabled:bg-gray-400">
-                  {isSyncing ? '...' : 'Confirmar ✓'}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button type="button" disabled={isSyncing} onClick={() => { setIsAdding(false); setSyncError(null); }} className="ui-btn-secondary rounded-full px-4 py-3 text-xs font-bold disabled:opacity-30">Cerrar</button>
+              <button type="button" disabled={isSyncing} onClick={handleUpdate} className="ui-btn-primary flex-1 rounded-full px-5 py-3 text-xs font-bold disabled:opacity-60">
+                  {isSyncing ? 'Guardando...' : 'Confirmar'}
                 </button>
-              </div>
               {currentQuantity > 0 && (
-                <button disabled={isSyncing} onClick={handleRemove} className="w-full py-2 text-[8px] md:text-[9px] font-black text-[var(--color-brand)]/60 hover:text-[var(--color-brand)] transition-all uppercase tracking-widest disabled:opacity-20">
+                <button type="button" disabled={isSyncing} onClick={handleRemove} className="w-full py-2 text-xs font-bold text-[var(--color-brand)]/70 transition-colors hover:text-[var(--color-brand)] disabled:opacity-20 sm:w-auto sm:px-2">
                   Quitar del pedido
                 </button>
               )}
             </div>
-          </div>
-        )}
-      </div>
-    </div>
+        </div>
+      ) : null}
+    </article>
   );
 };
 

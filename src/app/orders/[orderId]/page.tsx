@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Clock3, Store, MapPin, Wallet, ClipboardList, Gavel, Loader2 } from 'lucide-react';
+import { ArrowLeft, Clock3, Store, MapPin, Wallet, ClipboardList, Gavel, Loader2, Bike, RefreshCcw } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
@@ -11,6 +11,8 @@ import ReviewCard from '@/features/reviews/components/ReviewCard';
 import { useOrderReviewEligibility } from '@/features/reviews/hooks/useOrderReviewEligibility';
 import { useSubmitRestaurantReview } from '@/features/reviews/hooks/useSubmitRestaurantReview';
 import { useSubmitDeliveryReview } from '@/features/reviews/hooks/useSubmitDeliveryReview';
+import { fetchOrderTracking } from '@/services/api';
+import { DeliveryTrackingPayload } from '@/types';
 
 type OrderBid = {
   id: string;
@@ -50,7 +52,7 @@ type OrderDetail = {
   bids: OrderBid[];
 };
 
-function normalizeItems(items: unknown[]): Array<{ name: string; quantity: number; price: number | null; notes: string | null }> {
+function normalizeItems(items: unknown[]): Array<{ name: string; quantity: number; price: number | null; notes: string | null; variantName: string | null; modifiers: string[] }> {
   return items
     .map((item) => {
       if (!item || typeof item !== 'object') {
@@ -80,10 +82,42 @@ function normalizeItems(items: unknown[]): Array<{ name: string; quantity: numbe
             : null;
 
       const notes = typeof parsed.notes === 'string' ? parsed.notes : null;
+      const variantName = typeof parsed.variant_name === 'string'
+        ? parsed.variant_name
+        : typeof parsed.variantName === 'string'
+          ? parsed.variantName
+          : null;
 
-      return { name, quantity, price, notes };
+      const rawModifiers = Array.isArray(parsed.modifiers)
+        ? parsed.modifiers
+        : Array.isArray(parsed.selectedModifiers)
+          ? parsed.selectedModifiers
+          : [];
+      const modifiers = rawModifiers
+        .map((modifier) => {
+          if (!modifier || typeof modifier !== 'object') {
+            return null;
+          }
+
+          const record = modifier as Record<string, unknown>;
+          const name = typeof record.name === 'string'
+            ? record.name
+            : typeof record.modifier_name === 'string'
+              ? record.modifier_name
+              : null;
+
+          if (!name) {
+            return null;
+          }
+
+          const quantity = typeof record.quantity === 'number' && record.quantity > 1 ? ` x${record.quantity}` : '';
+          return `${name}${quantity}`;
+        })
+        .filter(Boolean) as string[];
+
+      return { name, quantity, price, notes, variantName, modifiers };
     })
-    .filter(Boolean) as Array<{ name: string; quantity: number; price: number | null; notes: string | null }>;
+    .filter(Boolean) as Array<{ name: string; quantity: number; price: number | null; notes: string | null; variantName: string | null; modifiers: string[] }>;
 }
 
 export default function OrderDetailPage() {
@@ -101,6 +135,9 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [order, setOrder] = React.useState<OrderDetail | null>(null);
+  const [tracking, setTracking] = React.useState<DeliveryTrackingPayload | null>(null);
+  const [trackingError, setTrackingError] = React.useState<string | null>(null);
+  const [trackingLoading, setTrackingLoading] = React.useState(false);
 
   const {
     loading: loadingEligibility,
@@ -153,6 +190,28 @@ export default function OrderDetailPage() {
   }, [effectiveCustomerId, params?.orderId, t]);
 
   React.useEffect(() => {
+    async function fetchTracking() {
+      if (!params?.orderId) {
+        return;
+      }
+
+      setTrackingLoading(true);
+      setTrackingError(null);
+
+      try {
+        const trackingPayload = await fetchOrderTracking(params.orderId);
+        setTracking(trackingPayload);
+      } catch (requestError) {
+        setTrackingError(requestError instanceof Error ? requestError.message : 'Could not load tracking.');
+      } finally {
+        setTrackingLoading(false);
+      }
+    }
+
+    fetchTracking();
+  }, [params?.orderId]);
+
+  React.useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
@@ -189,6 +248,25 @@ export default function OrderDetailPage() {
 
   const restaurantReason = eligibility?.reasons.restaurant?.[0] ?? null;
   const deliveryReason = eligibility?.reasons.delivery?.[0] ?? null;
+  const trackingProgress = React.useMemo(() => {
+    const code = String(tracking?.status?.code || '').toLowerCase();
+
+    if (!code) {
+      return 10;
+    }
+
+    if (code.includes('delivered')) {
+      return 100;
+    }
+    if (code.includes('courier') || code.includes('driver') || code.includes('on_the_way') || code.includes('picked')) {
+      return 75;
+    }
+    if (code.includes('preparing') || code.includes('accepted')) {
+      return 45;
+    }
+
+    return 20;
+  }, [tracking?.status?.code]);
 
   const handleSubmitRestaurantReview = React.useCallback(
     async ({ rating, comment }: { rating: number; comment: string }) => {
@@ -258,17 +336,20 @@ export default function OrderDetailPage() {
         {error && <div className="ui-state-danger rounded-2xl p-5 text-sm">{error}</div>}
 
         {!loading && !error && !order && (
-          <div className="ui-panel ui-text-muted rounded-2xl p-5 text-sm">
+          <div className="ui-panel ui-text-muted rounded-[1.8rem] p-5 text-sm">
             {t('notFound')}
           </div>
         )}
 
         {!loading && !error && order && (
           <>
-            <section className="ui-panel rounded-2xl p-5 space-y-3">
+            <section className="ui-panel rounded-[1.9rem] p-5 space-y-4">
               <div className="flex items-center justify-between gap-2">
-                <h2 className="text-lg font-black">{order.orderNumber ?? order.id.slice(0, 8)}</h2>
-                <span className="ui-chip-brand rounded-full px-3 py-1 text-xs font-bold">
+                <div className="space-y-1">
+                  <p className="ui-section-title">{t('title')}</p>
+                  <h2 className="text-xl font-black tracking-[-0.02em]">{order.orderNumber ?? order.id.slice(0, 8)}</h2>
+                </div>
+                <span className="ui-status-pill">
                   {order.statusLabel ?? order.statusCode ?? t('noStatus')}
                 </span>
               </div>
@@ -288,18 +369,108 @@ export default function OrderDetailPage() {
               {order.notes ? <p className="ui-text-muted text-sm">{t('notes')}: {order.notes}</p> : null}
             </section>
 
-            <section className="ui-panel rounded-2xl p-5 space-y-3">
-              <h3 className="text-sm font-black">{t('products')}</h3>
+            <section className="ui-panel rounded-[1.9rem] p-5 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="ui-section-title">Tracking</p>
+                  <h3 className="inline-flex items-center gap-2 text-lg font-black tracking-[-0.02em]">
+                    <Bike className="h-4 w-4 text-[var(--color-brand)]" />
+                    Seguimiento de entrega
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!params?.orderId) {
+                      return;
+                    }
+                    setTrackingLoading(true);
+                    setTrackingError(null);
+                    try {
+                      setTracking(await fetchOrderTracking(params.orderId));
+                    } catch (requestError) {
+                      setTrackingError(requestError instanceof Error ? requestError.message : 'Could not load tracking.');
+                    } finally {
+                      setTrackingLoading(false);
+                    }
+                  }}
+                  className="ui-btn-secondary inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
+                >
+                  {trackingLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                  Actualizar
+                </button>
+              </div>
+
+              {trackingError ? <div className="ui-state-danger rounded-xl px-3 py-2 text-xs">{trackingError}</div> : null}
+
+              {tracking ? (
+                <>
+                  <div className="space-y-2">
+                    <div className="h-3 rounded-full bg-[var(--color-surface-soft)]">
+                      <div className="h-3 rounded-full bg-[linear-gradient(90deg,var(--color-brand)_0%,#fb923c_100%)] transition-all duration-500" style={{ width: `${trackingProgress}%` }} />
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--color-text-muted)]">
+                      <span>{tracking.status?.label || order.statusLabel || 'Pendiente'}</span>
+                      <span>{tracking.eta.minutes != null ? `${tracking.eta.minutes} min` : 'ETA no disponible'}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="ui-list-card rounded-[1.35rem] p-4 text-sm">
+                      <p className="ui-section-title">Courier</p>
+                      <p className="font-bold text-[var(--color-text)]">{tracking.courier.assigned ? 'Asignado' : 'Sin asignar'}</p>
+                      <p className="ui-text-muted text-xs">{tracking.courier.freshness || 'Sin señal reciente'}</p>
+                    </div>
+                    <div className="ui-list-card rounded-[1.35rem] p-4 text-sm">
+                      <p className="ui-section-title">Subasta</p>
+                      <p className="font-bold text-[var(--color-text)]">{tracking.auction.state || 'Sin actividad'}</p>
+                      <p className="ui-text-muted text-xs">
+                        {tracking.auction.latestBid?.bidAmount != null
+                          ? `Última oferta ₡${Math.round(tracking.auction.latestBid.bidAmount).toLocaleString()}`
+                          : 'Sin oferta reciente'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-3 text-sm">
+                    <div className="ui-panel-soft rounded-[1.2rem] p-3">
+                      <p className="ui-section-title">Restaurante</p>
+                      <p className="text-[var(--color-text)] font-semibold">{tracking.restaurant.name || order.restaurant?.name || 'Restaurante'}</p>
+                    </div>
+                    <div className="ui-panel-soft rounded-[1.2rem] p-3">
+                      <p className="ui-section-title">Destino</p>
+                      <p className="text-[var(--color-text)] font-semibold">{tracking.destination.coordinates.latitude != null ? 'Ubicación confirmada' : 'Sin coordenadas'}</p>
+                    </div>
+                    <div className="ui-panel-soft rounded-[1.2rem] p-3">
+                      <p className="ui-section-title">Modo</p>
+                      <p className="text-[var(--color-text)] font-semibold">{tracking.serviceMode}</p>
+                    </div>
+                  </div>
+                </>
+              ) : trackingLoading ? (
+                <p className="ui-text-muted text-sm">Cargando tracking...</p>
+              ) : (
+                <p className="ui-text-muted text-sm">Aún no hay datos de tracking para esta orden.</p>
+              )}
+            </section>
+
+            <section className="ui-panel rounded-[1.9rem] p-5 space-y-4">
+              <div className="space-y-1">
+                <p className="ui-section-title">{t('products')}</p>
+                <h3 className="text-lg font-black tracking-[-0.02em]">{t('products')}</h3>
+              </div>
               {normalizedItems.length === 0 ? (
                 <p className="ui-text-muted text-sm">{t('productsEmpty')}</p>
               ) : (
                 <div className="space-y-2">
                   {normalizedItems.map((item, index) => (
-                    <article key={`${item.name}-${index}`} className="ui-panel-soft rounded-xl p-3">
+                    <article key={`${item.name}-${index}`} className="ui-list-card rounded-[1.35rem] p-4">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-bold">{item.name}</p>
                         <p className="ui-text-muted text-xs">x{item.quantity}</p>
                       </div>
+                      {item.variantName ? <p className="ui-text-muted text-xs">Variante: {item.variantName}</p> : null}
+                      {item.modifiers.length > 0 ? <p className="ui-text-muted text-xs">Extras: {item.modifiers.join(', ')}</p> : null}
                       {item.price != null ? <p className="ui-text-muted text-xs">₡{Math.round(item.price).toLocaleString()}</p> : null}
                       {item.notes ? <p className="ui-text-muted text-xs">{item.notes}</p> : null}
                     </article>
@@ -327,21 +498,24 @@ export default function OrderDetailPage() {
               </div>
             </section>
 
-            <section className="ui-panel rounded-2xl p-5 space-y-3">
-              <h3 className="inline-flex items-center gap-2 text-sm font-black">
-                <Gavel className="h-4 w-4 text-[var(--color-brand)]" />
-                {t('bidSection')}
-              </h3>
+            <section className="ui-panel rounded-[1.9rem] p-5 space-y-4">
+              <div className="space-y-1">
+                <p className="ui-section-title">{t('bidSection')}</p>
+                <h3 className="inline-flex items-center gap-2 text-lg font-black tracking-[-0.02em]">
+                  <Gavel className="h-4 w-4 text-[var(--color-brand)]" />
+                  {t('bidSection')}
+                </h3>
+              </div>
 
               {order.bids.length === 0 ? (
                 <p className="ui-text-muted text-sm">{t('bidSectionEmpty')}</p>
               ) : (
                 <div className="space-y-2">
                   {order.bids.map((bid) => (
-                    <article key={bid.id} className="ui-panel-soft rounded-xl p-3 space-y-1">
+                    <article key={bid.id} className="ui-list-card rounded-[1.35rem] p-4 space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-black">{t('bid')} {bid.id.slice(0, 8)}</p>
-                        <span className="ui-chip-brand rounded-full px-2 py-1 text-[10px] font-bold">{bid.status || 'unknown'}</span>
+                        <span className="ui-status-pill">{bid.status || 'unknown'}</span>
                       </div>
                       <div className="ui-text-muted flex flex-wrap gap-3 text-xs">
                         <span>{t('offer')}: ₡{Math.round(bid.driverOffer).toLocaleString()}</span>
@@ -359,9 +533,10 @@ export default function OrderDetailPage() {
             </section>
 
             {reviewsEnabled && (
-              <section id="reviews" ref={reviewsRef} className="ui-panel rounded-2xl p-5 space-y-4">
+              <section id="reviews" ref={reviewsRef} className="ui-panel rounded-[1.9rem] p-5 space-y-4">
                 <div>
-                  <h3 className="text-sm font-black">{t('reviews.title')}</h3>
+                  <p className="ui-section-title">{t('reviews.title')}</p>
+                  <h3 className="text-lg font-black tracking-[-0.02em]">{t('reviews.title')}</h3>
                   <p className="ui-text-muted text-xs">{t('reviews.subtitle')}</p>
                 </div>
 

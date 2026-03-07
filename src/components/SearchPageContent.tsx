@@ -1,11 +1,11 @@
 "use client";
 
 import React from 'react';
-import { Sparkles, Search, MapPin, Tag, Star, Clock3, Loader2 } from 'lucide-react';
+import { Sparkles, Search, Loader2 } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
+import RestaurantCard from '@/components/RestaurantCard';
 import { useCategories } from '@/hooks/useCategories';
 import { useRestaurants } from '@/hooks/useRestaurants';
-import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
 import { useTranslations } from 'next-intl';
 
@@ -25,19 +25,8 @@ function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
-function slugify(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-}
-
 export default function SearchPageContent() {
   const t = useTranslations('search');
-  const router = useAppRouter();
   const { userLocation, fromNumber, customerName } = useCartStore();
   const { categories } = useCategories();
   const { restaurants, loading, error } = useRestaurants({ userLocation });
@@ -193,29 +182,29 @@ export default function SearchPageContent() {
     <main className="ui-page min-h-screen pb-32">
       <div className="mx-auto w-full max-w-3xl px-4 pt-6 space-y-5">
         <header className="space-y-2">
-          <h1 className="text-2xl font-black">{t('title')}</h1>
-          <p className="ui-text-muted text-sm">{t('subtitle')}</p>
+          <h1 className="text-3xl font-black tracking-[-0.03em]">{t('title')}</h1>
+          <p className="ui-text-muted max-w-2xl text-sm">{t('subtitle')}</p>
         </header>
 
-        <form onSubmit={submitSearch} className="ui-panel rounded-2xl p-3 shadow-sm">
+        <form onSubmit={submitSearch} className="ui-panel rounded-[1.75rem] p-3 shadow-sm">
           <div className="flex items-center gap-2">
             <Search className="ui-text-muted h-4 w-4" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t('searchPlaceholder')}
-              className="ui-text w-full bg-transparent text-sm placeholder:text-gray-400 outline-none"
+              className="ui-text w-full bg-transparent text-sm placeholder:text-[var(--color-text-muted)] outline-none"
             />
             <button
               type="submit"
-              className="ui-btn-primary rounded-xl px-3 py-2 text-xs font-bold transition-colors"
+              className="ui-btn-primary rounded-full px-4 py-2 text-xs font-black transition-colors"
             >
               {t('searchButton')}
             </button>
           </div>
         </form>
 
-        <section className="ui-chip-brand rounded-2xl p-4 space-y-3">
+        <section className="ui-chip-brand rounded-[1.75rem] p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4" />
             <h2 className="text-sm font-black">{t('aiSuggestions')}</h2>
@@ -316,7 +305,7 @@ export default function SearchPageContent() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-sm font-black">{t('results')}</h2>
+          <h2 className="text-sm font-black tracking-[0.06em] uppercase text-[var(--color-text-muted)]">{t('results')}</h2>
           {loading && (
             <div className="ui-panel rounded-2xl p-4 text-sm ui-text-muted">{t('loadingRestaurants')}</div>
           )}
@@ -329,49 +318,14 @@ export default function SearchPageContent() {
             </div>
           )}
 
-          {filteredRestaurants.map((restaurant) => (
-            <article
-              key={restaurant.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => router.push(`/${restaurant.slug || slugify(restaurant.name)}`)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  router.push(`/${restaurant.slug || slugify(restaurant.name)}`);
-                }
-              }}
-              className="ui-panel rounded-2xl p-4 shadow-sm space-y-2 cursor-pointer hover:shadow-md transition-all"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-black">{restaurant.name}</h3>
-                  <p className="ui-text-muted text-xs">{restaurant.categories.map((category) => category.name).join(' • ')}</p>
-                </div>
-                {restaurant.promo_text && (
-                  <span className="ui-chip-brand inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold">
-                    <Tag className="w-3 h-3" />
-                    {t('promo')}
-                  </span>
-                )}
-              </div>
-
-              <div className="ui-text-muted flex flex-wrap gap-3 text-[11px]">
-                <span className="inline-flex items-center gap-1">
-                  <Star className="w-3 h-3" />
-                  {restaurant.rating ? restaurant.rating.toFixed(1) : t('notAvailable')}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <Clock3 className="w-3 h-3" />
-                  {restaurant.eta_min ? `${restaurant.eta_min} ${t('minutes')}` : t('etaNotAvailable')}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {typeof restaurant.distance === 'number' ? `${restaurant.distance.toFixed(1)} km` : t('noDistance')}
-                </span>
-              </div>
-            </article>
-          ))}
+          <div className="grid gap-3">
+            {filteredRestaurants.map((restaurant) => (
+              <RestaurantCard
+                key={restaurant.id}
+                restaurant={restaurant}
+              />
+            ))}
+          </div>
         </section>
       </div>
 

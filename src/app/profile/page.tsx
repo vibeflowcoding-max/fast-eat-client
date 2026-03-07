@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { MapPin, Phone, UserRound, Heart, ClipboardList, Loader2, ShieldAlert } from 'lucide-react';
+import { MapPin, Phone, UserRound, Heart, ClipboardList, Loader2, ShieldAlert, Sparkles, Gift, ChevronRight } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
@@ -12,8 +12,10 @@ import { supabase } from '@/lib/supabase';
 import { normalizePhoneWithSinglePlus } from '@/lib/phone';
 import dynamic from 'next/dynamic';
 import type { BuildingType } from '@/components/AddressDetailsModal';
+import { fetchDietaryProfile } from '@/services/api';
 
 const AddressDetailsModal = dynamic(() => import('@/components/AddressDetailsModal'));
+const DietaryProfileSettings = dynamic(() => import('@/features/user/components/DietaryProfileSettings'));
 
 type ProfilePayload = {
   profile: {
@@ -41,8 +43,10 @@ export default function ProfilePage() {
     fromNumber,
     customerName,
     dietaryProfile,
+    isAuthenticated,
     setCustomerName,
     setFromNumber,
+    setDietaryProfile,
     hydrateClientContext,
   } = useCartStore();
   const { locale, setLocale } = useAppLocale();
@@ -57,6 +61,7 @@ export default function ProfilePage() {
   const [saveFeedback, setSaveFeedback] = React.useState<string | null>(null);
   const [languageFeedback, setLanguageFeedback] = React.useState<string | null>(null);
   const [isLocationModalOpen, setIsLocationModalOpen] = React.useState(false);
+  const [isDietaryModalOpen, setIsDietaryModalOpen] = React.useState(false);
   const [isResolvingProfileLocation, setIsResolvingProfileLocation] = React.useState(false);
   const [locationInitialPosition, setLocationInitialPosition] = React.useState<{ lat: number; lng: number } | null>(null);
 
@@ -155,6 +160,31 @@ export default function ProfilePage() {
   }, [customerName, fromNumber, hydrateClientContext, parseCoordsFromGoogleMapsUrl, setCustomerName, setFromNumber, t]);
 
   React.useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    async function loadDietaryProfile() {
+      try {
+        const remoteDietaryProfile = await fetchDietaryProfile();
+        if (!isCancelled) {
+          setDietaryProfile(remoteDietaryProfile);
+        }
+      } catch {
+        // Keep local profile if the remote sync is unavailable.
+      }
+    }
+
+    loadDietaryProfile();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isAuthenticated, setDietaryProfile]);
+
+  React.useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
@@ -173,6 +203,9 @@ export default function ProfilePage() {
   const phone = normalizePhoneWithSinglePlus(profile?.phone ?? fromNumber ?? '') || t('noPhone');
   const address = profile?.urlGoogleMaps ?? null;
   const allergies = dietaryProfile?.allergies ?? [];
+  const dislikedIngredients = dietaryProfile?.dislikedIngredients ?? [];
+  const healthGoals = dietaryProfile?.healthGoals ?? [];
+  const dietLabel = dietaryProfile?.diet && dietaryProfile.diet !== 'none' ? dietaryProfile.diet : t('noAllergies');
 
   const handleProfileSave = async () => {
     setSaveFeedback(null);
@@ -364,67 +397,67 @@ export default function ProfilePage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-32">
+    <main className="ui-page min-h-screen pb-32">
       <div className="mx-auto w-full max-w-3xl px-4 pt-6 space-y-5">
         <header>
-          <h1 className="text-2xl font-black text-gray-900">{t('title')}</h1>
-          <p className="text-sm text-gray-500">{t('subtitle')}</p>
+          <h1 className="text-3xl font-black tracking-[-0.03em] text-[var(--color-text)]">{t('title')}</h1>
+          <p className="ui-text-muted text-sm">{t('subtitle')}</p>
         </header>
 
         {loading && (
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600 flex items-center gap-2">
+          <div className="ui-panel ui-text-muted flex items-center gap-2 rounded-[1.75rem] p-5 text-sm">
             <Loader2 className="w-4 h-4 animate-spin" />
             {t('loading')}
           </div>
         )}
 
         {error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">{error}</div>
+          <div className="ui-state-danger rounded-[1.75rem] p-5 text-sm">{error}</div>
         )}
 
         {!loading && !error && (
           <>
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 space-y-4">
+            <section className="ui-panel rounded-[2rem] p-5 space-y-4">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 text-white font-black text-xl flex items-center justify-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[linear-gradient(135deg,var(--color-brand)_0%,#fb923c_100%)] text-xl font-black text-white shadow-[0_16px_32px_-20px_rgba(236,91,19,0.75)]">
                   {initials(fullName)}
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-gray-900">{fullName}</h2>
-                  <p className="text-xs text-gray-500">{t('roleLabel')}</p>
+                  <h2 className="text-xl font-black tracking-[-0.02em] text-[var(--color-text)]">{fullName}</h2>
+                  <p className="text-xs uppercase tracking-[0.12em] text-[var(--color-text-muted)]">{t('roleLabel')}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div className="rounded-xl border border-gray-200 p-3">
-                  <p className="text-[11px] uppercase tracking-wide text-gray-500 font-bold mb-1">{t('phone')}</p>
-                  <p className="inline-flex items-center gap-2 text-gray-900"><Phone className="w-4 h-4 text-gray-500" />{phone}</p>
+                <div className="ui-panel-soft rounded-[1.4rem] p-4">
+                  <p className="mb-1 text-[11px] font-black uppercase tracking-[0.12em] text-[var(--color-text-muted)]">{t('phone')}</p>
+                  <p className="inline-flex items-center gap-2 text-[var(--color-text)]"><Phone className="w-4 h-4 text-[var(--color-brand)]" />{phone}</p>
                 </div>
-                <div className="rounded-xl border border-gray-200 p-3">
-                  <p className="text-[11px] uppercase tracking-wide text-gray-500 font-bold mb-1">{t('name')}</p>
-                  <p className="inline-flex items-center gap-2 text-gray-900"><UserRound className="w-4 h-4 text-gray-500" />{fullName}</p>
+                <div className="ui-panel-soft rounded-[1.4rem] p-4">
+                  <p className="mb-1 text-[11px] font-black uppercase tracking-[0.12em] text-[var(--color-text-muted)]">{t('name')}</p>
+                  <p className="inline-flex items-center gap-2 text-[var(--color-text)]"><UserRound className="w-4 h-4 text-[var(--color-brand)]" />{fullName}</p>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-gray-200 p-3 space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-wide text-gray-600">Edit profile</h3>
+              <div className="ui-panel-soft rounded-[1.5rem] p-4 space-y-3">
+                <h3 className="text-xs font-black uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Edit profile</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className="text-sm font-semibold text-gray-700">
+                  <label className="text-sm font-semibold text-[var(--color-text)]">
                     {t('name')}
                     <input
                       type="text"
                       value={editFullName}
                       onChange={(event) => setEditFullName(event.target.value)}
-                      className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-400"
+                      className="ui-input mt-1 rounded-xl px-3 py-2 text-sm"
                     />
                   </label>
-                  <label className="text-sm font-semibold text-gray-700">
+                  <label className="text-sm font-semibold text-[var(--color-text)]">
                     {t('phone')}
                     <input
                       type="tel"
                       value={editPhone}
                       onChange={(event) => setEditPhone(event.target.value)}
-                      className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-400"
+                      className="ui-input mt-1 rounded-xl px-3 py-2 text-sm"
                     />
                   </label>
                 </div>
@@ -432,22 +465,22 @@ export default function ProfilePage() {
                   type="button"
                   onClick={handleProfileSave}
                   disabled={saving}
-                  className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-bold text-white hover:bg-black transition-colors disabled:opacity-60"
+                  className="ui-btn-primary inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-black transition-colors disabled:opacity-60"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   Save profile
                 </button>
-                {saveFeedback ? <p className="text-xs text-emerald-700">{saveFeedback}</p> : null}
+                {saveFeedback ? <p className="ui-state-success inline-flex rounded-xl px-3 py-2 text-xs">{saveFeedback}</p> : null}
               </div>
 
-              <div className="rounded-xl border border-gray-200 p-3 text-sm">
-                <p className="text-[11px] uppercase tracking-wide text-gray-500 font-bold mb-1">{t('location')}</p>
-                <p className="inline-flex items-start gap-2 text-gray-900"><MapPin className="w-4 h-4 text-gray-500 mt-0.5" />{address ?? t('noAddress')}</p>
+              <div className="ui-panel-soft rounded-[1.5rem] p-4 text-sm">
+                <p className="mb-1 text-[11px] font-black uppercase tracking-[0.12em] text-[var(--color-text-muted)]">{t('location')}</p>
+                <p className="inline-flex items-start gap-2 text-[var(--color-text)]"><MapPin className="mt-0.5 h-4 w-4 text-[var(--color-brand)]" />{address ?? t('noAddress')}</p>
                 <button
                   type="button"
                   onClick={handleOpenLocationEditor}
                   disabled={isResolvingProfileLocation}
-                  className="mt-3 inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-800 hover:bg-gray-50"
+                  className="ui-btn-secondary mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
                 >
                   {isResolvingProfileLocation
                     ? t('resolvingLocation')
@@ -458,25 +491,25 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => router.push('/orders')}
-                className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-bold text-white hover:bg-black transition-colors"
+                className="ui-btn-primary inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-black transition-colors"
               >
                 <ClipboardList className="w-4 h-4" />
                 {t('viewOrders')}
               </button>
             </section>
 
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 space-y-3">
-              <h3 className="text-sm font-black text-gray-900 inline-flex items-center gap-2">
+            <section className="ui-panel rounded-[2rem] p-5 space-y-3">
+              <h3 className="text-sm font-black text-[var(--color-text)] inline-flex items-center gap-2">
                 <Heart className="w-4 h-4 text-rose-500" />
                 {t('favoriteRestaurants')}
               </h3>
 
               {favoriteRestaurants.length === 0 ? (
-                <p className="text-sm text-gray-600">{t('noFavorites')}</p>
+                <p className="ui-text-muted text-sm">{t('noFavorites')}</p>
               ) : (
                 <div className="space-y-2">
                   {favoriteRestaurants.map((restaurant) => (
-                    <article key={restaurant.id} className="rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-800">
+                    <article key={restaurant.id} className="ui-list-card rounded-[1.35rem] px-4 py-3 text-sm text-[var(--color-text)]">
                       {restaurant.name}
                     </article>
                   ))}
@@ -484,18 +517,59 @@ export default function ProfilePage() {
               )}
             </section>
 
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 space-y-3">
-              <h3 className="text-sm font-black text-gray-900 inline-flex items-center gap-2">
+            <section className="ui-panel rounded-[2rem] p-5 space-y-3">
+              <h3 className="text-sm font-black text-[var(--color-text)] inline-flex items-center gap-2">
                 <ShieldAlert className="w-4 h-4 text-amber-600" />
                 {t('allergiesSettings')}
               </h3>
 
+              <div className="ui-panel-soft rounded-[1.5rem] p-4 space-y-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--color-text-muted)]">Perfil alimenticio</p>
+                    <p className="text-[var(--color-text)] font-semibold">{dietLabel}</p>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.08em] ${dietaryProfile?.syncStatus === 'synced' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {dietaryProfile?.syncStatus === 'synced' ? 'Synced' : 'Local'}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {allergies.map((allergy) => (
+                    <span key={allergy} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                      {allergy}
+                    </span>
+                  ))}
+                  {dislikedIngredients.slice(0, 3).map((ingredient) => (
+                    <span key={ingredient} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                      Evitar: {ingredient}
+                    </span>
+                  ))}
+                  {healthGoals.slice(0, 2).map((goal) => (
+                    <span key={goal} className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                      {goal}
+                    </span>
+                  ))}
+                  {allergies.length === 0 && dislikedIngredients.length === 0 && healthGoals.length === 0 ? (
+                    <p className="ui-text-muted text-sm">{t('noAllergies')}</p>
+                  ) : null}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsDietaryModalOpen(true)}
+                  className="ui-btn-secondary inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
+                >
+                  Ajustar perfil alimenticio
+                </button>
+              </div>
+
               {allergies.length === 0 ? (
-                <p className="text-sm text-gray-600">{t('noAllergies')}</p>
+                <p className="ui-text-muted text-sm">{t('noAllergies')}</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {allergies.map((allergy) => (
-                    <span key={allergy} className="rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-700">
+                    <span key={allergy} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
                       {allergy}
                     </span>
                   ))}
@@ -503,17 +577,57 @@ export default function ProfilePage() {
               )}
             </section>
 
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 space-y-3">
-              <h3 className="text-sm font-black text-gray-900">{t('languageSection')}</h3>
-              <p className="text-sm text-gray-600">{t('languageDescription')}</p>
-              <label className="block text-sm font-semibold text-gray-700" htmlFor="profile-language-select">
+            <section className="ui-panel rounded-[2rem] p-5 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-black text-[var(--color-text)] inline-flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[var(--color-brand)]" />
+                    Planner IA
+                  </h3>
+                  <p className="ui-text-muted text-sm">Recibe ideas de platos según tu dieta, gustos y momento del día.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push('/planner')}
+                  className="ui-btn-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
+                >
+                  Abrir
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </section>
+
+            <section className="ui-panel rounded-[2rem] p-5 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-black text-[var(--color-text)] inline-flex items-center gap-2">
+                    <Gift className="w-4 h-4 text-fuchsia-600" />
+                    Mystery Box
+                  </h3>
+                  <p className="ui-text-muted text-sm">Descubre combos sorpresa compatibles con tu perfil y stock disponible.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push('/mystery-box')}
+                  className="ui-btn-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
+                >
+                  Ver ofertas
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </section>
+
+            <section className="ui-panel rounded-[2rem] p-5 space-y-3">
+              <h3 className="text-sm font-black text-[var(--color-text)]">{t('languageSection')}</h3>
+              <p className="ui-text-muted text-sm">{t('languageDescription')}</p>
+              <label className="block text-sm font-semibold text-[var(--color-text)]" htmlFor="profile-language-select">
                 {t('languageLabel')}
               </label>
               <select
                 id="profile-language-select"
                 value={locale}
                 onChange={handleLocaleChange}
-                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-400"
+                className="ui-select rounded-xl px-3 py-2 text-sm"
               >
                 {SUPPORTED_LOCALES.map((itemLocale) => (
                   <option key={itemLocale} value={itemLocale}>
@@ -543,6 +657,11 @@ export default function ProfilePage() {
         onClose={() => setIsLocationModalOpen(false)}
         onSave={handleSaveProfileLocation}
         preferCurrentLocationOnOpen={false}
+      />
+
+      <DietaryProfileSettings
+        isOpen={isDietaryModalOpen}
+        onClose={() => setIsDietaryModalOpen(false)}
       />
     </main>
   );

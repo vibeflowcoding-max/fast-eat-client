@@ -200,6 +200,10 @@ export default function OrdersPageContent() {
     return `/orders/${encodeURIComponent(orderId)}${query}${suffix}`;
   }, [trackingCustomerId]);
 
+  const preventCardNavigation = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+  }, []);
+
   return (
     <main className="ui-page min-h-screen pb-32">
       <div className="mx-auto w-full max-w-3xl px-4 pt-6 space-y-5">
@@ -220,8 +224,11 @@ export default function OrdersPageContent() {
         )}
 
         {!loading && !error && (
-          <section className="ui-panel rounded-2xl p-4 space-y-3">
-            <h2 className="text-sm font-black">{t('activeOrders')}</h2>
+          <section className="ui-panel rounded-[1.9rem] p-5 space-y-4">
+            <div className="space-y-1">
+              <p className="ui-section-title">{t('activeOrders')}</p>
+              <h2 className="text-lg font-black tracking-[-0.02em]">{t('activeOrders')}</h2>
+            </div>
 
             {mergedActiveCount === 0 ? (
               <div className="space-y-3">
@@ -249,7 +256,7 @@ export default function OrdersPageContent() {
                         router.push(buildOrderUrl(order.orderId));
                       }
                     }}
-                    className="ui-chip-brand rounded-xl p-3 space-y-2 cursor-pointer"
+                    className="ui-chip-brand rounded-[1.4rem] p-4 space-y-2 cursor-pointer shadow-[0_14px_34px_-28px_rgba(236,91,19,0.5)]"
                   >
                     <p className="text-xs font-black">{order.orderNumber || order.orderId}</p>
                     <p className="text-sm">{t('status')}: {order.newStatus?.label ?? order.newStatus?.code ?? t('inProgress')}</p>
@@ -270,11 +277,11 @@ export default function OrdersPageContent() {
                         router.push(buildOrderUrl(order.id, order.customerId));
                       }
                     }}
-                    className="ui-panel-soft rounded-xl p-3 space-y-2 cursor-pointer"
+                    className="ui-list-card rounded-[1.4rem] p-4 space-y-3 cursor-pointer"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-black">{order.orderNumber ?? order.id.slice(0, 8)}</p>
-                      <span className="ui-chip-brand rounded-full px-2 py-1 text-[10px] font-bold">{order.statusLabel ?? order.statusCode ?? t('active')}</span>
+                      <span className="ui-status-pill">{order.statusLabel ?? order.statusCode ?? t('active')}</span>
                     </div>
                     <p className="text-sm">{order.restaurant?.name ?? t('restaurant')}</p>
                     <div className="ui-text-muted flex flex-wrap gap-3 text-xs">
@@ -290,8 +297,11 @@ export default function OrdersPageContent() {
         )}
 
         {!loading && !error && (
-          <section className="ui-panel rounded-2xl p-4 space-y-3">
-            <h2 className="text-sm font-black">{t('pastOrders')}</h2>
+          <section className="ui-panel rounded-[1.9rem] p-5 space-y-4">
+            <div className="space-y-1">
+              <p className="ui-section-title">{t('pastOrders')}</p>
+              <h2 className="text-lg font-black tracking-[-0.02em]">{t('pastOrders')}</h2>
+            </div>
             {pastOrders.length === 0 ? (
               <p className="ui-text-muted text-sm">{t('pastOrdersEmpty')}</p>
             ) : (
@@ -308,7 +318,7 @@ export default function OrdersPageContent() {
                         router.push(buildOrderUrl(order.id, order.customerId));
                       }
                     }}
-                    className="ui-panel-soft rounded-xl p-3 space-y-2 cursor-pointer"
+                    className="ui-list-card rounded-[1.4rem] p-4 space-y-3 cursor-pointer"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-black">{order.orderNumber ?? order.id.slice(0, 8)}</p>
@@ -322,20 +332,28 @@ export default function OrdersPageContent() {
                       </span>
                       <span className="text-sm font-bold">₡{Math.round(order.total).toLocaleString()}</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => router.push(buildOrderUrl(order.id, order.customerId, '#reviews'))}
-                      className="text-xs font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]"
-                    >
-                      {t('rateOrder')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => router.push('/')}
-                      className="text-xs font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]"
-                    >
-                      {t('repeatOrder')}
-                    </button>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          preventCardNavigation(event);
+                          router.push(buildOrderUrl(order.id, order.customerId, '#reviews'));
+                        }}
+                        className="ui-btn-secondary inline-flex min-h-[40px] items-center justify-center rounded-full px-4 py-2 text-xs font-black"
+                      >
+                        {t('rateOrder')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          preventCardNavigation(event);
+                          router.push('/');
+                        }}
+                        className="ui-btn-primary inline-flex min-h-[40px] items-center justify-center rounded-full px-4 py-2 text-xs font-black"
+                      >
+                        {t('repeatOrder')}
+                      </button>
+                    </div>
                   </article>
                 ))}
               </div>

@@ -110,6 +110,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     }
   };
 
+  const handleDismissNotification = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    setShowNotification(false);
+  };
+
   return (
     <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[100] flex flex-col items-end pointer-events-none">
       {showInvitation && !isOpen && !showNotification && (
@@ -121,6 +126,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       )}
       {showNotification && !isOpen && (
         <div className="mb-4 mr-2 max-w-[250px] md:max-w-[280px] bg-white border-[3px] border-red-600 rounded-[2rem] p-5 shadow-2xl animate-popIn relative cursor-pointer hover:scale-105 transition-transform pointer-events-auto" onClick={() => { setIsOpen(true); setShowNotification(false); }}>
+          <button
+            type="button"
+            aria-label="Cerrar notificación de Chef Zen"
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-red-200 bg-white text-base font-black text-red-600 transition-colors hover:bg-red-50"
+            onClick={handleDismissNotification}
+          >
+            ×
+          </button>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xl">👨‍🍳</span>
             <span className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em]">Chef Zen dice:</span>

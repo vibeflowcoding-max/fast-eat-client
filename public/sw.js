@@ -1,13 +1,24 @@
-const CACHE_NAME = 'fasteat-v1';
-const urlsToCache = [
+const CACHE_NAME = 'fasteat-v2';
+const APP_SHELL_ASSETS = [
     '/',
-    '/manifest.json'
+    '/manifest.json',
+    '/icons/fasteat-180.png',
+    '/icons/fasteat-192.png',
+    '/icons/fasteat-512.png'
 ];
+
+const shouldBypassCache = (pathname) => {
+    return (
+        pathname.startsWith('/api/') ||
+        pathname.startsWith('/_next/webpack-hmr') ||
+        pathname.startsWith('/__nextjs')
+    );
+};
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then((cache) => cache.addAll(urlsToCache))
+            .then((cache) => cache.addAll(APP_SHELL_ASSETS))
     );
     self.skipWaiting();
 });
@@ -29,28 +40,35 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
 
     const requestUrl = new URL(event.request.url);
-    const isAuthSensitiveApi =
-        requestUrl.pathname.startsWith('/api/auth/') ||
-        requestUrl.pathname.startsWith('/api/consumer/me/') ||
-        requestUrl.pathname.startsWith('/api/customer/profile') ||
-        requestUrl.pathname.startsWith('/api/orders/history');
+    if (requestUrl.origin !== self.location.origin) return;
+    if (shouldBypassCache(requestUrl.pathname)) return;
 
-    if (isAuthSensitiveApi) {
-        event.respondWith(fetch(event.request));
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request).catch(async () => {
+                const cachedHome = await caches.match('/');
+                return cachedHome || Response.error();
+            })
+        );
         return;
     }
 
     event.respondWith(
-        fetch(event.request)
-            .then((response) => {
-                if (response.status === 200) {
-                    const responseClone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseClone);
-                    });
-                }
-                return response;
-            })
-            .catch(() => caches.match(event.request))
+        caches.match(event.request).then((cachedResponse) => {
+            const networkFetch = fetch(event.request)
+                .then((response) => {
+                    if (response.ok) {
+                        const responseClone = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseClone);
+                        });
+                    }
+
+                    return response;
+                })
+                .catch(() => cachedResponse || Response.error());
+
+            return cachedResponse || networkFetch;
+        })
     );
 });

@@ -36,6 +36,8 @@ interface CartModalProps {
     locationServicePrompt?: string | null;
     isAutoSavingProfileLocation?: boolean;
     tableQuantity?: number;
+    onOpenCheckoutPage?: () => void;
+    onOpenCartsPage?: () => void;
 }
 
 const CartModal: React.FC<CartModalProps> = ({
@@ -60,7 +62,9 @@ const CartModal: React.FC<CartModalProps> = ({
     locationPickerLoading = false,
     locationServicePrompt = null,
     isAutoSavingProfileLocation = false,
-    tableQuantity = 0
+    tableQuantity = 0,
+    onOpenCheckoutPage,
+    onOpenCartsPage,
 }) => {
     const t = useTranslations('checkout.cart');
     const branchId = useCartStore(state => state.branchId);
@@ -228,50 +232,68 @@ const CartModal: React.FC<CartModalProps> = ({
                             tableQuantity={tableQuantity}
                         />
                     )}
-                </div>
-                <div className="ui-panel p-5 md:p-8 border-t-4 space-y-3">
-                    {cart.length > 0 && (
-                        <div className="ui-panel-soft border-2 rounded-2xl p-4 space-y-2">
-                            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                                <span className="ui-text-muted">{t('subtotal')}</span>
-                                <span>{formatCurrency(pricing.subtotal)}</span>
+                    <div className="ui-panel mt-2 p-5 md:p-8 border-t-4 space-y-3">
+                        {cart.length > 0 && (
+                            <div className="ui-panel-soft border-2 rounded-2xl p-4 space-y-2">
+                                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
+                                    <span className="ui-text-muted">{t('subtotal')}</span>
+                                    <span>{formatCurrency(pricing.subtotal)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
+                                    <span className="ui-text-muted">{t('serviceFee', { rate: formatRate(pricing.serviceFeeRate) })}</span>
+                                    <span>{formatCurrency(pricing.serviceFeeAmount)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
+                                    <span className="ui-text-muted">{t('platformFee', { rate: formatRate(pricing.platformFeeRate) })}</span>
+                                    <span>{formatCurrency(pricing.platformFeeAmount)}</span>
+                                </div>
+                                <div className="border-t border-border/30 pt-2 mt-2 flex items-center justify-between text-sm font-black uppercase tracking-widest">
+                                    <span>{t('total')}</span>
+                                    <span>{formatCurrency(pricing.totalBeforeDelivery)}</span>
+                                </div>
+                                <p className="ui-state-warning rounded-lg px-2 py-1 text-[10px] font-bold">
+                                    {t('deliveryDisclaimer')}
+                                </p>
+                                {isPricingUnavailable && (
+                                    <p className="ui-text-muted text-[10px] font-bold">{t('feesUnavailable')}</p>
+                                )}
                             </div>
-                            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                                <span className="ui-text-muted">{t('serviceFee', { rate: formatRate(pricing.serviceFeeRate) })}</span>
-                                <span>{formatCurrency(pricing.serviceFeeAmount)}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                                <span className="ui-text-muted">{t('platformFee', { rate: formatRate(pricing.platformFeeRate) })}</span>
-                                <span>{formatCurrency(pricing.platformFeeAmount)}</span>
-                            </div>
-                            <div className="border-t border-border/30 pt-2 mt-2 flex items-center justify-between text-sm font-black uppercase tracking-widest">
-                                <span>{t('total')}</span>
-                                <span>{formatCurrency(pricing.totalBeforeDelivery)}</span>
-                            </div>
-                            <p className="ui-state-warning rounded-lg px-2 py-1 text-[10px] font-bold">
-                                {t('deliveryDisclaimer')}
-                            </p>
-                            {isPricingUnavailable && (
-                                <p className="ui-text-muted text-[10px] font-bold">{t('feesUnavailable')}</p>
-                            )}
-                        </div>
-                    )}
-                    {groupSessionId && groupParticipants.length > 1 && (
+                        )}
+                        {groupSessionId && groupParticipants.length > 1 && (
+                            <button
+                                onClick={() => setShowBillSplitter(true)}
+                                disabled={cart.length === 0}
+                                className={`w-full py-4 rounded-2xl font-bold uppercase tracking-wider text-xs border-2 transition-all active:scale-95 ${cart.length > 0 ? 'ui-btn-secondary' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}
+                            >
+                                {t('splitBill')} 🧮
+                            </button>
+                        )}
+                        {cart.length > 0 && onOpenCheckoutPage ? (
+                            <button
+                                type="button"
+                                onClick={onOpenCheckoutPage}
+                                className="w-full rounded-2xl px-4 py-4 text-xs font-black uppercase tracking-[0.24em] ui-btn-secondary"
+                            >
+                                {t('openCheckoutPage')}
+                            </button>
+                        ) : null}
+                        {(cart.length > 0 || (groupSessionId && groupParticipants.length > 0)) && onOpenCartsPage ? (
+                            <button
+                                type="button"
+                                onClick={onOpenCartsPage}
+                                className="w-full rounded-2xl px-4 py-4 text-xs font-black uppercase tracking-[0.24em] ui-btn-secondary"
+                            >
+                                {t('openCartsPage')}
+                            </button>
+                        ) : null}
                         <button
-                            onClick={() => setShowBillSplitter(true)}
-                            disabled={cart.length === 0}
-                            className={`w-full py-4 rounded-2xl font-bold uppercase tracking-wider text-xs border-2 transition-all active:scale-95 ${cart.length > 0 ? 'ui-btn-secondary' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}
+                            onClick={onPlaceOrder}
+                            disabled={cart.length === 0 || !isOrderFormValid() || isOrdering}
+                            className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-2xl transition-all active:scale-95 ${cart.length > 0 && isOrderFormValid() ? 'ui-btn-primary' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
                         >
-                            {t('splitBill')} 🧮
+                            {isOrdering ? t('processing') : `${t('confirmOrder')} ⛩️`}
                         </button>
-                    )}
-                    <button
-                        onClick={onPlaceOrder}
-                        disabled={cart.length === 0 || !isOrderFormValid() || isOrdering}
-                        className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-2xl transition-all active:scale-95 ${cart.length > 0 && isOrderFormValid() ? 'ui-btn-primary' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
-                    >
-                        {isOrdering ? t('processing') : `${t('confirmOrder')} ⛩️`}
-                    </button>
+                    </div>
                 </div>
             </div>
 

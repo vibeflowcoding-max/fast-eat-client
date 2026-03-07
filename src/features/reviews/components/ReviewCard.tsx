@@ -49,7 +49,7 @@ export default function ReviewCard({
   }
 
   return (
-    <article className="ui-panel rounded-2xl p-4 space-y-3">
+    <article className="ui-panel rounded-[1.5rem] p-4 space-y-3">
       <header className="space-y-1">
         <h4 className="text-sm font-black">{title}</h4>
         <p className="ui-text-muted text-xs">{subtitle}</p>

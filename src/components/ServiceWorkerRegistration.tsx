@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 
 export function ServiceWorkerRegistration() {
     useEffect(() => {
@@ -16,5 +17,5 @@ export function ServiceWorkerRegistration() {
         }
     }, []);
 
-    return null;
+    return <PWAInstallPrompt />;
 }

@@ -1,1 +1,168 @@
-OK
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>User Profile and Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden max-w-md mx-auto shadow-xl">
+<div class="flex items-center p-4 pb-2 justify-between">
+<h2 class="text-xl font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Account</h2>
+</div>
+<div class="flex p-4 @container">
+<div class="flex w-full flex-col gap-4">
+<div class="flex gap-4 items-center">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-24 w-24 bg-slate-300 dark:bg-slate-700" data-alt="User profile avatar image" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC7d6ElndYi9rjbJdX9GIL-LuGc98u5cyeduQNCskcBHB_RV52GpqHQulSZnq1NfXUdRFuvTEPHiItoz9ClJRALLSFR2s0GWWt75CyWlG5FuiRQRzU3EeHyyIzJknyxvPfQyxlhZDo2H9ALZzMKNo0XfUU5r_AXnvgNNaJjAA87UgVXe1XMX06WQEaniG8fiRRYXW1KVvSACQDayiHwigy57i1oHWwH5u0-zmhTH_lBP2ZsBBSAyOiH9KdN53OAREw6xHhS_B_4v6Te");'></div>
+<div class="flex flex-col justify-center">
+<p class="text-[22px] font-bold leading-tight tracking-[-0.015em]">Alex Johnson</p>
+<p class="text-primary text-sm font-medium leading-normal bg-primary/10 dark:bg-primary/20 inline-block px-2 py-1 rounded mt-1">AI Taste: Spicy Lover</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex justify-stretch px-4 py-2">
+<div class="flex flex-1 gap-3 flex-wrap justify-between">
+<button class="flex-1 min-w-[140px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-5 bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm font-bold leading-normal tracking-[0.015em] flex gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<span class="material-symbols-outlined text-primary text-[20px]">favorite</span>
+<span class="truncate">Favorites</span>
+</button>
+<button class="flex-1 min-w-[140px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-5 bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm font-bold leading-normal tracking-[0.015em] flex gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<span class="material-symbols-outlined text-primary text-[20px]">history</span>
+<span class="truncate">Past Orders</span>
+</button>
+</div>
+</div>
+<div class="px-4 py-4">
+<h3 class="text-lg font-bold leading-tight tracking-[-0.015em] pb-3">Saved Addresses</h3>
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">home</span>
+</div>
+<div>
+<p class="font-bold text-sm">Home</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">123 Main St, Apt 4B</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-400 text-sm">edit</span>
+</div>
+<div class="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">work</span>
+</div>
+<div>
+<p class="font-bold text-sm">Work</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">456 Tech Ave, Floor 9</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-400 text-sm">edit</span>
+</div>
+</div>
+</div>
+<div class="px-4 py-2 pb-24">
+<h3 class="text-lg font-bold leading-tight tracking-[-0.015em] pb-3">Account Information</h3>
+<div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col">
+<a class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400">person</span>
+<span class="text-sm font-medium">Personal Details</span>
+</div>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400">payment</span>
+<span class="text-sm font-medium">Payment Methods</span>
+</div>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400">language</span>
+<span class="text-sm font-medium">Language</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs text-slate-500">English</span>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</div>
+</a>
+<a class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400">local_activity</span>
+<span class="text-sm font-medium">Promos</span>
+</div>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400">gavel</span>
+<span class="text-sm font-medium">Terms &amp; Privacy</span>
+</div>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-red-500">logout</span>
+<span class="text-sm font-medium text-red-500">Log Out</span>
+</div>
+</a>
+</div>
+</div>
+<div class="fixed bottom-0 w-full max-w-md bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 pb-6 pt-2 z-50 rounded-t-xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+<div class="flex gap-2 justify-between">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<p class="text-[10px] font-medium leading-normal tracking-[0.015em]">Home</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">search</span>
+<p class="text-[10px] font-medium leading-normal tracking-[0.015em]">Search</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">shopping_cart</span>
+<p class="text-[10px] font-medium leading-normal tracking-[0.015em]">Cart</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary" href="#">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1">person</span>
+<p class="text-[10px] font-medium leading-normal tracking-[0.015em]">Account</p>
+</a>
+</div>
+</div>
+</div>
+</body></html>

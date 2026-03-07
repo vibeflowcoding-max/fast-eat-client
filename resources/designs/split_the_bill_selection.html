@@ -1,1 +1,146 @@
-OK
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Split the Bill</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen pb-24">
+<div class="relative flex flex-col w-full max-w-md mx-auto min-h-screen">
+<!-- Top App Bar -->
+<div class="flex items-center p-4 justify-between sticky top-0 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md z-10">
+<button class="flex size-12 shrink-0 items-center justify-center text-slate-900 dark:text-slate-100 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</button>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">Split the Bill</h2>
+</div>
+<!-- Total Summary -->
+<div class="px-4 py-2">
+<div class="flex flex-col gap-2 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 p-6 items-center text-center">
+<p class="text-primary tracking-tight text-4xl font-bold leading-tight">$84.50</p>
+<div class="flex items-center gap-2">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Group Order</p>
+</div>
+</div>
+</div>
+<!-- Split Options -->
+<h3 class="text-lg font-bold leading-tight px-4 pb-2 pt-6">How would you like to split?</h3>
+<div class="flex flex-col gap-3 p-4">
+<label class="flex items-center gap-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 cursor-pointer hover:border-primary/50 transition-colors">
+<input checked="" class="h-5 w-5 border-2 border-slate-300 dark:border-slate-600 bg-transparent text-primary focus:ring-primary focus:ring-offset-0 dark:focus:ring-offset-slate-800" name="split_method" type="radio"/>
+<div class="flex grow flex-col">
+<p class="text-base font-semibold">Split Equally</p>
+<p class="text-slate-500 dark:text-slate-400 text-sm">$28.16 per person</p>
+</div>
+</label>
+<label class="flex items-center gap-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 cursor-pointer hover:border-primary/50 transition-colors">
+<input class="h-5 w-5 border-2 border-slate-300 dark:border-slate-600 bg-transparent text-primary focus:ring-primary focus:ring-offset-0 dark:focus:ring-offset-slate-800" name="split_method" type="radio"/>
+<div class="flex grow flex-col">
+<p class="text-base font-semibold">By Items</p>
+<p class="text-slate-500 dark:text-slate-400 text-sm">Pay for what you added</p>
+</div>
+</label>
+<label class="flex items-center gap-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 cursor-pointer hover:border-primary/50 transition-colors">
+<input class="h-5 w-5 border-2 border-slate-300 dark:border-slate-600 bg-transparent text-primary focus:ring-primary focus:ring-offset-0 dark:focus:ring-offset-slate-800" name="split_method" type="radio"/>
+<div class="flex grow flex-col">
+<p class="text-base font-semibold">Host Pays</p>
+<p class="text-slate-500 dark:text-slate-400 text-sm">Entire amount charged to you</p>
+</div>
+</label>
+</div>
+<!-- AI Smart Split Toggle -->
+<div class="px-4 py-2">
+<div class="flex items-center justify-between bg-primary/10 dark:bg-primary/5 rounded-xl p-4 border border-primary/20">
+<div class="flex items-center gap-3">
+<div class="bg-primary/20 text-primary p-2 rounded-lg">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-900 dark:text-slate-100">AI Smart Split</p>
+<p class="text-xs text-slate-600 dark:text-slate-400">Suggests sharing appetizer costs</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<!-- Group Participants -->
+<h3 class="text-lg font-bold leading-tight px-4 pb-2 pt-6">Group Participants</h3>
+<div class="flex flex-col px-4 gap-3">
+<div class="flex items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">
+                        Y
+                    </div>
+<div>
+<p class="font-semibold text-sm">You (Host)</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Burger, Fries</p>
+</div>
+</div>
+<p class="font-bold">$28.16</p>
+</div>
+<div class="flex items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-sm">
+                        A
+                    </div>
+<div>
+<p class="font-semibold text-sm">Alex</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Pizza, Soda</p>
+</div>
+</div>
+<p class="font-bold">$28.17</p>
+</div>
+<div class="flex items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-sm">
+                        S
+                    </div>
+<div>
+<p class="font-semibold text-sm">Sarah</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Salad, Water</p>
+</div>
+</div>
+<p class="font-bold">$28.17</p>
+</div>
+</div>
+<!-- Bottom Action Bar -->
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-center z-20">
+<div class="w-full max-w-md">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-between transition-colors shadow-lg shadow-primary/20">
+<span>Confirm &amp; Pay</span>
+<span class="bg-white/20 px-3 py-1 rounded-lg text-sm">Your total: $28.16</span>
+</button>
+</div>
+</div>
+</div>
+</body></html>

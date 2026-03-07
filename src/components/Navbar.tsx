@@ -358,11 +358,14 @@ const Navbar: React.FC<NavbarProps> = ({
     };
 
     return (
-        <div className="sticky top-0 ui-panel shadow-2xl z-50 border-b">
+        <div
+            data-menu-sticky-nav="true"
+            className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(252,246,239,0.96)_100%)] shadow-[0_20px_48px_-32px_rgba(98,60,29,0.35)] backdrop-blur-xl"
+        >
             <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col">
                 {activeStatusCue && (
                     <div className="pt-3">
-                        <div className="ui-panel-soft flex items-center justify-between gap-3 rounded-xl px-3 py-2 border border-blue-200">
+                        <div className="ui-panel-soft flex items-center justify-between gap-3 rounded-[1.3rem] border border-[var(--color-border)] px-3 py-2">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -381,8 +384,8 @@ const Navbar: React.FC<NavbarProps> = ({
                                 className="text-left flex-1"
                                 aria-label={t('trackOrders')}
                             >
-                                <p className="text-[10px] font-black uppercase tracking-widest text-blue-700">Estado de orden actualizado</p>
-                                <p className="text-xs font-semibold text-blue-900">{activeStatusCue.description}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-brand)]">Estado de orden actualizado</p>
+                                <p className="text-xs font-semibold text-[var(--color-text)]">{activeStatusCue.description}</p>
                             </button>
                             <button
                                 type="button"
@@ -397,7 +400,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 )}
                 {activeCue && (
                     <div className="pt-3">
-                        <div className="ui-chip-brand flex items-center justify-between gap-3 rounded-xl px-3 py-2 animate-pulse">
+                        <div className="ui-chip-brand flex items-center justify-between gap-3 rounded-[1.3rem] px-3 py-2 animate-pulse">
                             <button
                                 type="button"
                                 onClick={() => openFromCue(activeCue)}
@@ -488,7 +491,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
                     <button
                         onClick={onOpenCart}
-                        className={`relative flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-full transition-all shrink-0 ml-4 md:ml-0 shadow-sm ${cartLength > 0 ? 'ui-btn-primary shadow-red-200 shadow-lg hover:scale-105 active:scale-95' : 'ui-btn-secondary'}`}
+                        className={`relative ml-4 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-all shadow-sm md:ml-0 md:h-14 md:w-14 ${cartLength > 0 ? 'ui-btn-primary shadow-lg hover:scale-105 active:scale-95' : 'ui-btn-secondary'}`}
                         aria-label={t('myOrder')}
                     >
                         <ShoppingCart className="w-6 h-6" strokeWidth={2.5} fill={cartLength > 0 ? "currentColor" : "none"} />
@@ -508,7 +511,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 <div className="relative group">
                     {canScrollLeft && (
                         <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent z-10 flex items-center">
-                            <button onClick={() => scrollTabs('left')} className="p-1 text-red-600">
+                            <button onClick={() => scrollTabs('left')} className="p-1 text-[var(--color-brand)]">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
                                 </svg>
@@ -535,7 +538,7 @@ const Navbar: React.FC<NavbarProps> = ({
                                     key={cat}
                                     data-cat={cat}
                                     onClick={() => setActiveCategory(cat)}
-                                    className={`px-5 md:px-10 py-2.5 md:py-4 rounded-xl transition-all text-[9px] md:text-[11px] font-black uppercase tracking-widest border-2 flex-shrink-0 ${activeCategory === cat ? 'ui-btn-primary border-transparent shadow-xl scale-105' : 'ui-btn-secondary ui-text-muted'}`}
+                                    className={`flex-shrink-0 rounded-xl border-2 px-5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all md:px-10 md:py-4 md:text-[11px] ${activeCategory === cat ? 'ui-btn-primary border-transparent shadow-xl scale-105' : 'ui-btn-secondary ui-text-muted'}`}
                                 >
                                     {cat}
                                 </button>
@@ -544,7 +547,7 @@ const Navbar: React.FC<NavbarProps> = ({
                     </div>
                     {canScrollRight && (
                         <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-l from-white to-transparent z-10 flex items-center justify-end">
-                            <button onClick={() => scrollTabs('right')} className="p-1 text-red-600">
+                            <button onClick={() => scrollTabs('right')} className="p-1 text-[var(--color-brand)]">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
                                 </svg>

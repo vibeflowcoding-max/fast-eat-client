@@ -142,6 +142,7 @@ export function useOrderTracking(branchId: string, phone: string, customerId?: s
   const [isConnected, setIsConnected] = useState(false);
   const processedEventsRef = useRef<Map<string, number>>(new Map());
   const activeOrdersRef = useRef(activeOrders);
+  const isClosingRef = useRef(false);
 
   useEffect(() => {
     activeOrdersRef.current = activeOrders;
@@ -169,6 +170,7 @@ export function useOrderTracking(branchId: string, phone: string, customerId?: s
       params.set('branchId', branchId);
     }
     const url = `/api/track?${params.toString()}`;
+    isClosingRef.current = false;
     
     // SSE connection
     const eventSource = new EventSource(url);
@@ -387,13 +389,19 @@ export function useOrderTracking(branchId: string, phone: string, customerId?: s
     eventSource.addEventListener('auction_state_changed', handleMessage);
 
     eventSource.onerror = (e) => {
-      console.error("🔴 SSE: Connection Error", e);
+      if (isClosingRef.current || eventSource.readyState === EventSource.CLOSED) {
+        setIsConnected(false);
+        return;
+      }
+
+      console.warn("🟠 SSE: Connection interrupted", e);
       if (eventSource.readyState === EventSource.CLOSED) {
         setIsConnected(false);
       }
     };
 
     return () => {
+      isClosingRef.current = true;
       console.log("🔌 SSE: Closing connection");
       eventSource.close();
       setIsConnected(false);

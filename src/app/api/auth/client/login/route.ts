@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(parsed.data),
-    });
+    }, 45000);
 
     if (!response.ok) {
       return NextResponse.json(
