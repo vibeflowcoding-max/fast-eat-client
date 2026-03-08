@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { MenuItem, CartItem } from '../types';
 import { useDietaryGuardian } from '../features/home-discovery/hooks/useDietaryGuardian';
 import { ShieldCheck, ShieldAlert, Loader2, Plus, Pencil } from 'lucide-react';
+import { Badge, Button, QuantitySelector, Surface } from '@/../resources/components';
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -85,9 +86,10 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
   };
 
   return (
-    <article
+    <Surface
       id={`item-${item.id}`}
       className={`ui-list-card rounded-2xl border p-4 transition-colors ${isHighlighted ? 'border-[var(--color-brand)]' : 'border-[var(--color-border)]'}`}
+      variant="base"
     >
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">
@@ -96,7 +98,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
               {item.name}
             </h3>
             {isHighlighted ? (
-              <span className="ui-status-pill !px-2 !py-0.5 text-[10px]">IA</span>
+              <Badge className="text-[10px]" variant="brand">IA</Badge>
             ) : null}
           </div>
 
@@ -169,7 +171,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
             </div>
           ) : null}
 
-          <button
+          <Button
             type="button"
             disabled={isSyncing}
             aria-label={currentQuantity > 0 ? `Editar ${item.name}` : `Añadir ${item.name}`}
@@ -187,10 +189,11 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
 
               void handleQuickAdd();
             }}
-            className="ui-btn-primary absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-full border border-white shadow-lg disabled:opacity-60"
+            className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full border border-white shadow-lg"
+            size="icon"
           >
             {currentQuantity > 0 ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -199,7 +202,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
       ) : null}
 
       {isAdding ? (
-        <div className="animate-fadeIn relative mt-4 space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4">
+        <Surface className="animate-fadeIn relative mt-4 space-y-4 rounded-2xl border border-[var(--color-border)]" variant="muted">
             {isSyncing && (
               <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/80 backdrop-blur-[2px]">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-black border-t-[var(--color-brand)]"></div>
@@ -208,11 +211,14 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
 
             <div className="flex items-center justify-between gap-3">
               <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Cantidad</span>
-              <div className="flex items-center overflow-hidden rounded-full border border-[var(--color-border)] bg-white shadow-sm">
-                <button type="button" aria-label={`Reducir cantidad de ${item.name}`} disabled={isSyncing} onClick={() => setQuantity(Math.max(1, quantity - 1))} className="flex h-10 w-10 items-center justify-center text-xl font-bold text-[var(--color-text)] transition-colors hover:bg-[var(--color-brand-soft)] disabled:opacity-30">−</button>
-                <div className="w-10 text-center text-sm font-bold text-[var(--color-text)]">{quantity}</div>
-                <button type="button" aria-label={`Aumentar cantidad de ${item.name}`} disabled={isSyncing} onClick={() => setQuantity(quantity + 1)} className="flex h-10 w-10 items-center justify-center text-xl font-bold text-[var(--color-text)] transition-colors hover:bg-[var(--color-brand-soft)] disabled:opacity-30">+</button>
-              </div>
+              <QuantitySelector
+                decrementLabel={`Reducir cantidad de ${item.name}`}
+                disabled={isSyncing}
+                incrementLabel={`Aumentar cantidad de ${item.name}`}
+                onDecrement={() => setQuantity(Math.max(1, quantity - 1))}
+                onIncrement={() => setQuantity(quantity + 1)}
+                value={quantity}
+              />
             </div>
 
             <div>
@@ -227,19 +233,21 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
-              <button type="button" disabled={isSyncing} onClick={() => { setIsAdding(false); setSyncError(null); }} className="ui-btn-secondary rounded-full px-4 py-3 text-xs font-bold disabled:opacity-30">Cerrar</button>
-              <button type="button" disabled={isSyncing} onClick={handleUpdate} className="ui-btn-primary flex-1 rounded-full px-5 py-3 text-xs font-bold disabled:opacity-60">
+              <Button disabled={isSyncing} onClick={() => { setIsAdding(false); setSyncError(null); }} type="button" variant="outline">
+                Cerrar
+              </Button>
+              <Button disabled={isSyncing} fullWidth onClick={handleUpdate} type="button">
                   {isSyncing ? 'Guardando...' : 'Confirmar'}
-                </button>
+                </Button>
               {currentQuantity > 0 && (
-                <button type="button" disabled={isSyncing} onClick={handleRemove} className="w-full py-2 text-xs font-bold text-[var(--color-brand)]/70 transition-colors hover:text-[var(--color-brand)] disabled:opacity-20 sm:w-auto sm:px-2">
+                <Button disabled={isSyncing} onClick={handleRemove} type="button" variant="ghost">
                   Quitar del pedido
-                </button>
+                </Button>
               )}
             </div>
-        </div>
+        </Surface>
       ) : null}
-    </article>
+    </Surface>
   );
 };
 

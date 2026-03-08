@@ -113,6 +113,13 @@ function getMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
+function logBootstrapWarning(scope: string, userId: string, error: unknown) {
+  console.warn(`[consumer.bootstrap.${scope}]`, {
+    userId,
+    error: getMessage(error, `consumer.bootstrap.${scope}`),
+  });
+}
+
 export async function getClientBootstrapPayload(userId: string): Promise<ClientBootstrapPayload> {
   const supabaseServer = getSupabaseServer();
 
@@ -130,15 +137,15 @@ export async function getClientBootstrapPayload(userId: string): Promise<ClientB
   ]);
 
   if (profileError) {
-    throw new Error(getMessage(profileError, 'Could not load user bootstrap profile'));
+    logBootstrapWarning('profile_query_failed', userId, profileError);
   }
 
   if (customerError) {
-    throw new Error(getMessage(customerError, 'Could not load customer bootstrap record'));
+    logBootstrapWarning('customer_query_failed', userId, customerError);
   }
 
-  const typedProfile = (userProfile ?? null) as BootstrapProfileRow | null;
-  const typedCustomer = (customer ?? null) as CustomerRow | null;
+  const typedProfile = profileError ? null : (userProfile ?? null) as BootstrapProfileRow | null;
+  const typedCustomer = customerError ? null : (customer ?? null) as CustomerRow | null;
 
   const { data: address, error: addressError } = typedCustomer?.id
     ? await (supabaseServer as any)
@@ -149,10 +156,10 @@ export async function getClientBootstrapPayload(userId: string): Promise<ClientB
     : { data: null, error: null };
 
   if (addressError) {
-    throw new Error(getMessage(addressError, 'Could not load primary address'));
+    logBootstrapWarning('address_query_failed', userId, addressError);
   }
 
-  const typedAddress = (address ?? null) as CustomerAddressRow | null;
+  const typedAddress = addressError ? null : (address ?? null) as CustomerAddressRow | null;
   const fullName = typedProfile?.full_name || typedCustomer?.name || null;
   const phone = typedProfile?.phone || typedCustomer?.phone || null;
   const urlGoogleMaps = typedProfile?.url_google_maps || null;

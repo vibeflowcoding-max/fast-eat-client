@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="max-w-md mx-auto min-h-screen flex flex-col bg-background-light dark:bg-background-dark shadow-xl">
+<!-- Header -->
+<header class="flex items-center p-4 pt-6 justify-between">
+<button class="text-slate-900 dark:text-slate-100 flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</button>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight flex-1 text-center pr-10">Delivery Address</h2>
+</header>
+<main class="flex-1 px-4 overflow-y-auto pb-10">
+<!-- Title Section -->
+<div class="py-6">
+<h1 class="text-slate-900 dark:text-slate-100 text-3xl font-bold leading-tight tracking-tight">Where should we deliver?</h1>
+<p class="text-slate-500 dark:text-slate-400 mt-2 text-base">Select a location to see restaurants near you</p>
+</div>
+<!-- Map Preview Snippet -->
+<div class="relative w-full h-48 rounded-xl overflow-hidden mb-6 border-4 border-white dark:border-slate-800 shadow-sm">
+<img alt="Map showing neighborhood layout" class="w-full h-full object-cover" data-alt="Map showing neighborhood layout" data-location="San Francisco" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBrA3WoFYmPvZwWsBt_EhM_wNQpIdhStcFHyQmgjSKAtNsShQTFYonS_Q9w04HneBZ4H44uAyaBqJ-c7-iZ7AckHikIcgeXGo7385JRi4RODH58eGQvJAqAjtkqIzPV9Y3zrC3i55JvfL5bFD8tqIrlBEuF7lHQ8a3V0ZCwfpA4_rOHd04gyJDaS02iVN79_JJ4vGUvREjpLuTDVdqdyO1IFgi2N4faqA7jQe-R1ADsh9lSw9jJvdLAKGHPj30cirK5R0jdlHZzd28l"/>
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<div class="bg-primary text-white p-2 rounded-full shadow-lg">
+<span class="material-symbols-outlined">location_on</span>
+</div>
+</div>
+<div class="absolute bottom-3 left-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm p-3 rounded shadow-md flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">search</span>
+<span class="text-sm font-medium text-slate-600 dark:text-slate-300">Enter a new address...</span>
+</div>
+</div>
+<!-- Current Location Button -->
+<div class="mb-8">
+<button class="w-full flex cursor-pointer items-center justify-center gap-3 rounded-full h-14 px-6 bg-primary text-white font-bold text-lg shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined">my_location</span>
+<span>Use current location</span>
+</button>
+</div>
+<!-- Saved Addresses Section -->
+<div class="space-y-4">
+<div class="flex items-center justify-between px-1">
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold">Saved Addresses</h3>
+<button class="text-primary font-semibold text-sm">Add New</button>
+</div>
+<!-- Home Address -->
+<div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 cursor-pointer hover:border-primary/50 transition-colors">
+<div class="text-primary flex items-center justify-center rounded-full bg-primary/10 shrink-0 size-12">
+<span class="material-symbols-outlined">home</span>
+</div>
+<div class="flex flex-col justify-center flex-1">
+<p class="text-slate-900 dark:text-slate-100 text-base font-bold">Home</p>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal line-clamp-1">245 Market St, San Francisco, CA</p>
+</div>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</div>
+<!-- Work Address -->
+<div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 cursor-pointer hover:border-primary/50 transition-colors">
+<div class="text-primary flex items-center justify-center rounded-full bg-primary/10 shrink-0 size-12">
+<span class="material-symbols-outlined">work</span>
+</div>
+<div class="flex flex-col justify-center flex-1">
+<p class="text-slate-900 dark:text-slate-100 text-base font-bold">Work</p>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal line-clamp-1">One Letterman Drive, Building C</p>
+</div>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</div>
+<!-- Other Address -->
+<div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 cursor-pointer hover:border-primary/50 transition-colors">
+<div class="text-primary flex items-center justify-center rounded-full bg-primary/10 shrink-0 size-12">
+<span class="material-symbols-outlined">favorite</span>
+</div>
+<div class="flex flex-col justify-center flex-1">
+<p class="text-slate-900 dark:text-slate-100 text-base font-bold">Partner's Place</p>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal line-clamp-1">888 Brannan St, San Francisco, CA</p>
+</div>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</div>
+</div>
+<!-- Recent Searches -->
+<div class="mt-8">
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold px-1 mb-4">Recent Searches</h3>
+<div class="flex flex-wrap gap-2">
+<div class="bg-primary/5 dark:bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium border border-primary/20">
+                        Golden Gate Park
+                    </div>
+<div class="bg-primary/5 dark:bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium border border-primary/20">
+                        Mission District
+                    </div>
+<div class="bg-primary/5 dark:bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium border border-primary/20">
+                        Union Square
+                    </div>
+</div>
+</div>
+</main>
+<!-- Bottom Tab Bar Placeholder (Optional for Context) -->
+<nav class="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex justify-around">
+<div class="flex flex-col items-center text-primary">
+<span class="material-symbols-outlined">explore</span>
+<span class="text-[10px] font-bold mt-1 uppercase">Explore</span>
+</div>
+<div class="flex flex-col items-center text-slate-400">
+<span class="material-symbols-outlined">search</span>
+<span class="text-[10px] font-bold mt-1 uppercase">Search</span>
+</div>
+<div class="flex flex-col items-center text-slate-400">
+<span class="material-symbols-outlined">shopping_basket</span>
+<span class="text-[10px] font-bold mt-1 uppercase">Orders</span>
+</div>
+<div class="flex flex-col items-center text-slate-400">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-bold mt-1 uppercase">Profile</span>
+</div>
+</nav>
+</div>
+</body></html>

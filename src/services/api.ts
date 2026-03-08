@@ -83,6 +83,19 @@ const mapBidFromApi = (bid: any): DeliveryBid => ({
   createdAt: String(bid?.createdAt ?? bid?.created_at ?? new Date().toISOString())
 });
 
+export function hasStructuredMenuCustomization(rawItem: any): boolean {
+  const inlineVariants = Array.isArray(rawItem?.variants) ? rawItem.variants : [];
+  const nestedModifierGroups = Array.isArray(rawItem?.modifierGroups) ? rawItem.modifierGroups : [];
+  const apiModifierGroups = Array.isArray(rawItem?.modifier_groups) ? rawItem.modifier_groups : [];
+
+  return Boolean(
+    rawItem?.hasStructuredCustomization
+      || nestedModifierGroups.length > 0
+      || apiModifierGroups.length > 0
+      || inlineVariants.length > 1,
+  );
+}
+
 function mapMenuItem(rawItem: any, categoryName?: string): MenuItem {
   return {
     id: String(rawItem?.id || rawItem?.productId || rawItem?.name),
@@ -121,11 +134,7 @@ function mapMenuItem(rawItem: any, categoryName?: string): MenuItem {
               : [],
           }))
         : [],
-    hasStructuredCustomization: Boolean(
-      rawItem?.hasStructuredCustomization
-        || (Array.isArray(rawItem?.modifierGroups) && rawItem.modifierGroups.length > 0)
-        || (Array.isArray(rawItem?.modifier_groups) && rawItem.modifier_groups.length > 0),
-    ),
+    hasStructuredCustomization: hasStructuredMenuCustomization(rawItem),
   };
 }
 
@@ -207,7 +216,7 @@ export const fetchMenuFromAPI = async (
                 : [],
             }))
           : [],
-        hasStructuredCustomization: Array.isArray(item.modifier_groups) && item.modifier_groups.length > 0,
+        hasStructuredCustomization: hasStructuredMenuCustomization(item),
       }));
     });
 
@@ -223,7 +232,7 @@ export const fetchMenuFromAPI = async (
       defaultVariantId: item.defaultVariantId || item.default_variant_id || null,
       variants: Array.isArray(item.variants) ? item.variants : [],
       modifierGroups: Array.isArray(item.modifierGroups) ? item.modifierGroups : Array.isArray(item.modifier_groups) ? item.modifier_groups : [],
-      hasStructuredCustomization: Boolean(item.hasStructuredCustomization || (Array.isArray(item.modifierGroups) && item.modifierGroups.length > 0) || (Array.isArray(item.modifier_groups) && item.modifier_groups.length > 0)),
+      hasStructuredCustomization: hasStructuredMenuCustomization(item),
     }));
     const categories = Array.from(new Set(items.map(i => i.category)));
     return { items, categories };

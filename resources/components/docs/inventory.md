@@ -1,52 +1,70 @@
 # Reusable Inventory
 
-## Extracted From Implemented Mocks
+## Full Design Audit Coverage
 
-### From `main_home_screen.html`
+All 17 HTML design files were reviewed. The resource library now captures reusable parts from both the fully built mocks and the lighter scaffolds.
 
-- sticky location header
-- notification icon button with badge
-- promo banner carousel
-- section header with `See all`
-- restaurant discovery card
-- favorite toggle
-- rating badge
-- ETA badge
-- bottom tab navigation with cart count
+## High-Reuse Structures Across The Design Set
 
-### From `menu_item_customization.html`
+- sticky mobile header bars with back/action affordances
+- split auth shells with branded hero and mobile-first form stack
+- app shells with reserved chrome space
+- bottom tab navigation and fixed CTA bars
+- section headers with trailing actions
+- horizontal content rails and snap collections
+- promo banners and campaign hero blocks
+- restaurant, menu item, cart, and address cards
+- field labels, input rows, textareas, and choice rows
+- quantity controls
+- info rows, status rows, and progress modules
+- empty-state callouts
 
-- sticky top app bar
-- hero image block
-- pricing and metadata stack
-- required badge
-- radio option row
-- checkbox option row
-- textarea field
-- quantity selector
-- bottom action bar with total price
-
-### From `active_carts_overview.html`
-
-- screen title bar
-- secondary full-width action button
-- cart overview card
-- info row
-- bottom tab navigation
-
-## Reusable Component Count
+## Implemented Component Count
 
 - 5 primitives
-- 6 composites
-- 4 patterns
+- 14 composites
+- 6 patterns
 
-## Deferred Inventory
+## Implemented Primitives
 
-The placeholder screens suggest future need for more composites, but there is not enough markup yet to define them precisely:
+- `button.tsx`
+- `icon.tsx`
+- `badge.tsx`
+- `surface.tsx`
+- `form-controls.tsx`
 
-- search shell
-- checkout summary block
-- order tracking panel
-- group order lobby modules
-- profile settings rows
-- AI recommendation cards
+## Implemented Composites
+
+- `section-header.tsx`
+- `rating-display.tsx`
+- `auth-shell.tsx`
+- `social-auth-button.tsx`
+- `sticky-header-bar.tsx`
+- `info-row.tsx`
+- `address-card.tsx`
+- `restaurant-card.tsx`
+- `menu-item-card.tsx`
+- `cart-card.tsx`
+- `promo-banner.tsx`
+- `quantity-selector.tsx`
+- `option-group.tsx`
+- `status-indicator.tsx`
+
+## Implemented Patterns
+
+- `app-shell.tsx`
+- `header-navigation.tsx`
+- `horizontal-collections.tsx`
+- `bottom-action-bar.tsx`
+- `fixed-bottom-bar.tsx`
+- `empty-state.tsx`
+
+## Remaining Future-Specific Screen Modules
+
+These can be assembled from the existing library first, and only then expanded with new components if real route needs justify it:
+
+- group order participant lobby blocks
+- map-tracking delivery overlays
+- advanced checkout summary breakdowns
+- AI recommendation-specific hero modules
+- profile settings list sections with inline actions

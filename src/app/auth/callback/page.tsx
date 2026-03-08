@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { AuthShell, FieldMessage, Icon, Surface } from '@/../resources/components';
 import { supabase } from '@/lib/supabase';
 import { useTranslations } from 'next-intl';
 
@@ -63,12 +64,20 @@ function AuthCallbackContent() {
   }, [router, searchParams, t]);
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-10">
-      <section className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-sm">
-        <h1 className="text-xl font-semibold">{t('title')}</h1>
-        {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : <p className="mt-3 text-sm text-neutral-600">{t('loading')}</p>}
-      </section>
-    </main>
+    <AuthShell
+      brand="FastEat"
+      description={t('loading')}
+      heroDescription="Sincronizamos la sesión del proveedor externo con tu experiencia de cliente para llevarte de vuelta a la app sin pasos manuales."
+      heroTitle="Un momento, estamos cerrando tu acceso."
+      title={t('title')}
+    >
+      <Surface className="space-y-4 text-center" variant="base">
+        <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-300">
+          <Icon symbol={error ? 'error' : 'progress_activity'} tone={error ? 'danger' : 'brand'} />
+        </div>
+        {error ? <FieldMessage tone="error">{error}</FieldMessage> : <p className="text-sm text-slate-500 dark:text-slate-400">{t('loading')}</p>}
+      </Surface>
+    </AuthShell>
   );
 }
 

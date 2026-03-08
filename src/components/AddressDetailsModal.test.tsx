@@ -19,7 +19,7 @@ describe('AddressDetailsModal', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Save Address' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save address' }));
 
     await waitFor(() => {
       expect(onSave).toHaveBeenCalledTimes(1);
@@ -52,10 +52,9 @@ describe('AddressDetailsModal', () => {
       />
     );
 
-    const buildingTypeSelect = screen.getByLabelText('Building Type');
+    const hotelChoice = screen.getByRole('button', { name: 'Hotel' });
 
-    await userEvent.selectOptions(buildingTypeSelect, 'Hotel');
-    expect(buildingTypeSelect).toHaveValue('Hotel');
+    await userEvent.click(hotelChoice);
 
     rerender(
       <AddressDetailsModal
@@ -70,6 +69,19 @@ describe('AddressDetailsModal', () => {
       />
     );
 
-    expect(screen.getByLabelText('Building Type')).toHaveValue('Hotel');
+    expect(screen.getByRole('button', { name: /Hotel/ })).toHaveClass('border-orange-500');
+  });
+
+  it('labels the header close action and omits the back action when unavailable', () => {
+    render(
+      <AddressDetailsModal
+        isOpen
+        onClose={vi.fn()}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
   });
 });

@@ -2,6 +2,7 @@ import React from 'react';
 import { OrderMetadata } from '../types';
 import { useTranslations } from 'next-intl';
 import { formatPhoneForDisplay } from '@/lib/phone';
+import { Button, ChoiceCard, Surface } from '@/../resources/components';
 
 interface OrderFormProps {
     orderMetadata: OrderMetadata;
@@ -56,21 +57,21 @@ const OrderForm: React.FC<OrderFormProps> = ({
     const [minimumScheduledDateTime] = React.useState(() => toLocalDateTimeValue(new Date()));
 
     return (
-        <div className="ui-panel p-6 rounded-3xl border-2 space-y-6">
+        <Surface className="space-y-6" padding="lg" variant="base">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Customer Info */}
                 <div className="space-y-4">
                     <div className="space-y-1">
                         <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('fullName')}</label>
-                        <div className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black text-gray-900">
+                        <Surface className="w-full text-sm font-black text-gray-900 dark:text-slate-100" variant="muted">
                             {orderMetadata.customerName || t('fullNamePlaceholder')}
-                        </div>
+                        </Surface>
                     </div>
                     <div className="space-y-1 opacity-60">
                         <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('phone')}</label>
-                        <div className="px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black ui-text-muted">
+                        <Surface className="text-sm font-black ui-text-muted" variant="muted">
                             {formatPhoneForDisplay(fromNumber) || t('phoneUnavailable')}
-                        </div>
+                        </Surface>
                     </div>
                 </div>
 
@@ -147,69 +148,68 @@ const OrderForm: React.FC<OrderFormProps> = ({
                     <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('deliveryAddress')}</label>
 
                     {hasProfileLocation && (
-                        <div className="ui-panel-soft border-2 rounded-xl p-3 space-y-2">
+                        <Surface className="space-y-2" variant="muted">
                             <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t('deliveryLocationSource')}</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <button
-                                    type="button"
+                                <ChoiceCard
+                                    checked={!isUsingDifferentDeliveryLocation}
+                                    description={profileLocationLabel || undefined}
                                     onClick={onUseSavedProfileLocation}
-                                    className={`rounded-lg border px-3 py-2 text-xs font-bold text-left transition-colors ${!isUsingDifferentDeliveryLocation ? 'border-green-400 bg-green-50 text-green-800' : 'border-gray-200 bg-white text-gray-700'}`}
-                                >
-                                    {t('useProfileLocation')}
-                                </button>
-                                <button
-                                    type="button"
+                                    title={t('useProfileLocation')}
+                                    type="radio"
+                                />
+                                <ChoiceCard
+                                    checked={isUsingDifferentDeliveryLocation}
                                     onClick={onUseDifferentLocation}
-                                    className={`rounded-lg border px-3 py-2 text-xs font-bold text-left transition-colors ${isUsingDifferentDeliveryLocation ? 'border-orange-400 bg-orange-50 text-orange-800' : 'border-gray-200 bg-white text-gray-700'}`}
-                                >
-                                    {t('useDifferentLocation')}
-                                </button>
+                                    title={t('useDifferentLocation')}
+                                    type="radio"
+                                />
                             </div>
-                        </div>
+                        </Surface>
                     )}
 
                     {locationServicePrompt && (
-                        <p className="ui-state-warning text-[10px] font-bold rounded-lg px-3 py-2 inline-block">
+                        <Surface className="inline-block text-[10px] font-bold" variant="raised">
                             {locationServicePrompt}
-                        </p>
+                        </Surface>
                     )}
 
                     {isAutoSavingProfileLocation && (
-                        <p className="ui-state-success text-[10px] font-bold rounded-lg px-3 py-2 inline-block">
+                        <Surface className="inline-block text-[10px] font-bold" variant="raised">
                             Saving current location to your profile...
-                        </p>
+                        </Surface>
                     )}
 
                     {!isUsingDifferentDeliveryLocation && hasProfileLocation ? (
-                        <div className="ui-state-success flex items-start gap-2 px-4 py-3 rounded-xl shadow-sm">
+                        <Surface className="flex items-start gap-2" variant="raised">
                             <span className="text-sm">📍</span>
                             <div className="flex-1 min-w-0">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-green-700">{t('profileLocationTag')}</p>
                                 <p className="text-xs font-bold text-green-800 break-words mt-1">{profileLocationLabel || orderMetadata.gpsLocation || orderMetadata.address}</p>
                             </div>
-                        </div>
+                        </Surface>
                     ) : (
                         <>
-                            <div className="ui-panel-soft border-2 rounded-xl p-3 space-y-2">
+                            <Surface className="space-y-2" variant="muted">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t('currentOrderLocation')}</p>
                                 <p className="text-xs font-bold text-gray-800 break-words">{orderMetadata.gpsLocation || orderMetadata.address || t('locationNotSelected')}</p>
-                            </div>
+                            </Surface>
                             <div className="flex flex-col gap-2 mt-2">
-                                <button
-                                    type="button"
+                                <Button
                                     onClick={onOpenLocationPicker}
                                     disabled={locationPickerLoading}
-                                    className="ui-btn-secondary flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-sm active:scale-95"
+                                    type="button"
+                                    variant="outline"
                                 >
-                                    <span>🗺️</span>
+                                    <span aria-hidden="true">🗺️</span>
                                     {locationPickerLoading ? t('openMapLocationPickerLoading') : t('openMapLocationPicker')}
-                                </button>
+                                </Button>
 
                                 {orderMetadata.gpsLocation && (
                                     <div className="flex flex-col gap-1 animate-fadeIn mt-1">
                                         <label className="text-[7px] font-black uppercase tracking-widest text-green-600 ml-1">Ubicación GPS Adjunta</label>
                                         <label className="text-[7px] font-black uppercase tracking-widest text-green-600 ml-1">{t('gpsAttached')}</label>
-                                        <div className="ui-state-success flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm">
+                                        <Surface className="flex items-center gap-2" variant="raised">
                                             <span className="text-sm">📍</span>
                                             <input
                                                 type="text"
@@ -218,8 +218,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                                                 className="w-full bg-transparent text-xs font-bold focus:outline-none truncate"
                                                 onClick={(e) => e.currentTarget.select()}
                                             />
-                                            <button
-                                                type="button"
+                                            <Button
                                                 onClick={() => setOrderMetadata({
                                                     ...orderMetadata,
                                                     gpsLocation: undefined,
@@ -227,16 +226,18 @@ const OrderForm: React.FC<OrderFormProps> = ({
                                                     customerLatitude: undefined,
                                                     customerLongitude: undefined,
                                                 })}
-                                                className="text-green-600 hover:text-[var(--color-brand)] font-bold px-1 py-1"
-                                            >✕</button>
-                                        </div>
+                                                size="sm"
+                                                type="button"
+                                                variant="ghost"
+                                            >✕</Button>
+                                        </Surface>
                                     </div>
                                 )}
 
                                 {(!Number.isFinite(orderMetadata.customerLatitude) || !Number.isFinite(orderMetadata.customerLongitude)) && (
-                                    <p className="ui-state-warning text-[10px] font-bold rounded-lg px-2 py-1 inline-block">
+                                    <Surface className="inline-block text-[10px] font-bold" variant="raised">
                                         {t('gpsRequired')}
-                                    </p>
+                                    </Surface>
                                 )}
 
                                 {locationDifferenceWarningVisible && (
@@ -313,7 +314,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                     )}
                 </div>
             </div>
-        </div>
+        </Surface>
     );
 };
 

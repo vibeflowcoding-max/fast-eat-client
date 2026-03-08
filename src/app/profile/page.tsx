@@ -5,6 +5,7 @@ import { MapPin, Phone, UserRound, Heart, ClipboardList, Loader2, ShieldAlert, S
 import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
+import { AddressCard, AppShell, Button, EmptyState, Icon, InfoRow, SectionHeader, Surface, TextField } from '@/../resources/components';
 import { useAppLocale } from '@/hooks/useAppLocale';
 import { isSupportedLocale, LOCALE_LABELS, SUPPORTED_LOCALES, type AppLocale } from '@/i18n/config';
 import { useTranslations } from 'next-intl';
@@ -397,27 +398,24 @@ export default function ProfilePage() {
   };
 
   return (
-    <main className="ui-page min-h-screen pb-32">
-      <div className="mx-auto w-full max-w-3xl px-4 pt-6 space-y-5">
-        <header>
-          <h1 className="text-3xl font-black tracking-[-0.03em] text-[var(--color-text)]">{t('title')}</h1>
-          <p className="ui-text-muted text-sm">{t('subtitle')}</p>
-        </header>
+    <AppShell chromeInset="bottom-nav">
+      <div className="space-y-5 pt-6">
+        <SectionHeader description={t('subtitle')} title={t('title')} />
 
         {loading && (
-          <div className="ui-panel ui-text-muted flex items-center gap-2 rounded-[1.75rem] p-5 text-sm">
+          <Surface className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400" variant="base">
             <Loader2 className="w-4 h-4 animate-spin" />
             {t('loading')}
-          </div>
+          </Surface>
         )}
 
         {error && (
-          <div className="ui-state-danger rounded-[1.75rem] p-5 text-sm">{error}</div>
+          <Surface className="text-sm text-red-600 dark:text-red-300" variant="base">{error}</Surface>
         )}
 
         {!loading && !error && (
           <>
-            <section className="ui-panel rounded-[2rem] p-5 space-y-4">
+            <Surface className="space-y-5" variant="base">
               <div className="flex items-center gap-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[linear-gradient(135deg,var(--color-brand)_0%,#fb923c_100%)] text-xl font-black text-white shadow-[0_16px_32px_-20px_rgba(236,91,19,0.75)]">
                   {initials(fullName)}
@@ -428,106 +426,86 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div className="ui-panel-soft rounded-[1.4rem] p-4">
-                  <p className="mb-1 text-[11px] font-black uppercase tracking-[0.12em] text-[var(--color-text-muted)]">{t('phone')}</p>
-                  <p className="inline-flex items-center gap-2 text-[var(--color-text)]"><Phone className="w-4 h-4 text-[var(--color-brand)]" />{phone}</p>
-                </div>
-                <div className="ui-panel-soft rounded-[1.4rem] p-4">
-                  <p className="mb-1 text-[11px] font-black uppercase tracking-[0.12em] text-[var(--color-text-muted)]">{t('name')}</p>
-                  <p className="inline-flex items-center gap-2 text-[var(--color-text)]"><UserRound className="w-4 h-4 text-[var(--color-brand)]" />{fullName}</p>
-                </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Surface className="space-y-1" variant="muted">
+                  <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">{t('phone')}</p>
+                  <InfoRow label={phone} leading={<Phone className="h-4 w-4 text-orange-600" />} />
+                </Surface>
+                <Surface className="space-y-1" variant="muted">
+                  <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">{t('name')}</p>
+                  <InfoRow label={fullName} leading={<UserRound className="h-4 w-4 text-orange-600" />} />
+                </Surface>
               </div>
 
-              <div className="ui-panel-soft rounded-[1.5rem] p-4 space-y-3">
-                <h3 className="text-xs font-black uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Edit profile</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className="text-sm font-semibold text-[var(--color-text)]">
-                    {t('name')}
-                    <input
-                      type="text"
-                      value={editFullName}
-                      onChange={(event) => setEditFullName(event.target.value)}
-                      className="ui-input mt-1 rounded-xl px-3 py-2 text-sm"
-                    />
-                  </label>
-                  <label className="text-sm font-semibold text-[var(--color-text)]">
-                    {t('phone')}
-                    <input
-                      type="tel"
-                      value={editPhone}
-                      onChange={(event) => setEditPhone(event.target.value)}
-                      className="ui-input mt-1 rounded-xl px-3 py-2 text-sm"
-                    />
-                  </label>
+              <Surface className="space-y-4" variant="muted">
+                <SectionHeader eyebrow="Profile" title="Edit profile" />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <TextField
+                    label={t('name')}
+                    leadingIcon={<Icon symbol="person" tone="muted" />}
+                    onChange={(event) => setEditFullName(event.target.value)}
+                    value={editFullName}
+                  />
+                  <TextField
+                    label={t('phone')}
+                    leadingIcon={<Icon symbol="call" tone="muted" />}
+                    onChange={(event) => setEditPhone(event.target.value)}
+                    type="tel"
+                    value={editPhone}
+                  />
                 </div>
-                <button
-                  type="button"
-                  onClick={handleProfileSave}
-                  disabled={saving}
-                  className="ui-btn-primary inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-black transition-colors disabled:opacity-60"
-                >
+                <Button disabled={saving} onClick={handleProfileSave} size="md" type="button">
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   Save profile
-                </button>
-                {saveFeedback ? <p className="ui-state-success inline-flex rounded-xl px-3 py-2 text-xs">{saveFeedback}</p> : null}
-              </div>
+                </Button>
+                {saveFeedback ? <p className="inline-flex rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">{saveFeedback}</p> : null}
+              </Surface>
 
-              <div className="ui-panel-soft rounded-[1.5rem] p-4 text-sm">
-                <p className="mb-1 text-[11px] font-black uppercase tracking-[0.12em] text-[var(--color-text-muted)]">{t('location')}</p>
-                <p className="inline-flex items-start gap-2 text-[var(--color-text)]"><MapPin className="mt-0.5 h-4 w-4 text-[var(--color-brand)]" />{address ?? t('noAddress')}</p>
-                <button
-                  type="button"
+              <div className="space-y-3">
+                <SectionHeader eyebrow="Address" title={t('location')} description={address ?? t('noAddress')} />
+                <AddressCard
+                  address={address ?? t('noAddress')}
+                  icon={<MapPin className="h-5 w-5" />}
                   onClick={handleOpenLocationEditor}
-                  disabled={isResolvingProfileLocation}
-                  className="ui-btn-secondary mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
-                >
-                  {isResolvingProfileLocation
-                    ? t('resolvingLocation')
-                    : (address ? t('changeLocation') : t('setLocation'))}
-                </button>
+                  title={address ? t('changeLocation') : t('setLocation')}
+                  trailing={isResolvingProfileLocation ? <Loader2 className="h-4 w-4 animate-spin text-slate-400" /> : undefined}
+                />
               </div>
 
-              <button
-                type="button"
-                onClick={() => router.push('/orders')}
-                className="ui-btn-primary inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-black transition-colors"
-              >
+              <Button onClick={() => router.push('/orders')} size="md" type="button">
                 <ClipboardList className="w-4 h-4" />
                 {t('viewOrders')}
-              </button>
-            </section>
+              </Button>
+            </Surface>
 
-            <section className="ui-panel rounded-[2rem] p-5 space-y-3">
-              <h3 className="text-sm font-black text-[var(--color-text)] inline-flex items-center gap-2">
-                <Heart className="w-4 h-4 text-rose-500" />
-                {t('favoriteRestaurants')}
-              </h3>
+            <Surface className="space-y-3" variant="base">
+              <SectionHeader
+                title={t('favoriteRestaurants')}
+                action={<Heart className="h-4 w-4 text-rose-500" />}
+              />
 
               {favoriteRestaurants.length === 0 ? (
-                <p className="ui-text-muted text-sm">{t('noFavorites')}</p>
+                <EmptyState description={t('noFavorites')} title={t('favoriteRestaurants')} />
               ) : (
                 <div className="space-y-2">
                   {favoriteRestaurants.map((restaurant) => (
-                    <article key={restaurant.id} className="ui-list-card rounded-[1.35rem] px-4 py-3 text-sm text-[var(--color-text)]">
-                      {restaurant.name}
-                    </article>
+                    <Surface key={restaurant.id} className="px-4 py-3 text-sm font-semibold" variant="muted">{restaurant.name}</Surface>
                   ))}
                 </div>
               )}
-            </section>
+            </Surface>
 
-            <section className="ui-panel rounded-[2rem] p-5 space-y-3">
-              <h3 className="text-sm font-black text-[var(--color-text)] inline-flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-amber-600" />
-                {t('allergiesSettings')}
-              </h3>
+            <Surface className="space-y-3" variant="base">
+              <SectionHeader
+                title={t('allergiesSettings')}
+                action={<ShieldAlert className="h-4 w-4 text-amber-600" />}
+              />
 
-              <div className="ui-panel-soft rounded-[1.5rem] p-4 space-y-3 text-sm">
+              <Surface className="space-y-3 text-sm" variant="muted">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--color-text-muted)]">Perfil alimenticio</p>
-                    <p className="text-[var(--color-text)] font-semibold">{dietLabel}</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">Perfil alimenticio</p>
+                    <p className="font-semibold text-slate-900 dark:text-slate-100">{dietLabel}</p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.08em] ${dietaryProfile?.syncStatus === 'synced' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                     {dietaryProfile?.syncStatus === 'synced' ? 'Synced' : 'Local'}
@@ -558,14 +536,14 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setIsDietaryModalOpen(true)}
-                  className="ui-btn-secondary inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
                 >
                   Ajustar perfil alimenticio
                 </button>
-              </div>
+              </Surface>
 
               {allergies.length === 0 ? (
-                <p className="ui-text-muted text-sm">{t('noAllergies')}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t('noAllergies')}</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {allergies.map((allergy) => (
@@ -575,59 +553,50 @@ export default function ProfilePage() {
                   ))}
                 </div>
               )}
-            </section>
+            </Surface>
 
-            <section className="ui-panel rounded-[2rem] p-5 space-y-3">
+            <Surface className="space-y-3" variant="base">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-black text-[var(--color-text)] inline-flex items-center gap-2">
+                  <h3 className="inline-flex items-center gap-2 text-sm font-black text-slate-900 dark:text-slate-100">
                     <Sparkles className="w-4 h-4 text-[var(--color-brand)]" />
                     Planner IA
                   </h3>
-                  <p className="ui-text-muted text-sm">Recibe ideas de platos según tu dieta, gustos y momento del día.</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Recibe ideas de platos según tu dieta, gustos y momento del día.</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => router.push('/planner')}
-                  className="ui-btn-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
-                >
+                <Button onClick={() => router.push('/planner')} size="sm" type="button">
                   Abrir
                   <ChevronRight className="h-4 w-4" />
-                </button>
+                </Button>
               </div>
-            </section>
+            </Surface>
 
-            <section className="ui-panel rounded-[2rem] p-5 space-y-3">
+            <Surface className="space-y-3" variant="base">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-black text-[var(--color-text)] inline-flex items-center gap-2">
+                  <h3 className="inline-flex items-center gap-2 text-sm font-black text-slate-900 dark:text-slate-100">
                     <Gift className="w-4 h-4 text-fuchsia-600" />
                     Mystery Box
                   </h3>
-                  <p className="ui-text-muted text-sm">Descubre combos sorpresa compatibles con tu perfil y stock disponible.</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Descubre combos sorpresa compatibles con tu perfil y stock disponible.</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => router.push('/mystery-box')}
-                  className="ui-btn-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
-                >
+                <Button onClick={() => router.push('/mystery-box')} size="sm" type="button">
                   Ver ofertas
                   <ChevronRight className="h-4 w-4" />
-                </button>
+                </Button>
               </div>
-            </section>
+            </Surface>
 
-            <section className="ui-panel rounded-[2rem] p-5 space-y-3">
-              <h3 className="text-sm font-black text-[var(--color-text)]">{t('languageSection')}</h3>
-              <p className="ui-text-muted text-sm">{t('languageDescription')}</p>
-              <label className="block text-sm font-semibold text-[var(--color-text)]" htmlFor="profile-language-select">
+            <Surface className="space-y-3" variant="base">
+              <SectionHeader title={t('languageSection')} description={t('languageDescription')} />
+              <label className="block text-sm font-semibold text-slate-900 dark:text-slate-100" htmlFor="profile-language-select">
                 {t('languageLabel')}
               </label>
               <select
                 id="profile-language-select"
                 value={locale}
                 onChange={handleLocaleChange}
-                className="ui-select rounded-xl px-3 py-2 text-sm"
+                className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-300 dark:border-slate-700 dark:bg-slate-900"
               >
                 {SUPPORTED_LOCALES.map((itemLocale) => (
                   <option key={itemLocale} value={itemLocale}>
@@ -635,8 +604,8 @@ export default function ProfilePage() {
                   </option>
                 ))}
               </select>
-              {languageFeedback ? <p className="text-xs text-emerald-700">{languageFeedback}</p> : null}
-            </section>
+              {languageFeedback ? <p className="text-xs text-emerald-700 dark:text-emerald-300">{languageFeedback}</p> : null}
+            </Surface>
           </>
         )}
       </div>
@@ -663,6 +632,6 @@ export default function ProfilePage() {
         isOpen={isDietaryModalOpen}
         onClose={() => setIsDietaryModalOpen(false)}
       />
-    </main>
+    </AppShell>
   );
 }

@@ -1,35 +1,43 @@
-# Fast Eat Client UI System Scaffold
+# Fast Eat Client UI Component Library
 
-This directory captures the reusable UI extracted from `resources/designs` and standardizes it into a component system that can be implemented later in the app.
+This directory captures the reusable UI extracted from `resources/designs` and standardizes it into a component system that now exists both as documentation and as implementation-ready React components.
 
 ## Analysis Scope
 
 Reviewed source mocks:
 
-- `resources/designs/main_home_screen.html`
-- `resources/designs/menu_item_customization.html`
 - `resources/designs/active_carts_overview.html`
-
-Files currently acting as placeholders with no reusable markup yet:
-
 - `resources/designs/ai_mystery_box_discovery.html`
 - `resources/designs/ai_personal_meal_planner.html`
 - `resources/designs/ai_search_discovery.html`
 - `resources/designs/checkout_payment_summary.html`
+- `resources/designs/create_account.html`
 - `resources/designs/dietary_vault_preferences.html`
+- `resources/designs/foodie_profile.html`
 - `resources/designs/group_order_lobby.html`
+- `resources/designs/login_screen.html`
+- `resources/designs/main_home_screen.html`
+- `resources/designs/menu_item_customization.html`
 - `resources/designs/order_tracking_map.html`
 - `resources/designs/restaurant_menu_details.html`
+- `resources/designs/set_address.html`
 - `resources/designs/split_the_bill_selection.html`
 - `resources/designs/user_profile_settings.html`
+
+The mocks vary in completeness, but all of them contribute reusable structures to the library.
 
 ## What This Structure Contains
 
 - `foundations/`: tokens, visual rules, and styling recipes.
-- `primitives/`: smallest reusable UI building blocks.
-- `composites/`: reusable business-facing components built from primitives.
-- `patterns/`: screen-level layout and navigation patterns.
+- `primitives/`: smallest reusable UI building blocks, with `.tsx` implementations.
+- `composites/`: reusable business-facing components built from primitives, with `.tsx` implementations.
+- `patterns/`: screen-level layout and navigation patterns, with `.tsx` implementations.
 - `docs/`: inventory, screen mapping, and migration guidance.
+
+Top-level implementation files:
+
+- `index.ts`: barrel export for the resource component library.
+- `utils.ts`: shared `cn` helper and common library types.
 
 ## Standardized UI Direction
 
@@ -55,11 +63,19 @@ Primitives:
 Composites:
 
 - Section Header
+- Rating Display
+- Auth Shell
+- Social Auth Button
+- Sticky Header Bar
+- Info Row
+- Address Card
 - Restaurant Card
+- Menu Item Card
 - Cart Card
 - Promo Banner
 - Quantity Selector
 - Option Group
+- Status Indicator
 
 Patterns:
 
@@ -67,6 +83,8 @@ Patterns:
 - Header and Navigation
 - Horizontal Collections
 - Bottom Action Bar
+- Fixed Bottom Bar
+- Empty State
 
 ## Behavior Standard
 
@@ -80,4 +98,9 @@ Every interactive component spec in this folder defines:
 
 ## Next Implementation Step
 
-When this moves into `src`, implement foundations first, then primitives, then composites, then patterns.
+When this moves into `src`, treat this folder as the source library:
+
+1. move foundations into the app theme layer
+2. move primitives into `src/components/ui/primitives`
+3. move composites and patterns into the app component system
+4. replace route-specific markup with these shared pieces

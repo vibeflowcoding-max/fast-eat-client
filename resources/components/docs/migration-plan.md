@@ -4,11 +4,16 @@
 
 Implement the standardized resource system into the app without carrying over inconsistencies from the mock HTML files.
 
+Current status:
+
+- the resource library now includes actual React component files under `resources/components`
+- the next migration phase is to move the library into `src` and replace route-specific UI with these shared pieces
+
 ## Recommended Order
 
 1. Add semantic tokens to the app theme layer using `tokens.json` or `tokens.css` as the source of truth.
-2. Implement primitives in `src/components/ui` or the equivalent design-system location.
-3. Implement composites for cards, banners, selectors, and option groups.
+2. Move primitives from `resources/components/primitives/*.tsx` into `src/components/ui/primitives`.
+3. Move composites and patterns from `resources/components` into the live app design-system location.
 4. Refactor or build screens using patterns rather than screen-specific one-offs.
 5. Add loading, error, and empty states for every data-driven section.
 6. Add interaction tracking once component interfaces stabilize.

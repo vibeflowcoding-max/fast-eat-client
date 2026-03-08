@@ -12,6 +12,7 @@ import { useCartStore } from '../store';
 import { useTranslations } from 'next-intl';
 import { fetchCheckoutFeeRates } from '@/services/api';
 import { calculateCheckoutPricing } from '@/lib/checkout-pricing';
+import { Button, Icon, Surface } from '@/../resources/components';
 
 interface CartModalProps {
     cart: CartItem[];
@@ -150,15 +151,17 @@ const CartModal: React.FC<CartModalProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
-            <div className="ui-page w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh] relative">
+            <Surface className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] p-0 shadow-2xl" padding="none" variant="base">
                 {(isSyncing || isOrdering) && (
                     <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-[110] flex items-center justify-center rounded-[2rem]">
                         <div className="w-12 h-12 border-4 border-black border-t-[var(--color-brand)] rounded-full animate-spin"></div>
                     </div>
                 )}
-                <div className="ui-panel p-5 md:p-8 border-b-4 flex justify-between items-center">
+                <div className="flex items-center justify-between gap-4 border-b border-slate-200/80 px-5 py-5 md:px-8 md:py-6 dark:border-slate-800/80">
                     <h3 className="text-xl font-black uppercase tracking-tighter">{t('title')}</h3>
-                    <button onClick={onClose} className="ui-btn-secondary w-10 h-10 rounded-full flex items-center justify-center font-black transition-colors">✕</button>
+                    <Button aria-label="Cerrar" className="shrink-0" onClick={onClose} size="icon" variant="ghost">
+                        <Icon symbol="close" />
+                    </Button>
                 </div>
                 <div className="flex-grow overflow-y-auto p-5 md:p-8 space-y-4">
                     <GroupCartWidget />
@@ -232,9 +235,9 @@ const CartModal: React.FC<CartModalProps> = ({
                             tableQuantity={tableQuantity}
                         />
                     )}
-                    <div className="ui-panel mt-2 p-5 md:p-8 border-t-4 space-y-3">
+                    <Surface className="mt-2 space-y-3 rounded-[1.75rem] border border-slate-200/80 p-5 md:p-8 dark:border-slate-800/80" variant="muted">
                         {cart.length > 0 && (
-                            <div className="ui-panel-soft border-2 rounded-2xl p-4 space-y-2">
+                            <Surface className="space-y-2 border border-orange-100 dark:border-[#4b2f21]" variant="raised">
                                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
                                     <span className="ui-text-muted">{t('subtotal')}</span>
                                     <span>{formatCurrency(pricing.subtotal)}</span>
@@ -257,45 +260,55 @@ const CartModal: React.FC<CartModalProps> = ({
                                 {isPricingUnavailable && (
                                     <p className="ui-text-muted text-[10px] font-bold">{t('feesUnavailable')}</p>
                                 )}
-                            </div>
+                            </Surface>
                         )}
                         {groupSessionId && groupParticipants.length > 1 && (
-                            <button
+                            <Button
                                 onClick={() => setShowBillSplitter(true)}
                                 disabled={cart.length === 0}
-                                className={`w-full py-4 rounded-2xl font-bold uppercase tracking-wider text-xs border-2 transition-all active:scale-95 ${cart.length > 0 ? 'ui-btn-secondary' : 'border-gray-200 text-gray-300 cursor-not-allowed'}`}
+                                className="text-xs font-bold uppercase tracking-wider"
+                                fullWidth
+                                size="lg"
+                                variant="secondary"
                             >
                                 {t('splitBill')} 🧮
-                            </button>
+                            </Button>
                         )}
                         {cart.length > 0 && onOpenCheckoutPage ? (
-                            <button
-                                type="button"
+                            <Button
                                 onClick={onOpenCheckoutPage}
-                                className="w-full rounded-2xl px-4 py-4 text-xs font-black uppercase tracking-[0.24em] ui-btn-secondary"
+                                className="text-xs font-black uppercase tracking-[0.24em]"
+                                fullWidth
+                                size="lg"
+                                variant="secondary"
                             >
                                 {t('openCheckoutPage')}
-                            </button>
+                            </Button>
                         ) : null}
                         {(cart.length > 0 || (groupSessionId && groupParticipants.length > 0)) && onOpenCartsPage ? (
-                            <button
-                                type="button"
+                            <Button
                                 onClick={onOpenCartsPage}
-                                className="w-full rounded-2xl px-4 py-4 text-xs font-black uppercase tracking-[0.24em] ui-btn-secondary"
+                                className="text-xs font-black uppercase tracking-[0.24em]"
+                                fullWidth
+                                size="lg"
+                                variant="secondary"
                             >
                                 {t('openCartsPage')}
-                            </button>
+                            </Button>
                         ) : null}
-                        <button
+                        <Button
                             onClick={onPlaceOrder}
                             disabled={cart.length === 0 || !isOrderFormValid() || isOrdering}
-                            className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-2xl transition-all active:scale-95 ${cart.length > 0 && isOrderFormValid() ? 'ui-btn-primary' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
+                            className="text-xs font-black uppercase tracking-[0.3em]"
+                            fullWidth
+                            size="lg"
+                            variant="primary"
                         >
                             {isOrdering ? t('processing') : `${t('confirmOrder')} ⛩️`}
-                        </button>
-                    </div>
+                        </Button>
+                    </Surface>
                 </div>
-            </div>
+            </Surface>
 
             {showBillSplitter && (
                 <BillSplitterModal

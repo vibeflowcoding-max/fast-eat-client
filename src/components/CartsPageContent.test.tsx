@@ -6,6 +6,11 @@ const push = vi.fn();
 const replaceActiveOrders = vi.fn();
 const setCustomerId = vi.fn();
 const restorePersistedCart = vi.fn();
+const setSavedCarts = vi.fn();
+const upsertSavedCart = vi.fn();
+const removeSavedCart = vi.fn();
+const setSavedCartsHydrated = vi.fn();
+const setSavedCartsError = vi.fn();
 const fetchSavedCarts = vi.fn();
 const saveCurrentCart = vi.fn();
 const fetchSavedCartById = vi.fn();
@@ -57,9 +62,17 @@ const mockState = {
   customerName: 'Ivan',
   groupSessionId: null,
   groupParticipants: [],
+  savedCarts: [],
+  savedCartsHydrated: false,
+  savedCartsError: null,
   replaceActiveOrders,
   restorePersistedCart,
   setCustomerId,
+  setSavedCarts,
+  upsertSavedCart,
+  removeSavedCart,
+  setSavedCartsHydrated,
+  setSavedCartsError,
 };
 
 vi.mock('@/hooks/useAppRouter', () => ({
@@ -97,15 +110,38 @@ describe('CartsPageContent', () => {
     mockState.customerName = 'Ivan';
     mockState.groupSessionId = null;
     mockState.groupParticipants = [];
+    mockState.savedCarts = [];
+    mockState.savedCartsHydrated = false;
+    mockState.savedCartsError = null;
     replaceActiveOrders.mockReset();
     setCustomerId.mockReset();
     restorePersistedCart.mockReset();
+    setSavedCarts.mockReset();
+    upsertSavedCart.mockReset();
+    removeSavedCart.mockReset();
+    setSavedCartsHydrated.mockReset();
+    setSavedCartsError.mockReset();
     push.mockReset();
     fetchSavedCarts.mockReset();
     saveCurrentCart.mockReset();
     fetchSavedCartById.mockReset();
     archiveSavedCart.mockReset();
     fetchSavedCarts.mockResolvedValue([]);
+    setSavedCarts.mockImplementation((carts: PersistedCartRecord[]) => {
+      mockState.savedCarts = carts;
+    });
+    upsertSavedCart.mockImplementation((cart: PersistedCartRecord) => {
+      mockState.savedCarts = [cart, ...mockState.savedCarts.filter((entry) => entry.id !== cart.id)];
+    });
+    removeSavedCart.mockImplementation((cartId: string) => {
+      mockState.savedCarts = mockState.savedCarts.filter((entry) => entry.id !== cartId);
+    });
+    setSavedCartsHydrated.mockImplementation((value: boolean) => {
+      mockState.savedCartsHydrated = value;
+    });
+    setSavedCartsError.mockImplementation((value: string | null) => {
+      mockState.savedCartsError = value;
+    });
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ activeOrders: [], pastOrders: [] }) })) as typeof fetch);
   });
 

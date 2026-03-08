@@ -54,9 +54,12 @@ vi.mock('@/hooks/useCartActions', () => ({
 }));
 
 vi.mock('@/services/api', () => ({
-  fetchCheckoutFeeRates: vi.fn(async () => ({ serviceFeeRate: 0, platformFeeRate: 0 })),
-  fetchRestaurantInfo: vi.fn(async () => mockState.restaurantInfo),
-  fetchTableQuantity: vi.fn(async () => ({ quantity: 0, is_available: false })),
+  fetchCheckoutContext: vi.fn(async () => ({
+    restaurant: mockState.restaurantInfo,
+    feeRates: { serviceFeeRate: 0, platformFeeRate: 0 },
+    tableQuantity: 0,
+    isTableAvailable: false,
+  })),
 }));
 
 vi.mock('@/components/AddressDetailsModal', () => ({
@@ -86,18 +89,19 @@ vi.mock('@/lib/supabase', () => ({
 describe('CheckoutPageContent', () => {
   beforeEach(() => {
     mockState.items = [];
+    mockState.branchId = 'branch-1';
     mockState.groupParticipants = [];
     mockState.groupSessionId = null;
   });
 
-  it('renders empty state when there are no checkout items', () => {
+  it('renders empty state when there are no checkout items', async () => {
     render(<CheckoutPageContent />);
 
-    expect(screen.getByText('No hay productos para confirmar')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ir al menú' })).toBeInTheDocument();
+    expect(await screen.findByText('No hay productos para confirmar')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Ir al menú' })).toBeInTheDocument();
   });
 
-  it('shows split bill action for grouped carts with multiple participants', () => {
+  it('shows split bill action for grouped carts with multiple participants', async () => {
     mockState.groupSessionId = 'group-1';
     mockState.groupParticipants = [
       {
@@ -118,7 +122,17 @@ describe('CheckoutPageContent', () => {
 
     render(<CheckoutPageContent />);
 
-    expect(screen.getByRole('button', { name: 'Dividir cuenta' })).toBeInTheDocument();
-    expect(screen.getByText('order-form')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Dividir cuenta' })).toBeInTheDocument();
+    expect(await screen.findByText('order-form')).toBeInTheDocument();
+  });
+
+  it('shows recovery actions when checkout has no branch context', async () => {
+    mockState.branchId = '';
+
+    render(<CheckoutPageContent />);
+
+    expect(await screen.findByText('No hay productos para confirmar')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Ver mis carritos' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Ir al menú' })).toBeInTheDocument();
   });
 });

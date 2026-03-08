@@ -61,6 +61,17 @@ describe('CartModal delivery validation', () => {
     expect(screen.getByText('deliveryDisclaimer')).toBeInTheDocument();
   });
 
+  it('renders the shared close button with an accessible label', () => {
+    render(
+      <CartModal
+        {...baseProps}
+        orderMetadata={baseOrderMetadata}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Cerrar' })).toBeInTheDocument();
+  });
+
   it('enables confirm button for delivery orders with address even without GPS coordinates', () => {
     render(
       <CartModal

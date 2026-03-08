@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Sparkles, Search, Loader2 } from 'lucide-react';
+import { Badge, Button, EmptyState, SectionHeader, Surface, TextField } from '@/../resources/components';
 import BottomNav from '@/components/BottomNav';
 import RestaurantCard from '@/components/RestaurantCard';
 import { useCategories } from '@/hooks/useCategories';
@@ -179,143 +180,129 @@ export default function SearchPageContent() {
   };
 
   return (
-    <main className="ui-page min-h-screen pb-32">
+    <main className="min-h-screen bg-[#f8f6f2] pb-32 text-slate-900 dark:bg-[#221610] dark:text-slate-100">
       <div className="mx-auto w-full max-w-3xl px-4 pt-6 space-y-5">
         <header className="space-y-2">
           <h1 className="text-3xl font-black tracking-[-0.03em]">{t('title')}</h1>
-          <p className="ui-text-muted max-w-2xl text-sm">{t('subtitle')}</p>
+          <p className="max-w-2xl text-sm text-slate-500 dark:text-slate-400">{t('subtitle')}</p>
         </header>
 
-        <form onSubmit={submitSearch} className="ui-panel rounded-[1.75rem] p-3 shadow-sm">
-          <div className="flex items-center gap-2">
-            <Search className="ui-text-muted h-4 w-4" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t('searchPlaceholder')}
-              className="ui-text w-full bg-transparent text-sm placeholder:text-[var(--color-text-muted)] outline-none"
-            />
-            <button
-              type="submit"
-              className="ui-btn-primary rounded-full px-4 py-2 text-xs font-black transition-colors"
-            >
+        <Surface className="rounded-[1.75rem]" variant="base">
+          <form className="flex items-end gap-3" onSubmit={submitSearch}>
+            <div className="min-w-0 flex-1">
+              <TextField
+                aria-label={t('searchPlaceholder')}
+                leadingIcon={<Search className="h-4 w-4" />}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={t('searchPlaceholder')}
+                value={query}
+              />
+            </div>
+            <Button className="shrink-0" type="submit" variant="primary">
               {t('searchButton')}
-            </button>
-          </div>
-        </form>
+            </Button>
+          </form>
+        </Surface>
 
-        <section className="ui-chip-brand rounded-[1.75rem] p-4 space-y-3">
+        <Surface className="space-y-3 rounded-[1.75rem]" variant="raised">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4" />
             <h2 className="text-sm font-black">{t('aiSuggestions')}</h2>
           </div>
-          <p className="text-xs">{aiMessage}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-300">{aiMessage}</p>
           {loadingAi ? (
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
               <Loader2 className="w-3 h-3 animate-spin" />
               {t('aiGenerating')}
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
               {aiSuggestions.map((suggestion) => (
-                <button
+                <Button
                   key={`${suggestion.type}-${suggestion.value}`}
-                  type="button"
                   onClick={() => applySuggestion(suggestion)}
-                  className="ui-btn-secondary rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
+                  size="sm"
+                  variant="secondary"
                 >
                   {suggestion.label}
-                </button>
+                </Button>
               ))}
               {aiSuggestions.length === 0 && (
-                <span className="text-xs">{t('aiEmpty')}</span>
+                <span className="text-xs text-slate-600 dark:text-slate-300">{t('aiEmpty')}</span>
               )}
             </div>
           )}
-        </section>
+        </Surface>
 
         <section className="space-y-2">
-          <h2 className="ui-text-muted text-xs font-black uppercase tracking-wide">{t('recentSearches')}</h2>
+          <SectionHeader eyebrow={t('recentSearches')} title=" " className="block" />
           <div className="flex flex-wrap gap-2">
             {recentSearches.map((search) => (
-              <button
+              <Button
                 key={`${search.query}-${search.createdAt}`}
-                type="button"
                 onClick={() => setQuery(search.query)}
-                className="ui-btn-secondary rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
+                size="sm"
+                variant="outline"
               >
                 {search.query}
-              </button>
+              </Button>
             ))}
             {recentSearches.length === 0 && (
-              <span className="ui-text-muted text-xs">{t('recentSearchesEmpty')}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">{t('recentSearchesEmpty')}</span>
             )}
           </div>
         </section>
 
         <section className="space-y-2">
-          <h2 className="ui-text-muted text-xs font-black uppercase tracking-wide">{t('filterByCategory')}</h2>
+          <SectionHeader eyebrow={t('filterByCategory')} title=" " className="block" />
           <div className="flex overflow-x-auto gap-2 pb-1">
-            <button
-              type="button"
+            <Button
               onClick={() => setSelectedCategoryId(null)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors ${
-                selectedCategoryId === null
-                    ? 'ui-btn-primary border-transparent'
-                    : 'ui-btn-secondary'
-              }`}
+              size="sm"
+              variant={selectedCategoryId === null ? 'primary' : 'outline'}
             >
               {t('allCategories')}
-            </button>
+            </Button>
             {categories.map((category) => (
-              <button
+              <Button
                 key={category.id}
-                type="button"
                 onClick={() => setSelectedCategoryId(category.id)}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold border whitespace-nowrap transition-colors ${
-                  selectedCategoryId === category.id
-                      ? 'ui-btn-primary border-transparent'
-                      : 'ui-btn-secondary'
-                }`}
+                className="whitespace-nowrap"
+                size="sm"
+                variant={selectedCategoryId === category.id ? 'primary' : 'outline'}
               >
                 {category.name}
-              </button>
+              </Button>
             ))}
           </div>
         </section>
 
         <section className="space-y-2">
-          <h2 className="ui-text-muted text-xs font-black uppercase tracking-wide">{t('quickFilters')}</h2>
+          <SectionHeader eyebrow={t('quickFilters')} title=" " className="block" />
           <div className="flex flex-wrap gap-2">
             {intentChips.map((chip) => (
-              <button
+              <Button
                 key={chip.id}
-                type="button"
                 onClick={() => setActiveIntent((prev) => (prev === chip.id ? null : chip.id))}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors ${
-                  activeIntent === chip.id
-                    ? 'ui-btn-primary border-transparent'
-                    : 'ui-btn-secondary'
-                }`}
+                size="sm"
+                variant={activeIntent === chip.id ? 'primary' : 'outline'}
               >
                 {t(chip.labelKey)}
-              </button>
+              </Button>
             ))}
           </div>
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-sm font-black tracking-[0.06em] uppercase text-[var(--color-text-muted)]">{t('results')}</h2>
+          <SectionHeader eyebrow={t('results')} title=" " className="block" />
           {loading && (
-            <div className="ui-panel rounded-2xl p-4 text-sm ui-text-muted">{t('loadingRestaurants')}</div>
+            <Surface className="rounded-2xl text-sm text-slate-500 dark:text-slate-400" variant="muted">{t('loadingRestaurants')}</Surface>
           )}
           {error && (
-            <div className="ui-state-danger rounded-2xl p-4 text-sm">{error}</div>
+            <Surface className="rounded-2xl text-sm text-red-700 dark:text-red-200" variant="raised">{error}</Surface>
           )}
           {!loading && !error && filteredRestaurants.length === 0 && (
-            <div className="ui-panel rounded-2xl p-4 text-sm ui-text-muted">
-              {t('emptyResults')}
-            </div>
+            <EmptyState description={t('emptyResults')} title={t('results')} />
           )}
 
           <div className="grid gap-3">

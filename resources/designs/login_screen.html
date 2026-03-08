@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#ec5b13",
+                "background-light": "#f8f6f6",
+                "background-dark": "#221610",
+              },
+              fontFamily: {
+                "display": ["Plus Jakarta Sans"]
+              },
+              borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<title>Login - FoodieExpress</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex items-center justify-center">
+<div class="relative flex h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden">
+<div class="grid lg:grid-cols-2 h-full w-full">
+<!-- Image Section -->
+<div class="hidden lg:block relative overflow-hidden">
+<div class="absolute inset-0 bg-primary/20 mix-blend-multiply"></div>
+<div class="w-full h-full bg-center bg-no-repeat bg-cover" data-alt="Appetizing gourmet food bowl with fresh ingredients" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBIjaJSBT9LR5R8ihKwbvmrcdwyprcHiMToyF26xCIz6d7wqlLswO4cESIgR1jKavfUhlYyHaJ0rcrTgCamnB5dPcegEv-q-kv49dZHkSWVzGFvrqq2ohCRQZ5IUZCCNN79LjrT-Di6uust4sCEWbU1446rxaBJ9dSlyWhGFXzcmbiQelNFVPBj0SRAtY7L5RpoJlxfZAjGZAlzdzfwoS2MB06C_VHb1YYxhPIgbLnAW84mdDjWIpw1IT8D_Lw8KAImrGDIgGLww9pt");'>
+</div>
+<div class="absolute bottom-12 left-12 right-12 text-white">
+<h2 class="text-5xl font-bold mb-4">Taste the magic in every bite.</h2>
+<p class="text-xl opacity-90">Join thousands of food lovers and get your favorite meals delivered in minutes.</p>
+</div>
+</div>
+<!-- Form Section -->
+<div class="flex flex-col justify-center items-center px-6 py-12 lg:px-12 bg-background-light dark:bg-background-dark overflow-y-auto">
+<div class="w-full max-w-[420px] space-y-8">
+<!-- Mobile Header Image (Visible only on small screens) -->
+<div class="lg:hidden @container mb-6">
+<div class="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-xl min-h-48" data-alt="Close up of a delicious healthy meal" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBtNzjdl3H4B6RV6W2wZJCd0iajqWGgpx-_Zcd52XopDEyAPWpjMKz_tImCtrjfBqUTP4op8dEQ0JgYnIxzXao0EXhct_1osJi7QlRt6GnOXZlBFkIGU293LT-6dDTr8NOlIkwBwCDW1be5foley963ei7rM_ymBtHZrat5THc2xnfJTVKv4Uavr2WcH4XW4HkuxK8nm34b6R9PxWrjB7gtsa3jZee7kb_8EC_Kh85mh3o7nUu9vwLLc6CpO0PJIPD8IMdDPLztoT6G");'>
+</div>
+</div>
+<div class="text-center lg:text-left">
+<div class="flex items-center justify-center lg:justify-start mb-6">
+<div class="bg-primary p-2 rounded-xl">
+<span class="material-symbols-outlined text-white text-3xl">restaurant</span>
+</div>
+<span class="ml-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">FoodieExpress</span>
+</div>
+<h1 class="text-3xl font-bold leading-tight text-slate-900 dark:text-slate-100">Welcome Back!</h1>
+<p class="text-slate-600 dark:text-slate-400 mt-2">Log in to order your favorite meals</p>
+</div>
+<form class="space-y-5">
+<div class="flex flex-col gap-2">
+<label class="text-slate-700 dark:text-slate-300 text-sm font-semibold px-1">Email Address</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">mail</span>
+<input class="flex w-full rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 py-4 pl-12 pr-4 text-slate-900 dark:text-slate-100 focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="name@example.com" type="email"/>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center px-1">
+<label class="text-slate-700 dark:text-slate-300 text-sm font-semibold">Password</label>
+<a class="text-primary text-sm font-semibold hover:underline" href="#">Forgot?</a>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">lock</span>
+<input class="flex w-full rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 py-4 pl-12 pr-12 text-slate-900 dark:text-slate-100 focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary" type="button">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
+                        Login to Account
+                    </button>
+</form>
+<div class="relative flex py-2 items-center">
+<div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+<span class="flex-shrink mx-4 text-slate-400 text-sm">or continue with</span>
+<div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<button class="flex items-center justify-center gap-2 py-3 px-4 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<svg class="w-5 h-5" viewbox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"></path>
+</svg>
+<span class="text-sm font-semibold">Google</span>
+</button>
+<button class="flex items-center justify-center gap-2 py-3 px-4 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<svg class="w-5 h-5 fill-slate-900 dark:fill-white" viewbox="0 0 24 24">
+<path d="M17.05 20.28c-.96.95-2.21 1.72-3.72 1.72-2.47 0-3.66-1.55-5.58-1.55-1.93 0-3.21 1.55-5.38 1.55-2.73 0-5.37-3.62-5.37-8.1 0-4.04 2.53-6.17 4.93-6.17 1.25 0 2.29.58 3.19.58.85 0 2.05-.62 3.48-.62 1.63 0 3.1.84 4.01 2.21-3.32 1.61-2.77 6.13.79 7.64-.67 1.81-1.39 3.74-2.35 4.74zm-2.84-15.53c0 2.15-1.78 3.88-3.72 3.88-.06-2.52 2.14-4.59 3.72-4.63.15 2.2.15 3.15 0 .75z"></path>
+</svg>
+<span class="text-sm font-semibold">Apple</span>
+</button>
+</div>
+<div class="text-center">
+<p class="text-slate-600 dark:text-slate-400">
+                        New to FoodieExpress? 
+                        <a class="text-primary font-bold ml-1 hover:underline" href="#">Create an account</a>
+</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

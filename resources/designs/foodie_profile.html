@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<header class="flex items-center p-4 pb-2 justify-between">
+<div class="text-slate-900 dark:text-slate-100 flex size-12 shrink-0 items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-12">Onboarding</h2>
+</header>
+<main class="flex-1 px-6 flex flex-col max-w-lg mx-auto w-full">
+<div class="text-center pt-8 pb-4">
+<div class="mb-6 mx-auto w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-5xl">restaurant</span>
+</div>
+<h1 class="text-slate-900 dark:text-slate-100 text-[32px] font-extrabold leading-tight tracking-tight pb-2">Your Foodie Profile</h1>
+<p class="text-slate-600 dark:text-slate-400 text-lg font-normal leading-normal">Help us personalize your experience</p>
+</div>
+<section class="mt-8 space-y-6">
+<div>
+<h3 class="text-slate-900 dark:text-slate-100 text-xl font-bold leading-tight mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">eco</span>
+                        Dietary Preferences
+                    </h3>
+<div class="flex gap-3 flex-wrap">
+<div class="flex h-11 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary text-white px-6 cursor-pointer border-2 border-primary">
+<span class="material-symbols-outlined text-lg">check</span>
+<p class="text-sm font-semibold">Vegan</p>
+</div>
+<div class="flex h-11 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 px-6 cursor-pointer hover:border-primary/50 transition-colors">
+<p class="text-slate-700 dark:text-slate-300 text-sm font-semibold">Keto</p>
+</div>
+<div class="flex h-11 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 px-6 cursor-pointer hover:border-primary/50 transition-colors">
+<p class="text-slate-700 dark:text-slate-300 text-sm font-semibold">Gluten-Free</p>
+</div>
+<div class="flex h-11 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 px-6 cursor-pointer hover:border-primary/50 transition-colors">
+<p class="text-slate-700 dark:text-slate-300 text-sm font-semibold">Vegetarian</p>
+</div>
+<div class="flex h-11 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 px-6 cursor-pointer hover:border-primary/50 transition-colors">
+<p class="text-slate-700 dark:text-slate-300 text-sm font-semibold">Paleo</p>
+</div>
+</div>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-slate-100 text-xl font-bold leading-tight mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">warning</span>
+                        Common Allergens
+                    </h3>
+<div class="flex gap-3 flex-wrap">
+<div class="flex h-11 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary/10 border-2 border-primary/30 px-6 cursor-pointer">
+<span class="material-symbols-outlined text-primary text-lg">check_circle</span>
+<p class="text-slate-900 dark:text-slate-100 text-sm font-semibold">Nuts</p>
+</div>
+<div class="flex h-11 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 px-6 cursor-pointer hover:border-primary/50 transition-colors">
+<p class="text-slate-700 dark:text-slate-300 text-sm font-semibold">Shellfish</p>
+</div>
+<div class="flex h-11 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 px-6 cursor-pointer hover:border-primary/50 transition-colors">
+<p class="text-slate-700 dark:text-slate-300 text-sm font-semibold">Dairy</p>
+</div>
+<div class="flex h-11 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 px-6 cursor-pointer hover:border-primary/50 transition-colors">
+<p class="text-slate-700 dark:text-slate-300 text-sm font-semibold">Soy</p>
+</div>
+<div class="flex h-11 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 px-6 cursor-pointer hover:border-primary/50 transition-colors">
+<p class="text-slate-700 dark:text-slate-300 text-sm font-semibold">Eggs</p>
+</div>
+</div>
+</div>
+</section>
+<div class="mt-auto pt-12 pb-8">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/25 transition-all active:scale-95 flex items-center justify-center gap-2">
+                    Finish and Start Exploring
+                    <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<p class="text-center text-slate-400 text-sm mt-4">You can change these settings at any time in your profile</p>
+</div>
+</main>
+<div class="h-10"></div>
+</div>
+</body></html>

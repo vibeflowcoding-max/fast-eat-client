@@ -5,9 +5,9 @@ import { ArrowLeft, ShoppingBag, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { BuildingType } from '@/components/AddressDetailsModal';
+import { Badge, Button, EmptyState, SectionHeader, Surface } from '@/../resources/components';
 import AddressDetailsModal from '@/components/AddressDetailsModal';
 import CartItemRow from '@/components/CartItemRow';
-import LoadingScreen from '@/components/LoadingScreen';
 import OrderForm from '@/components/OrderForm';
 import BillSplitterModal from '@/features/payments/components/BillSplitterModal';
 import SinpeRequestUI from '@/features/payments/components/SinpeRequestUI';
@@ -479,7 +479,27 @@ export default function CheckoutPageContent() {
   }, [effectiveCart, handlePlaceOrder, isOrderFormValid, orderMetadata, router, setCheckoutDraft, total]);
 
   if (!branchId) {
-    return <LoadingScreen />;
+    return (
+      <main className="ui-page min-h-screen pb-14">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pb-8 pt-6">
+          <EmptyState
+            action={(
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button onClick={() => router.push('/carts')} type="button" variant="secondary">
+                  {tCart('openCartsPage')}
+                </Button>
+                <Button onClick={() => router.push('/')} type="button" variant="outline">
+                  {tPage('returnToMenu')}
+                </Button>
+              </div>
+            )}
+            description={tPage('emptySubtitle')}
+            icon={<ShoppingBag className="h-6 w-6" />}
+            title={tPage('emptyTitle')}
+          />
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -487,14 +507,15 @@ export default function CheckoutPageContent() {
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pb-8 pt-6">
         <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="space-y-2">
-            <button
-              type="button"
+            <Button
+              leadingIcon={<ArrowLeft className="h-4 w-4" />}
               onClick={() => router.push(continueHref)}
-              className="ui-btn-secondary inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
+              size="sm"
+              type="button"
+              variant="outline"
             >
-              <ArrowLeft className="h-4 w-4" />
               {tPage('backToMenu')}
-            </button>
+            </Button>
             <div>
               <p className="ui-section-title">{tPage('eyebrow')}</p>
               <h1 className="text-3xl font-black tracking-[-0.03em] text-[var(--color-text)]">{tPage('title')}</h1>
@@ -503,53 +524,40 @@ export default function CheckoutPageContent() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <span className="ui-chip-brand rounded-full px-4 py-2 text-xs font-black">
+            <Badge className="px-4 py-2 text-xs font-black" variant="brand">
               {isGroupCheckout ? tPage('groupMode') : tPage('soloMode')}
-            </span>
-            <span className="ui-btn-secondary rounded-full px-4 py-2 text-xs font-black">
+            </Badge>
+            <Badge className="px-4 py-2 text-xs font-black" variant="neutral">
               {formatPhoneForDisplay(fromNumber) || tPage('phoneFallback')}
-            </span>
+            </Badge>
           </div>
         </header>
 
         {chefNotification?.content ? (
-          <div className="ui-state-info rounded-[1.6rem] px-4 py-3 text-sm font-semibold">
+          <Surface className="text-sm font-semibold" variant="raised">
             {chefNotification.content}
-          </div>
+          </Surface>
         ) : null}
 
         {effectiveCart.length === 0 ? (
-          <section className="ui-panel rounded-[2rem] p-8 text-center">
-            <div className="mx-auto flex max-w-md flex-col items-center gap-3">
-              <ShoppingBag className="h-10 w-10 text-[var(--color-brand)]" />
-              <h2 className="text-xl font-black tracking-[-0.02em] text-[var(--color-text)]">{tPage('emptyTitle')}</h2>
-              <p className="ui-text-muted text-sm">{tPage('emptySubtitle')}</p>
-              <button
-                type="button"
-                onClick={() => router.push(continueHref)}
-                className="ui-btn-primary mt-2 inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-black"
-              >
+          <EmptyState
+            action={
+              <Button onClick={() => router.push(continueHref)} type="button">
                 {tPage('returnToMenu')}
-              </button>
-            </div>
-          </section>
+              </Button>
+            }
+            description={tPage('emptySubtitle')}
+            icon={<ShoppingBag className="h-6 w-6" />}
+            title={tPage('emptyTitle')}
+          />
         ) : (
           <>
-            <section className="ui-panel rounded-[2rem] p-5 space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="ui-section-title">{tPage('cartEyebrow')}</p>
-                  <h2 className="text-lg font-black tracking-[-0.02em] text-[var(--color-text)]">
-                    {restaurantInfo?.name || tPage('restaurantFallback')}
-                  </h2>
-                </div>
-                {isGroupCheckout ? (
-                  <span className="ui-btn-secondary inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black">
-                    <Users className="h-4 w-4" />
-                    {groupParticipants.length}
-                  </span>
-                ) : null}
-              </div>
+            <Surface className="space-y-4" variant="base">
+              <SectionHeader
+                action={isGroupCheckout ? <Badge leading={<Users className="h-3.5 w-3.5" />} variant="neutral">{groupParticipants.length}</Badge> : null}
+                eyebrow={tPage('cartEyebrow')}
+                title={restaurantInfo?.name || tPage('restaurantFallback')}
+              />
 
               {isGroupCheckout ? (
                 <div className="space-y-4">
@@ -596,7 +604,7 @@ export default function CheckoutPageContent() {
                   ))}
                 </div>
               )}
-            </section>
+            </Surface>
 
             <OrderForm
               orderMetadata={orderMetadata}
@@ -624,12 +632,9 @@ export default function CheckoutPageContent() {
               tableQuantity={tableQuantity}
             />
 
-            <section className="ui-panel rounded-[2rem] p-5 space-y-4">
-              <div>
-                <p className="ui-section-title">{tPage('summaryEyebrow')}</p>
-                <h2 className="text-lg font-black tracking-[-0.02em]">{tPage('summaryTitle')}</h2>
-              </div>
-              <div className="ui-panel-soft rounded-[1.5rem] p-4 space-y-2">
+            <Surface className="space-y-4" variant="base">
+              <SectionHeader eyebrow={tPage('summaryEyebrow')} title={tPage('summaryTitle')} />
+              <Surface className="space-y-2" variant="muted">
                 <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest">
                   <span className="ui-text-muted">{tCart('subtotal')}</span>
                   <span>{formatCurrency(pricing.subtotal)}</span>
@@ -646,32 +651,28 @@ export default function CheckoutPageContent() {
                   <span>{tCart('total')}</span>
                   <span>{formatCurrency(pricing.totalBeforeDelivery)}</span>
                 </div>
-                <p className="ui-state-warning rounded-xl px-3 py-2 text-[10px] font-bold">{tCart('deliveryDisclaimer')}</p>
+                <Surface className="text-[10px] font-bold" variant="raised">{tCart('deliveryDisclaimer')}</Surface>
                 {isPricingUnavailable ? (
                   <p className="ui-text-muted text-[10px] font-bold">{tCart('feesUnavailable')}</p>
                 ) : null}
-              </div>
+              </Surface>
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 {groupSessionId && groupParticipants.length > 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowBillSplitter(true)}
-                    className="ui-btn-secondary inline-flex min-h-[48px] items-center justify-center rounded-full px-5 py-3 text-xs font-black uppercase tracking-[0.2em]"
-                  >
+                  <Button onClick={() => setShowBillSplitter(true)} type="button" variant="outline">
                     {tCart('splitBill')}
-                  </button>
+                  </Button>
                 ) : null}
-                <button
-                  type="button"
+                <Button
                   onClick={handlePlaceOrderFromPage}
                   disabled={!isOrderFormValid || isOrdering}
-                  className={`inline-flex min-h-[48px] items-center justify-center rounded-full px-5 py-3 text-xs font-black uppercase tracking-[0.24em] ${isOrderFormValid && !isOrdering ? 'ui-btn-primary' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
+                  fullWidth
+                  type="button"
                 >
                   {isOrdering ? tCart('processing') : tPage('placeOrder')}
-                </button>
+                </Button>
               </div>
-            </section>
+            </Surface>
           </>
         )}
       </div>

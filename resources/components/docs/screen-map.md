@@ -8,6 +8,7 @@
 - Composite: Promo Banner
 - Composite: Section Header
 - Composite: Restaurant Card
+- Composite: Rating Display
 - Primitive: Badge
 - Primitive: Button
 - Primitive: Icon
@@ -16,6 +17,9 @@
 
 - Pattern: App Shell
 - Pattern: Bottom Action Bar
+- Pattern: Fixed Bottom Bar
+- Composite: Sticky Header Bar
+- Composite: Menu Item Card
 - Composite: Option Group
 - Composite: Quantity Selector
 - Primitive: Form Controls
@@ -27,11 +31,41 @@
 - Pattern: App Shell
 - Pattern: Header And Navigation
 - Composite: Cart Card
+- Composite: Info Row
 - Primitive: Button
 - Primitive: Surface
 - Primitive: Icon
 
-## Future Placeholder Screens
+## Login And Account Screens
+
+- Pattern: App Shell
+- Composite: Sticky Header Bar
+- Primitive: Form Controls
+- Primitive: Button
+- Primitive: Surface
+
+## Set Address And Profile Screens
+
+- Pattern: App Shell
+- Pattern: Header And Navigation
+- Composite: Sticky Header Bar
+- Composite: Address Card
+- Composite: Info Row
+- Primitive: Button
+- Primitive: Icon
+
+## Checkout, Search, Tracking, And AI Screens
+
+- Pattern: App Shell
+- Pattern: Horizontal Collections
+- Pattern: Fixed Bottom Bar
+- Pattern: Empty State
+- Composite: Promo Banner
+- Composite: Menu Item Card
+- Composite: Status Indicator
+- Composite: Section Header
+
+## Remaining Specialized Screens
 
 These should reuse the same system first before new components are invented:
 

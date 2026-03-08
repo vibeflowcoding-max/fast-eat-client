@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<title>Create Your Account - Foodie Delivery</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full flex-col items-center overflow-x-hidden">
+<div class="w-full max-w-[480px]">
+<!-- Top App Bar -->
+<div class="flex items-center p-4 pb-2 justify-between">
+<div class="text-slate-900 dark:text-slate-100 flex size-12 shrink-0 items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-xl font-bold leading-tight tracking-tight flex-1 text-center pr-12">Create Your Account</h2>
+</div>
+<!-- Hero/Illustration Area -->
+<div class="px-4 py-6 text-center">
+<div class="w-24 h-24 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+<span class="material-symbols-outlined text-primary text-5xl">restaurant</span>
+</div>
+<p class="text-slate-600 dark:text-slate-400 text-base">Join the community and get fresh meals delivered to your doorstep.</p>
+</div>
+<!-- Form Container -->
+<div class="px-4 space-y-4">
+<!-- Full Name Field -->
+<div class="flex flex-wrap items-end gap-4 py-2">
+<label class="flex flex-col min-w-40 flex-1">
+<p class="text-slate-900 dark:text-slate-100 text-sm font-semibold leading-normal pb-2 ml-1">Full Name</p>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">person</span>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-14 placeholder:text-slate-400 pl-12 pr-4 text-base font-normal leading-normal" placeholder="Enter your name" type="text"/>
+</div>
+</label>
+</div>
+<!-- Email Address Field -->
+<div class="flex flex-wrap items-end gap-4 py-2">
+<label class="flex flex-col min-w-40 flex-1">
+<p class="text-slate-900 dark:text-slate-100 text-sm font-semibold leading-normal pb-2 ml-1">Email Address</p>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">mail</span>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-14 placeholder:text-slate-400 pl-12 pr-4 text-base font-normal leading-normal" placeholder="example@mail.com" type="email"/>
+</div>
+</label>
+</div>
+<!-- Phone Number Field -->
+<div class="flex flex-wrap items-end gap-4 py-2">
+<label class="flex flex-col min-w-40 flex-1">
+<p class="text-slate-900 dark:text-slate-100 text-sm font-semibold leading-normal pb-2 ml-1">Phone Number</p>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">call</span>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-14 placeholder:text-slate-400 pl-12 pr-4 text-base font-normal leading-normal" placeholder="+1 (555) 000-0000" type="tel"/>
+</div>
+</label>
+</div>
+<!-- Password Field -->
+<div class="flex flex-wrap items-end gap-4 py-2">
+<label class="flex flex-col min-w-40 flex-1">
+<p class="text-slate-900 dark:text-slate-100 text-sm font-semibold leading-normal pb-2 ml-1">Password</p>
+<div class="flex w-full flex-1 items-stretch">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">lock</span>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-14 placeholder:text-slate-400 pl-12 pr-12 text-base font-normal leading-normal" placeholder="Min. 8 characters" type="password"/>
+<div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer">
+<span class="material-symbols-outlined">visibility</span>
+</div>
+</div>
+</div>
+</label>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="px-4 py-8 space-y-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl transition-colors shadow-lg shadow-primary/20">
+                    Next
+                </button>
+<div class="flex items-center justify-center space-x-2 py-4">
+<p class="text-slate-600 dark:text-slate-400">Already have an account?</p>
+<a class="text-primary font-bold hover:underline" href="#">Login</a>
+</div>
+</div>
+<!-- Social Login Divider -->
+<div class="px-4 py-2">
+<div class="flex items-center gap-4">
+<div class="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+<span class="text-sm text-slate-400 font-medium">OR CONTINUE WITH</span>
+<div class="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+</div>
+</div>
+<!-- Social Buttons -->
+<div class="flex px-4 py-6 gap-4">
+<button class="flex-1 flex items-center justify-center gap-2 h-14 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<img alt="Google" class="w-6 h-6" data-alt="Google company logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSqT0SLnRWB-tzncqPvTlrF41iDFu174wvtarl4KXz6WU_6SJ_b6StJqzkOlV57ew2wvUytHE0d07mkUFxThluqUi4realiX66YS8LxT83Nrg48pjJ3vmdP5cvZq5HGOA64GLZSVS7TjAJIB_cAwA9oUp4OyjXlYgiNYWuTfNC2E1snpmP_Qg5SQu9xMwsN1aSzvJM1xhZ-Xmi6V0QFxmvagBAs7-iWickYnONxsD7aE_C7Qh5Zd69_C2kVe1TrMiSM8X5E8oqyT5B"/>
+<span class="text-slate-700 dark:text-slate-200 font-semibold">Google</span>
+</button>
+<button class="flex-1 flex items-center justify-center gap-2 h-14 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<span class="material-symbols-outlined text-blue-600">social_leaderboard</span>
+<span class="text-slate-700 dark:text-slate-200 font-semibold">Facebook</span>
+</button>
+</div>
+<!-- Footer Terms -->
+<div class="px-8 pb-10 text-center">
+<p class="text-xs text-slate-400 leading-relaxed">
+                    By continuing, you agree to our 
+                    <a class="underline" href="#">Terms of Service</a> and 
+                    <a class="underline" href="#">Privacy Policy</a>.
+                </p>
+</div>
+</div>
+</div>
+</body></html>

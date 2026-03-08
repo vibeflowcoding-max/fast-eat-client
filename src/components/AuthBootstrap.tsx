@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { isPublicAnonymousPath } from '@/lib/public-routes';
 import { fetchClientBootstrap } from '@/services/api';
@@ -11,9 +11,19 @@ import { extractGoogleMapsUrl, parseCoordsFromGoogleMapsUrl } from '@/lib/locati
 
 const AUTH_ROUTES = new Set(['/auth/sign-in', '/auth/sign-up', '/auth/callback']);
 
+function resolvePostAuthRedirect(pathname: string, searchParams: URLSearchParams | ReadonlyURLSearchParams | null) {
+  if (!AUTH_ROUTES.has(pathname)) {
+    return null;
+  }
+
+  const nextValue = searchParams?.get('next') || '/';
+  return nextValue.startsWith('/') ? nextValue : '/';
+}
+
 export default function AuthBootstrap() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const {
     setAuthSession,
     clearAuthSession,
@@ -90,6 +100,7 @@ export default function AuthBootstrap() {
     async function initialize() {
       const { data } = await supabase.auth.getSession();
       const session = data.session;
+      const redirectPath = resolvePostAuthRedirect(pathname, searchParams);
 
       if (!isMounted) {
         return;
@@ -101,11 +112,13 @@ export default function AuthBootstrap() {
           email: session.user.email ?? null,
         });
 
-        await hydrateAuthenticatedContext(session.access_token);
+        setAuthHydrated(true);
 
-        if (AUTH_ROUTES.has(pathname)) {
-          router.replace('/');
+        if (redirectPath) {
+          router.replace(redirectPath);
         }
+
+        void hydrateAuthenticatedContext(session.access_token);
       } else {
         clearAuthSession();
         lastHydratedTokenRef.current = null;
@@ -124,6 +137,8 @@ export default function AuthBootstrap() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const redirectPath = resolvePostAuthRedirect(pathname, searchParams);
+
       if (!isMounted) {
         return;
       }
@@ -134,11 +149,13 @@ export default function AuthBootstrap() {
           email: session.user.email ?? null,
         });
 
-        await hydrateAuthenticatedContext(session.access_token);
+        setAuthHydrated(true);
 
-        if (AUTH_ROUTES.has(pathname)) {
-          router.replace('/');
+        if (redirectPath) {
+          router.replace(redirectPath);
         }
+
+        void hydrateAuthenticatedContext(session.access_token);
       } else {
         clearAuthSession();
         lastHydratedTokenRef.current = null;
@@ -153,7 +170,7 @@ export default function AuthBootstrap() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [pathname, router, setAuthSession, clearAuthSession, setAuthHydrated, hydrateClientContext, setSavedCarts, setSavedCartsError, setSavedCartsHydrated]);
+  }, [pathname, router, searchParams, setAuthSession, clearAuthSession, setAuthHydrated, hydrateClientContext, setSavedCarts, setSavedCartsError, setSavedCartsHydrated]);
 
   return null;
 }

@@ -2,10 +2,10 @@
 
 import React from 'react';
 import { ArrowRight, PackageCheck, Save, ShoppingCart, Trash2, Users } from 'lucide-react';
+import { Badge, Button, EmptyState, SectionHeader, Surface } from '@/../resources/components';
 import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import type { OrderUpdate } from '@/hooks/useOrderTracking';
-import type { PersistedCartRecord } from '@/types';
 import { archiveSavedCart, fetchSavedCartById, fetchSavedCarts, saveCurrentCart } from '@/services/api';
 import { useCartStore } from '@/store';
 import { useTranslations } from 'next-intl';
@@ -299,201 +299,201 @@ export default function CartsPageContent() {
   }, [removeSavedCart, setSavedCartsError, t]);
 
   return (
-    <main className="ui-page min-h-screen pb-32">
+    <main className="min-h-screen bg-[#f8f6f2] pb-32 text-slate-900 dark:bg-[#221610] dark:text-slate-100">
       <div className="mx-auto w-full max-w-4xl px-4 pt-6 space-y-5">
         <header>
-          <h1 className="text-2xl font-black">{t('title')}</h1>
-          <p className="ui-text-muted text-sm">{t('subtitle')}</p>
+          <h1 className="text-2xl font-black tracking-tight">{t('title')}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t('subtitle')}</p>
         </header>
 
         {hasCurrentCart ? (
-          <section className="ui-panel rounded-[1.9rem] p-5 space-y-4">
-            <div className="space-y-1">
-              <p className="ui-section-title">{t('currentCartEyebrow')}</p>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-black tracking-[-0.02em]">
-                    {groupSessionId && groupParticipants.length > 0 ? t('groupCartTitle') : t('currentCartTitle')}
-                  </h2>
-                  <p className="ui-text-muted text-sm">
-                    {restaurantInfo?.name || t('restaurantFallback')}
-                  </p>
-                </div>
-                <div className="ui-chip-brand inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-black">
-                  {groupSessionId && groupParticipants.length > 0 ? <Users className="h-3.5 w-3.5" /> : <ShoppingCart className="h-3.5 w-3.5" />}
+          <Surface className="space-y-4 rounded-[1.9rem]" variant="base">
+            <SectionHeader
+              eyebrow={t('currentCartEyebrow')}
+              title={groupSessionId && groupParticipants.length > 0 ? t('groupCartTitle') : t('currentCartTitle')}
+              description={restaurantInfo?.name || t('restaurantFallback')}
+              action={(
+                <Badge
+                  className="px-3 py-2 text-xs font-black"
+                  leading={groupSessionId && groupParticipants.length > 0 ? <Users className="h-3.5 w-3.5" /> : <ShoppingCart className="h-3.5 w-3.5" />}
+                  variant="brand"
+                >
                   {groupSessionId && groupParticipants.length > 0
                     ? t('participantCount', { count: groupParticipants.length })
                     : t('itemCount', { count: totalItemCount })}
-                </div>
-              </div>
-            </div>
+                </Badge>
+              )}
+            />
 
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="ui-list-card rounded-[1.4rem] p-4">
-                <p className="ui-text-muted text-[11px] font-black uppercase tracking-[0.18em]">{t('itemCountLabel')}</p>
+              <Surface className="rounded-[1.4rem]" variant="muted">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('itemCountLabel')}</p>
                 <p className="mt-2 text-2xl font-black">{totalItemCount}</p>
-              </div>
-              <div className="ui-list-card rounded-[1.4rem] p-4">
-                <p className="ui-text-muted text-[11px] font-black uppercase tracking-[0.18em]">{t('subtotalLabel')}</p>
+              </Surface>
+              <Surface className="rounded-[1.4rem]" variant="muted">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('subtotalLabel')}</p>
                 <p className="mt-2 text-2xl font-black">{formatCurrency(cartSubtotal)}</p>
-              </div>
-              <div className="ui-list-card rounded-[1.4rem] p-4">
-                <p className="ui-text-muted text-[11px] font-black uppercase tracking-[0.18em]">{t('checkoutStateLabel')}</p>
+              </Surface>
+              <Surface className="rounded-[1.4rem]" variant="muted">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('checkoutStateLabel')}</p>
                 <p className="mt-2 text-sm font-bold">{groupSessionId && groupParticipants.length > 0 ? t('groupCheckoutState') : t('soloCheckoutState')}</p>
-              </div>
+              </Surface>
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
+              <Button
                 onClick={() => router.push('/checkout')}
-                className="ui-btn-primary inline-flex min-h-[46px] items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-black"
+                leadingIcon={<ArrowRight className="h-4 w-4" />}
+                size="md"
               >
                 {t('continueCheckout')}
-                <ArrowRight className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={handleSaveCurrentCart}
                 disabled={isSavingCurrentCart}
-                className="ui-btn-secondary inline-flex min-h-[46px] items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-black"
+                leadingIcon={<Save className="h-4 w-4" />}
+                size="md"
+                variant="secondary"
               >
-                <Save className="h-4 w-4" />
                 {isSavingCurrentCart ? t('savingCurrentCart') : t('saveCurrentCart')}
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={() => router.push(branchId ? `/?branch_id=${encodeURIComponent(branchId)}` : '/')}
-                className="ui-btn-secondary inline-flex min-h-[46px] items-center justify-center rounded-full px-5 py-3 text-sm font-black"
+                size="md"
+                variant="outline"
               >
                 {t('continueBrowsing')}
-              </button>
+              </Button>
             </div>
-          </section>
+          </Surface>
         ) : null}
 
-        <section className="ui-panel rounded-[1.9rem] p-5 space-y-4">
-          <div className="space-y-1">
-            <p className="ui-section-title">{t('savedCartsEyebrow')}</p>
-            <h2 className="text-lg font-black tracking-[-0.02em]">{t('savedCartsTitle')}</h2>
-            <p className="ui-text-muted text-sm">{t('savedCartsSubtitle')}</p>
-          </div>
+        <Surface className="space-y-4 rounded-[1.9rem]" variant="base">
+          <SectionHeader
+            eyebrow={t('savedCartsEyebrow')}
+            title={t('savedCartsTitle')}
+            description={t('savedCartsSubtitle')}
+          />
 
           {savedCartsError ? (
-            <div className="ui-state-danger rounded-[1.4rem] p-4 text-sm">{savedCartsError}</div>
+            <Surface className="rounded-[1.4rem] text-sm text-red-700 dark:text-red-200" variant="raised">
+              {savedCartsError}
+            </Surface>
           ) : null}
 
           {!savedCartsHydrated ? (
-            <div className="ui-panel-soft rounded-[1.4rem] p-4 text-sm">{t('loadingSavedCarts')}</div>
+            <Surface className="rounded-[1.4rem] text-sm text-slate-600 dark:text-slate-300" variant="muted">
+              {t('loadingSavedCarts')}
+            </Surface>
           ) : hasSavedCarts ? (
             <div className="space-y-3">
               {savedCarts.map((cart) => (
-                <article key={cart.id} className="ui-list-card rounded-[1.4rem] p-4 space-y-3">
+                <Surface key={cart.id} className="space-y-3 rounded-[1.4rem]" variant="muted">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-black">{cart.restaurantName}</p>
-                      <p className="ui-text-muted text-sm">{cart.branchName || cart.restaurantSlug}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{cart.branchName || cart.restaurantSlug}</p>
                     </div>
-                    <span className="ui-status-pill">{cart.storageSource === 'local' ? t('localStorageBadge') : t('databaseStorageBadge')}</span>
+                    <Badge variant={cart.storageSource === 'local' ? 'warning' : 'success'}>
+                      {cart.storageSource === 'local' ? t('localStorageBadge') : t('databaseStorageBadge')}
+                    </Badge>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-3 text-sm">
+                  <div className="grid gap-3 text-sm sm:grid-cols-3">
                     <div>
-                      <p className="ui-text-muted text-[11px] font-black uppercase tracking-[0.18em]">{t('itemCountLabel')}</p>
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('itemCountLabel')}</p>
                       <p className="font-black">{cart.itemCount}</p>
                     </div>
                     <div>
-                      <p className="ui-text-muted text-[11px] font-black uppercase tracking-[0.18em]">{t('subtotalLabel')}</p>
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('subtotalLabel')}</p>
                       <p className="font-black">{formatCurrency(cart.subtotal)}</p>
                     </div>
                     <div>
-                      <p className="ui-text-muted text-[11px] font-black uppercase tracking-[0.18em]">{t('savedAtLabel')}</p>
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('savedAtLabel')}</p>
                       <p className="font-black">{new Date(cart.updatedAt).toLocaleDateString('es-CR')}</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
+                    <Button
                       onClick={() => handleOpenSavedCart(cart.id)}
                       disabled={activeCartActionId === cart.id}
-                      className="ui-btn-primary inline-flex min-h-[42px] items-center justify-center gap-2 rounded-full px-4 py-2 text-xs font-black"
+                      leadingIcon={<ShoppingCart className="h-4 w-4" />}
+                      size="sm"
                     >
-                      <ShoppingCart className="h-4 w-4" />
                       {t('openSavedCart')}
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
                       onClick={() => handleArchiveSavedCart(cart.id)}
                       disabled={activeCartActionId === cart.id}
-                      className="ui-btn-secondary inline-flex min-h-[42px] items-center justify-center gap-2 rounded-full px-4 py-2 text-xs font-black"
+                      leadingIcon={<Trash2 className="h-4 w-4" />}
+                      size="sm"
+                      variant="outline"
                     >
-                      <Trash2 className="h-4 w-4" />
                       {t('archiveSavedCart')}
-                    </button>
+                    </Button>
                   </div>
-                </article>
+                </Surface>
               ))}
             </div>
           ) : (
-            <p className="ui-text-muted text-sm">{t('savedCartsEmpty')}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{t('savedCartsEmpty')}</p>
           )}
-        </section>
+        </Surface>
 
-        <section className="ui-panel rounded-[1.9rem] p-5 space-y-4">
-          <div className="space-y-1">
-            <p className="ui-section-title">{t('activeOrdersEyebrow')}</p>
-            <h2 className="text-lg font-black tracking-[-0.02em]">{t('activeOrdersTitle')}</h2>
-            <p className="ui-text-muted text-sm">{t('activeOrdersSubtitle')}</p>
-          </div>
+        <Surface className="space-y-4 rounded-[1.9rem]" variant="base">
+          <SectionHeader
+            eyebrow={t('activeOrdersEyebrow')}
+            title={t('activeOrdersTitle')}
+            description={t('activeOrdersSubtitle')}
+          />
 
           {loadingActiveOrders ? (
-            <div className="ui-panel-soft rounded-[1.4rem] p-4 text-sm">{t('loadingActiveOrders')}</div>
+            <Surface className="rounded-[1.4rem] text-sm text-slate-600 dark:text-slate-300" variant="muted">
+              {t('loadingActiveOrders')}
+            </Surface>
           ) : activeOrdersError ? (
-            <div className="ui-state-danger rounded-[1.4rem] p-4 text-sm">{activeOrdersError}</div>
+            <Surface className="rounded-[1.4rem] text-sm text-red-700 dark:text-red-200" variant="raised">
+              {activeOrdersError}
+            </Surface>
           ) : hasTrackedOrders ? (
             <div className="space-y-3">
               {visibleTrackedOrders.map((order) => (
-                <article key={order.id} className="ui-list-card rounded-[1.4rem] p-4 space-y-3">
+                <Surface key={order.id} className="space-y-3 rounded-[1.4rem]" variant="muted">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-black">{order.orderNumber}</p>
-                      <p className="ui-text-muted text-sm">{order.restaurantName}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{order.restaurantName}</p>
                     </div>
-                    <span className="ui-status-pill">{order.statusLabel}</span>
+                    <Badge variant="neutral">{order.statusLabel}</Badge>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="ui-text-muted">{t('orderTotal')}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{t('orderTotal')}</span>
                     <span className="font-black">{formatCurrency(order.total)}</span>
                   </div>
-                  <button
-                    type="button"
+                  <Button
                     onClick={() => router.push(buildOrderUrl(order.id, order.customerId))}
-                    className="ui-btn-secondary inline-flex min-h-[42px] items-center justify-center gap-2 rounded-full px-4 py-2 text-xs font-black"
+                    leadingIcon={<PackageCheck className="h-4 w-4" />}
+                    size="sm"
+                    variant="outline"
                   >
-                    <PackageCheck className="h-4 w-4" />
                     {t('openOrder')}
-                  </button>
-                </article>
+                  </Button>
+                </Surface>
               ))}
             </div>
           ) : hasCurrentCart ? (
-            <p className="ui-text-muted text-sm">{t('noLiveOrders')}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{t('noLiveOrders')}</p>
           ) : (
-            <div className="space-y-3 rounded-[1.5rem] border border-dashed border-[var(--color-border)] px-5 py-8 text-center">
-              <p className="text-lg font-black">{t('emptyTitle')}</p>
-              <p className="ui-text-muted text-sm">{t('emptySubtitle')}</p>
-              <div>
-                <button
-                  type="button"
-                  onClick={() => router.push('/')}
-                  className="ui-btn-primary inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-black"
-                >
+            <EmptyState
+              title={t('emptyTitle')}
+              description={t('emptySubtitle')}
+              action={(
+                <Button onClick={() => router.push('/')} leadingIcon={<ArrowRight className="h-4 w-4" />}>
                   {t('startOrdering')}
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
+                </Button>
+              )}
+            />
           )}
-        </section>
+        </Surface>
       </div>
 
       <BottomNav />
