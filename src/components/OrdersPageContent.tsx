@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Clock3, PackageCheck, Loader2, Gavel, ArrowRight } from 'lucide-react';
+import { Badge, Button, EmptyState, SectionHeader, Surface } from '@/../resources/components';
 import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
@@ -205,47 +206,42 @@ export default function OrdersPageContent() {
   }, []);
 
   return (
-    <main className="ui-page min-h-screen pb-32">
+    <main className="min-h-screen bg-[#f8f6f2] pb-32 text-slate-900 dark:bg-[#221610] dark:text-slate-100">
       <div className="mx-auto w-full max-w-3xl px-4 pt-6 space-y-5">
         <header>
-          <h1 className="text-2xl font-black">{t('title')}</h1>
-          <p className="ui-text-muted text-sm">{t('subtitle')}</p>
+          <h1 className="text-2xl font-black tracking-tight">{t('title')}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t('subtitle')}</p>
         </header>
 
         {loading && (
-          <div className="ui-panel ui-text-muted flex items-center gap-2 rounded-2xl p-5 text-sm">
+          <Surface className="flex items-center gap-2 rounded-2xl text-sm text-slate-500 dark:text-slate-400" variant="muted">
             <Loader2 className="w-4 h-4 animate-spin" />
             {t('loading')}
-          </div>
+          </Surface>
         )}
 
         {error && (
-          <div className="ui-state-danger rounded-2xl p-5 text-sm">{error}</div>
+          <Surface className="rounded-2xl text-sm text-red-700 dark:text-red-200" variant="raised">{error}</Surface>
         )}
 
         {!loading && !error && (
-          <section className="ui-panel rounded-[1.9rem] p-5 space-y-4">
-            <div className="space-y-1">
-              <p className="ui-section-title">{t('activeOrders')}</p>
-              <h2 className="text-lg font-black tracking-[-0.02em]">{t('activeOrders')}</h2>
-            </div>
+          <Surface className="space-y-4 rounded-[1.9rem]" variant="base">
+            <SectionHeader eyebrow={t('activeOrders')} title={t('activeOrders')} />
 
             {mergedActiveCount === 0 ? (
-              <div className="space-y-3">
-                <p className="ui-text-muted text-sm">{t('activeEmpty')}</p>
-                <button
-                  type="button"
-                  onClick={() => router.push('/')}
-                  className="ui-btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors"
-                >
-                  {t('startOrdering')}
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
+              <EmptyState
+                title={t('activeOrders')}
+                description={t('activeEmpty')}
+                action={(
+                  <Button leadingIcon={<ArrowRight className="w-4 h-4" />} onClick={() => router.push('/')}>
+                    {t('startOrdering')}
+                  </Button>
+                )}
+              />
             ) : (
               <div className="space-y-3">
                 {filteredStoreOrders.map((order) => (
-                  <article
+                  <Surface
                     key={order.orderId}
                     role="button"
                     tabIndex={0}
@@ -256,17 +252,18 @@ export default function OrdersPageContent() {
                         router.push(buildOrderUrl(order.orderId));
                       }
                     }}
-                    className="ui-chip-brand rounded-[1.4rem] p-4 space-y-2 cursor-pointer shadow-[0_14px_34px_-28px_rgba(236,91,19,0.5)]"
+                    className="cursor-pointer space-y-2 rounded-[1.4rem] shadow-[0_14px_34px_-28px_rgba(236,91,19,0.5)]"
+                    variant="raised"
                   >
                     <p className="text-xs font-black">{order.orderNumber || order.orderId}</p>
                     <p className="text-sm">{t('status')}: {order.newStatus?.label ?? order.newStatus?.code ?? t('inProgress')}</p>
                     <p className="text-xs">Total: ₡{Math.round(order.total ?? 0).toLocaleString()}</p>
                     <p className="text-xs">{t('active')} {t('bids')}: {(bidsByOrderId[order.orderId] ?? []).length}</p>
-                  </article>
+                  </Surface>
                 ))}
 
                 {activeFromApi.map((order) => (
-                  <article
+                  <Surface
                     key={order.id}
                     role="button"
                     tabIndex={0}
@@ -277,37 +274,35 @@ export default function OrdersPageContent() {
                         router.push(buildOrderUrl(order.id, order.customerId));
                       }
                     }}
-                    className="ui-list-card rounded-[1.4rem] p-4 space-y-3 cursor-pointer"
+                    className="cursor-pointer space-y-3 rounded-[1.4rem]"
+                    variant="muted"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-black">{order.orderNumber ?? order.id.slice(0, 8)}</p>
-                      <span className="ui-status-pill">{order.statusLabel ?? order.statusCode ?? t('active')}</span>
+                      <Badge variant="brand">{order.statusLabel ?? order.statusCode ?? t('active')}</Badge>
                     </div>
                     <p className="text-sm">{order.restaurant?.name ?? t('restaurant')}</p>
-                    <div className="ui-text-muted flex flex-wrap gap-3 text-xs">
+                    <div className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
                       <span className="inline-flex items-center gap-1"><Clock3 className="w-3 h-3" />{new Date(order.createdAt).toLocaleString('es-CR')}</span>
                       <span className="inline-flex items-center gap-1"><Gavel className="w-3 h-3" />{order.bidCount} {t('bids')}</span>
                       {order.bestBid ? <span>{t('bestBid')}: ₡{Math.round(order.bestBid).toLocaleString()}</span> : null}
                     </div>
-                  </article>
+                  </Surface>
                 ))}
               </div>
             )}
-          </section>
+          </Surface>
         )}
 
         {!loading && !error && (
-          <section className="ui-panel rounded-[1.9rem] p-5 space-y-4">
-            <div className="space-y-1">
-              <p className="ui-section-title">{t('pastOrders')}</p>
-              <h2 className="text-lg font-black tracking-[-0.02em]">{t('pastOrders')}</h2>
-            </div>
+          <Surface className="space-y-4 rounded-[1.9rem]" variant="base">
+            <SectionHeader eyebrow={t('pastOrders')} title={t('pastOrders')} />
             {pastOrders.length === 0 ? (
-              <p className="ui-text-muted text-sm">{t('pastOrdersEmpty')}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('pastOrdersEmpty')}</p>
             ) : (
               <div className="space-y-2">
                 {pastOrders.map((order) => (
-                  <article
+                  <Surface
                     key={order.id}
                     role="button"
                     tabIndex={0}
@@ -318,47 +313,47 @@ export default function OrdersPageContent() {
                         router.push(buildOrderUrl(order.id, order.customerId));
                       }
                     }}
-                    className="ui-list-card rounded-[1.4rem] p-4 space-y-3 cursor-pointer"
+                    className="cursor-pointer space-y-3 rounded-[1.4rem]"
+                    variant="muted"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-black">{order.orderNumber ?? order.id.slice(0, 8)}</p>
-                      <span className="ui-text-muted text-[11px]">{new Date(order.createdAt).toLocaleDateString('es-CR')}</span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">{new Date(order.createdAt).toLocaleDateString('es-CR')}</span>
                     </div>
                     <p className="text-sm">{order.restaurant?.name ?? t('restaurant')}</p>
                     <div className="flex items-center justify-between">
-                      <span className="ui-text-muted inline-flex items-center gap-1 text-xs">
+                      <span className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
                         <PackageCheck className="w-3 h-3" />
                         {order.statusLabel ?? order.statusCode ?? t('completed')}
                       </span>
                       <span className="text-sm font-bold">₡{Math.round(order.total).toLocaleString()}</span>
                     </div>
                     <div className="flex flex-wrap gap-2 pt-1">
-                      <button
-                        type="button"
+                      <Button
                         onClick={(event) => {
                           preventCardNavigation(event);
                           router.push(buildOrderUrl(order.id, order.customerId, '#reviews'));
                         }}
-                        className="ui-btn-secondary inline-flex min-h-[40px] items-center justify-center rounded-full px-4 py-2 text-xs font-black"
+                        size="sm"
+                        variant="outline"
                       >
                         {t('rateOrder')}
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
                         onClick={(event) => {
                           preventCardNavigation(event);
                           router.push('/');
                         }}
-                        className="ui-btn-primary inline-flex min-h-[40px] items-center justify-center rounded-full px-4 py-2 text-xs font-black"
+                        size="sm"
                       >
                         {t('repeatOrder')}
-                      </button>
+                      </Button>
                     </div>
-                  </article>
+                  </Surface>
                 ))}
               </div>
             )}
-          </section>
+          </Surface>
         )}
       </div>
 
