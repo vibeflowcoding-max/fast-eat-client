@@ -48,6 +48,15 @@ function getRailState(params: { loading?: boolean; error?: string | null; hasDat
     return 'success' as const;
 }
 
+function isTransientNavigationError(error: string | null | undefined) {
+    if (!error) {
+        return false;
+    }
+
+    const normalized = error.toLowerCase();
+    return normalized.includes('abort') || normalized.includes('signal is aborted');
+}
+
 function getEmptyStateConfig(variant: RailEmptyVariant, t: ReturnType<typeof useTranslations>): { message: string; action?: Omit<RailAction, 'onClick'> } {
     if (variant === 'query') {
         return {
@@ -154,20 +163,20 @@ export default function RestaurantRail({
     const renderEmptyState = () => {
         if (!statePolishV1) {
             return (
-                <div className="text-center py-8 border border-dashed border-gray-200 rounded-2xl bg-white">
-                    <p className="text-sm text-gray-500">{t('empty.default')}</p>
+                <div className="ui-panel text-center rounded-[1.75rem] border-dashed py-8">
+                    <p className="text-sm text-[var(--color-text-muted)]">{t('empty.default')}</p>
                 </div>
             );
         }
 
         return (
-            <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-6 text-center">
-                <p className="text-sm text-gray-600">{emptyStateConfig.message}</p>
+            <div className="ui-panel rounded-[1.75rem] border-dashed px-4 py-6 text-center">
+                <p className="text-sm text-[var(--color-text-muted)]">{emptyStateConfig.message}</p>
                 {emptyStateConfig.action && onEmptyAction && (
                     <button
                         type="button"
                         onClick={handleEmptyAction}
-                        className="mt-3 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700"
+                        className="ui-btn-secondary mt-3 rounded-full px-4 py-2 text-sm font-semibold"
                     >
                         {emptyStateConfig.action.label}
                     </button>
@@ -182,14 +191,16 @@ export default function RestaurantRail({
         }
 
         if (railState === 'error') {
+            const safeErrorMessage = isTransientNavigationError(error) ? null : error;
+
             if (!statePolishV1) {
-                return <HomeErrorState message={error || t('error.loadSection')} onRetry={onRetry} />;
+                return <HomeErrorState message={safeErrorMessage || t('error.loadSection')} onRetry={onRetry} />;
             }
 
             return (
                 <HomeErrorState
                     title={t('error.title')}
-                    message={error || t('error.retryInSeconds')}
+                    message={safeErrorMessage || t('error.retryInSeconds')}
                     onRetry={onRetry ? handleRetry : undefined}
                     fallbackLabel={onErrorFallback ? t('error.clearFilters') : undefined}
                     onFallback={onErrorFallback ? handleErrorFallback : undefined}

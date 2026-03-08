@@ -55,7 +55,7 @@ export default function ReviewComposer({
             aria-label={`Set rating ${star}`}
             disabled={disabled || submitting}
             onClick={() => setRating(star)}
-            className={`text-xl leading-none ${star <= rating ? 'text-amber-500' : 'ui-text-muted'}`}
+            className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${star <= rating ? 'border-amber-200 bg-amber-50 text-amber-500' : 'border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-muted)]'}`}
           >
             ★
           </button>
@@ -67,7 +67,7 @@ export default function ReviewComposer({
         disabled={disabled || submitting}
         onChange={(event) => setComment(event.target.value)}
         maxLength={maxCommentLength}
-        className="ui-input min-h-[96px] w-full rounded-xl px-3 py-2 text-sm"
+        className="ui-textarea min-h-[96px] rounded-xl px-3 py-2 text-sm"
         placeholder="Optional comment"
       />
 

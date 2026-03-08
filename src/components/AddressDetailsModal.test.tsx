@@ -19,7 +19,7 @@ describe('AddressDetailsModal', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Save Address' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save address' }));
 
     await waitFor(() => {
       expect(onSave).toHaveBeenCalledTimes(1);
@@ -34,5 +34,54 @@ describe('AddressDetailsModal', () => {
     );
 
     expect(screen.queryByText('Please provide a Google Maps URL before saving.')).not.toBeInTheDocument();
+  });
+
+  it('keeps selected building type during parent re-renders while modal is open', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+
+    const { rerender } = render(
+      <AddressDetailsModal
+        isOpen
+        initialValue={{
+          urlAddress: 'https://www.google.com/maps/search/?api=1&query=10.011,-84.1',
+          buildingType: 'Other',
+          deliveryNotes: 'Meet at door',
+        }}
+        onClose={vi.fn()}
+        onSave={onSave}
+      />
+    );
+
+    const hotelChoice = screen.getByRole('button', { name: 'Hotel' });
+
+    await userEvent.click(hotelChoice);
+
+    rerender(
+      <AddressDetailsModal
+        isOpen
+        initialValue={{
+          urlAddress: 'https://www.google.com/maps/search/?api=1&query=10.011,-84.1',
+          buildingType: 'Other',
+          deliveryNotes: 'Meet at door',
+        }}
+        onClose={vi.fn()}
+        onSave={onSave}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /Hotel/ })).toHaveClass('border-orange-500');
+  });
+
+  it('labels the header close action and omits the back action when unavailable', () => {
+    render(
+      <AddressDetailsModal
+        isOpen
+        onClose={vi.fn()}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
   });
 });

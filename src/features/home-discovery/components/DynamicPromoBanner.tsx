@@ -135,8 +135,8 @@ export default function DynamicPromoBanner({ onPromoClick }: DynamicPromoBannerP
 
     if (isLoading) {
         return (
-            <div className="bg-gradient-to-r from-orange-500 to-red-600 p-3 mb-4 rounded-2xl shadow-lg animate-pulse text-white border border-white/10">
-                <p className="text-xs md:text-sm font-bold leading-snug tracking-wide opacity-80">{t('loading')}</p>
+            <div className="mb-4 rounded-[1.75rem] border border-white/30 bg-[linear-gradient(135deg,#ec5b13_0%,#fb923c_55%,#f97316_100%)] p-4 text-white shadow-[0_20px_44px_-24px_rgba(236,91,19,0.7)] animate-pulse">
+                <p className="text-xs font-black uppercase tracking-[0.14em] opacity-80">{t('loading')}</p>
             </div>
         );
     }
@@ -144,17 +144,19 @@ export default function DynamicPromoBanner({ onPromoClick }: DynamicPromoBannerP
     if (!promo) return null;
 
     return (
-        <div className="bg-gradient-to-r from-orange-500 to-red-600 p-3 mb-4 rounded-2xl shadow-lg animate-fadeIn text-white border border-white/10 relative overflow-hidden">
+        <div className="relative mb-4 overflow-hidden rounded-[1.9rem] border border-white/30 bg-[linear-gradient(135deg,#ec5b13_0%,#fb923c_45%,#f97316_100%)] p-4 text-white shadow-[0_22px_48px_-24px_rgba(236,91,19,0.78)] animate-fadeIn">
+            <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
             <button
                 type="button"
                 onClick={handlePrimaryAction}
-                className="w-full pr-10 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded-xl"
+                className="w-full rounded-2xl pr-12 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
-                <p className="text-xs md:text-sm font-bold leading-snug tracking-wide">{promo}</p>
+                <p className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/80">{t('title')}</p>
+                <p className="text-sm font-black leading-snug tracking-[-0.01em] md:text-[15px]">{promo}</p>
             </button>
             <button
                 onClick={handleDismiss}
-                className="absolute top-2.5 right-2.5 shrink-0 bg-white/20 hover:bg-white/30 rounded-full w-9 h-9 flex items-center justify-center transition-colors text-xs font-bold cursor-pointer z-10"
+                className="absolute right-3 top-3 z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/16 text-xs font-bold transition-colors hover:bg-white/28"
                 aria-label={t('closeAria')}
             >
                 <span className="pointer-events-none">✕</span>

@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { RestaurantWithBranches } from '@/types';
@@ -76,26 +78,6 @@ function getLocalizedCategoryName(name: string, isEnglish: boolean): string {
     return CATEGORY_EN_MAP[normalizeCategoryName(name)] ?? name;
 }
 
-function reviewConfidenceLabel(reviewCount?: number | null) {
-    if (!reviewCount || reviewCount < 25) return 'Baja';
-    if (reviewCount < 90) return 'Media';
-    return 'Alta';
-}
-
-function getMetricErrors(restaurant: RestaurantWithBranches) {
-    const errors: string[] = [];
-
-    if (typeof restaurant.eta_min !== 'number' || Number.isNaN(restaurant.eta_min) || restaurant.eta_min <= 0) {
-        errors.push('ETA no disponible');
-    }
-
-    if (typeof restaurant.avg_price_estimate !== 'number' || Number.isNaN(restaurant.avg_price_estimate) || restaurant.avg_price_estimate <= 0) {
-        errors.push('Total estimado no disponible');
-    }
-
-    return errors;
-}
-
 export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardProps) {
     const router = useRouter();
     const locale = useLocale();
@@ -111,10 +93,8 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
     const etaMinutes = restaurant.eta_min;
     const finalPriceEstimate = restaurant.avg_price_estimate;
     const rating = restaurant.rating;
-    const reviewCount = restaurant.review_count;
     const hasPromo = Boolean(restaurant.promo_text);
     const deliveryFeeHint = primaryBranch?.estimated_delivery_fee ?? restaurant.estimated_delivery_fee;
-    const reviewConfidence = reviewConfidenceLabel(reviewCount);
     const hasRating = typeof rating === 'number' && !Number.isNaN(rating) && rating > 0;
     const ratingLabel = hasRating ? rating.toFixed(1) : t('noReviews');
 
@@ -129,7 +109,7 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
     };
 
     const renderMedia = () => (
-        <div className="relative aspect-[16/9] overflow-hidden bg-gray-100">
+        <div className="relative aspect-[16/9] overflow-hidden bg-[var(--color-surface-muted)]">
             <img
                 src={imageUrl}
                 alt={`Imagen de ${restaurant.name}`}
@@ -148,16 +128,16 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
 
             <div className="absolute left-3 right-3 top-3 flex items-center justify-between gap-2">
                 {hasPromo && (
-                    <span className="inline-flex min-h-5 items-center rounded-md bg-orange-500 px-2 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+                    <span className="inline-flex min-h-6 items-center rounded-full border border-white/40 bg-[linear-gradient(135deg,var(--color-brand)_0%,#fb923c_100%)] px-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-white shadow-sm">
                         {t('promo')}
                     </span>
                 )}
             </div>
 
             {restaurant.distance !== undefined && restaurant.distance !== null && (
-                <div className="absolute bottom-3 right-3 rounded-full bg-white/95 px-2 py-1 text-xs font-medium text-gray-700">
+                <div className="absolute bottom-3 right-3 rounded-full border border-white/70 bg-white/92 px-2.5 py-1 text-xs font-semibold text-[var(--color-text)] shadow-sm backdrop-blur-sm">
                     <span className="inline-flex items-center gap-1">
-                        <MapPin size={12} className="text-orange-500" aria-hidden="true" />
+                        <MapPin size={12} className="text-[var(--color-brand)]" aria-hidden="true" />
                         {formatDistance(restaurant.distance)}
                     </span>
                 </div>
@@ -166,43 +146,43 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
     );
 
     const renderMeta = () => (
-        <div className="space-y-1 p-3">
+        <div className="space-y-2 p-4">
             <div className="flex items-start justify-between gap-2">
-                <h3 className="truncate text-lg font-bold text-gray-900">{restaurant.name}</h3>
+                <h3 className="truncate text-lg font-black tracking-[-0.02em] text-[var(--color-text)]">{restaurant.name}</h3>
             </div>
 
-            <p className="truncate text-sm text-gray-500">{categoryNames}</p>
+            <p className="truncate text-sm text-[var(--color-text-muted)]">{categoryNames}</p>
 
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[10px] md:text-xs text-gray-500 font-medium">
-                <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
-                    <Clock size={10} className="text-gray-400" />
-                    <span className="text-gray-900 font-bold">
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-[var(--color-text-muted)] md:text-xs">
+                <div className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2.5 py-1">
+                    <Clock size={10} className="text-[var(--color-brand)]" />
+                    <span className="text-[var(--color-text)] font-bold">
                         {typeof etaMinutes === 'number' && etaMinutes > 0
                             ? `${etaMinutes}-${etaMinutes + 10} min`
                             : t('etaPending')}
                     </span>
                 </div>
-                <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
-                    <span className="text-gray-400 font-bold">₡</span>
+                <div className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2.5 py-1">
+                    <span className="text-[var(--color-brand)] font-bold">₡</span>
                     <span>
                         {typeof finalPriceEstimate === 'number' && finalPriceEstimate > 0
                             ? `${finalPriceEstimate.toLocaleString()} ${t('approx')}`
                             : t('pricePending')}
                     </span>
                 </div>
-                <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
-                    <Truck size={10} className="text-gray-400" />
+                <div className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2.5 py-1">
+                    <Truck size={10} className="text-[var(--color-brand)]" />
                     <span>
                         {typeof deliveryFeeHint === 'number' && deliveryFeeHint > 0
                             ? `₡${deliveryFeeHint.toLocaleString()}`
                             : t('free')}
                     </span>
                 </div>
-                <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md">
+                <div className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-amber-700">
                     {hasRating && <Star size={10} className="text-amber-400 fill-amber-400" aria-hidden="true" />}
                     <span>{ratingLabel}</span>
                 </div>
-                <div className="flex items-center gap-1 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-md text-emerald-700">
+                <div className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">
                     <ShieldCheck size={10} className="text-emerald-500" />
                     <span className="font-bold uppercase tracking-tighter text-[8px]">{t('trusted')}</span>
                 </div>
@@ -214,7 +194,7 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
         <button
             type="button"
             onClick={handleClick}
-            className="group w-full overflow-hidden rounded-2xl bg-white text-left shadow-sm transition-[box-shadow,transform] duration-200 ease-out hover:shadow-md active:scale-[0.995] motion-reduce:transform-none motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+            className="group ui-list-card w-full overflow-hidden rounded-[1.75rem] text-left transition-[box-shadow,transform,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[var(--color-border-strong)] hover:shadow-[0_20px_40px_-24px_rgba(98,60,29,0.34)] active:scale-[0.995] motion-reduce:transform-none motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] focus-visible:ring-offset-2"
             aria-label={t('viewMenuAria', { name: restaurant.name })}
         >
             {renderMedia()}

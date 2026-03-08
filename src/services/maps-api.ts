@@ -64,8 +64,8 @@ interface ProxyApiSuccess<T> {
   message?: string;
 }
 
-async function proxyGet<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`/api/external?target=fast-eat&path=${encodeURIComponent(path)}`, {
+async function proxyGet<T>(url: string, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(url, {
     method: 'GET',
     signal,
   });
@@ -86,18 +86,12 @@ async function proxyGet<T>(path: string, signal?: AbortSignal): Promise<T> {
 }
 
 async function proxyPost<T>(path: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
-  const response = await fetch('/api/external', {
+  const response = await fetch('/api/maps', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      target: 'fast-eat',
-      body: {
-        path,
-        ...body,
-      },
-    }),
+    body: JSON.stringify(body),
     signal,
   });
 
@@ -118,7 +112,8 @@ async function proxyPost<T>(path: string, body: Record<string, unknown>, signal?
 
 export const mapsApi = {
   geocodeAddress(address: string, options?: { language?: string; region?: string; signal?: AbortSignal }) {
-    return proxyPost<MapsGeocodeData>('/api/maps/v1/geocode', {
+    return proxyPost<MapsGeocodeData>('/api/maps', {
+      action: 'geocode',
       address,
       language: options?.language,
       region: options?.region,
@@ -126,7 +121,8 @@ export const mapsApi = {
   },
 
   reverseGeocode(lat: number, lng: number, options?: { language?: string; signal?: AbortSignal }) {
-    return proxyPost<MapsGeocodeData>('/api/maps/v1/reverse-geocode', {
+    return proxyPost<MapsGeocodeData>('/api/maps', {
+      action: 'reverse-geocode',
       lat,
       lng,
       language: options?.language,
@@ -152,17 +148,20 @@ export const mapsApi = {
       params.set('language', options.language);
     }
 
-    return proxyGet<MapsAutocompleteData>(`/api/maps/v1/places/autocomplete?${params.toString()}`, options?.signal);
+    params.set('action', 'autocomplete');
+
+    return proxyGet<MapsAutocompleteData>(`/api/maps?${params.toString()}`, options?.signal);
   },
 
   getPlaceDetails(placeId: string, options?: { language?: string; signal?: AbortSignal }) {
     const params = new URLSearchParams();
+    params.set('action', 'place-details');
+    params.set('placeId', placeId);
     if (options?.language) {
       params.set('language', options.language);
     }
 
-    const suffix = params.toString() ? `?${params.toString()}` : '';
-    return proxyGet<MapsPlaceDetailsData>(`/api/maps/v1/places/${encodeURIComponent(placeId)}${suffix}`, options?.signal);
+    return proxyGet<MapsPlaceDetailsData>(`/api/maps?${params.toString()}`, options?.signal);
   },
 
   getDirections(
@@ -171,7 +170,8 @@ export const mapsApi = {
     mode: MapsDirectionsMode = 'driving',
     options?: { signal?: AbortSignal }
   ) {
-    return proxyPost<MapsDirectionsData>('/api/maps/v1/directions', {
+    return proxyPost<MapsDirectionsData>('/api/maps', {
+      action: 'directions',
       origin,
       destination,
       mode,
@@ -179,6 +179,6 @@ export const mapsApi = {
   },
 
   getMapsConfig(options?: { signal?: AbortSignal }) {
-    return proxyGet<MapsConfigData>('/api/maps/v1/config', options?.signal);
+    return proxyGet<MapsConfigData>('/api/maps?action=config', options?.signal);
   },
 };

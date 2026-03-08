@@ -158,4 +158,19 @@ describe('RestaurantRail keyboard navigation', () => {
       })
     );
   });
+
+  it('hides raw abort error text from navigation-cancelled requests', () => {
+    render(
+      <RestaurantRail
+        railId="abort-rail"
+        title="Abortados"
+        restaurants={[] as any}
+        error="signal is aborted without reason"
+        statePolishV1
+      />
+    );
+
+    expect(screen.getByText('No pudimos actualizar esta sección')).toBeInTheDocument();
+    expect(screen.queryByText('signal is aborted without reason')).not.toBeInTheDocument();
+  });
 });

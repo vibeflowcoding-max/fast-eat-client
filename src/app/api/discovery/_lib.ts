@@ -755,7 +755,12 @@ export function buildRecommendationItems(params: {
     return (candidate.length > 0 ? candidate : fallback)
         .slice(0, params.limit ?? 12)
         .map((item) => {
-            const { confidenceScore, openStatusScore, freshnessScore, ...rest } = item;
+            const {
+                confidenceScore: _confidenceScore,
+                openStatusScore: _openStatusScore,
+                freshnessScore: _freshnessScore,
+                ...rest
+            } = item;
             return rest;
         });
 }

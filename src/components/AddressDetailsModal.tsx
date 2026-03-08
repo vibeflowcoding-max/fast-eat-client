@@ -2,6 +2,7 @@
 
 import React from 'react';
 import GoogleMapsAddressPicker from '@/components/GoogleMapsAddressPicker';
+import { Button, ChoiceCard, FieldMessage, Icon, OptionGroup, StickyHeaderBar, Surface, TextAreaField, TextField } from '@/../resources/components';
 import type { MapsGeocodeData } from '@/services/maps-api';
 
 export type BuildingType = 'Apartment' | 'Residential Building' | 'Hotel' | 'Office Building' | 'Other';
@@ -21,6 +22,7 @@ interface AddressDetailsModalProps {
   isOpen: boolean;
   initialValue?: Partial<AddressFormValue>;
   initialPosition?: { lat: number; lng: number } | null;
+  preferCurrentLocationOnOpen?: boolean;
   onClose: () => void;
   onBack?: () => void;
   onSave: (value: AddressFormValue) => Promise<void>;
@@ -45,6 +47,7 @@ export default function AddressDetailsModal({
   isOpen,
   initialValue,
   initialPosition,
+  preferCurrentLocationOnOpen = true,
   onClose,
   onBack,
   onSave,
@@ -60,11 +63,19 @@ export default function AddressDetailsModal({
   const [normalizedAddress, setNormalizedAddress] = React.useState<MapsGeocodeData | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const wasOpenRef = React.useRef(false);
 
   React.useEffect(() => {
     if (!isOpen) {
+      wasOpenRef.current = false;
       return;
     }
+
+    if (wasOpenRef.current) {
+      return;
+    }
+
+    wasOpenRef.current = true;
 
     setUrlAddress(initialValue?.urlAddress ?? '');
     setBuildingType(initialValue?.buildingType ?? 'Apartment');
@@ -126,14 +137,37 @@ export default function AddressDetailsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
-      <div className="max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-white p-4 sm:max-w-lg sm:rounded-2xl">
-        <h2 className="text-lg font-semibold text-gray-900">Address details</h2>
+    <div className="fixed inset-0 z-[140] flex items-end justify-center bg-black/40 sm:items-center">
+      <Surface className="max-h-[90vh] w-full overflow-y-auto rounded-t-[2rem] p-0 sm:max-w-2xl sm:rounded-[2rem]" padding="none" variant="base">
+        <StickyHeaderBar
+          className="rounded-t-[2rem]"
+          leadingAction={
+            onBack ? (
+              <Button aria-label="Back" onClick={onBack} size="icon" variant="ghost">
+                <Icon symbol="arrow_back" />
+              </Button>
+            ) : (
+              <span aria-hidden="true" className="block size-11" />
+            )
+          }
+          title="Delivery address"
+          trailingAction={
+            <Button aria-label="Close" onClick={onClose} size="icon" variant="ghost">
+              <Icon symbol="close" />
+            </Button>
+          }
+        />
 
-        <div className="mt-4">
+        <div className="space-y-5 p-4 sm:p-5">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-slate-50">Where should we deliver?</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Pick the pin or paste a Google Maps address so the app can use it across checkout and profile.</p>
+          </div>
+
           <GoogleMapsAddressPicker
             initialUrl={urlAddress}
             initialPosition={selectedPosition}
+            preferCurrentLocationOnLoad={preferCurrentLocationOnOpen}
             onChange={(nextUrl, nextPosition, normalized) => {
               setUrlAddress(nextUrl);
               setSelectedPosition(nextPosition);
@@ -146,87 +180,67 @@ export default function AddressDetailsModal({
             onPermissionGranted={onPermissionGranted}
             onPermissionDenied={onPermissionDenied}
           />
-        </div>
 
-        <div className="mt-4 space-y-3">
-          <div>
-            <label htmlFor="building-type" className="mb-1 block text-sm font-medium text-gray-700">
-              Building Type
-            </label>
-            <select
-              id="building-type"
-              value={buildingType}
-              onChange={(event) => setBuildingType(event.target.value as BuildingType)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
-            >
+          <TextField
+            description="You can leave this blank if you are only placing the pin on the map."
+            id="url-address"
+            label="Google Maps URL"
+            leadingIcon={<Icon symbol="map" tone="muted" />}
+            onChange={(event) => setUrlAddress(event.target.value)}
+            placeholder="https://www.google.com/maps/search/?api=1&query=..."
+            value={urlAddress}
+          />
+
+          <OptionGroup description="This helps delivery instructions feel more specific when the address is reopened later." label="Building type">
+            <div className="grid gap-3 sm:grid-cols-2">
               {BUILDING_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
+                <ChoiceCard
+                  checked={buildingType === type}
+                  key={type}
+                  onClick={() => setBuildingType(type)}
+                  title={type}
+                  type="radio"
+                />
               ))}
-            </select>
-          </div>
+            </div>
+          </OptionGroup>
 
-          <div>
-            <label htmlFor="unit-details" className="mb-1 block text-sm font-medium text-gray-700">
-              Apartment/Suite/Floor
-            </label>
-            <input
-              id="unit-details"
-              type="text"
-              value={unitDetails}
-              onChange={(event) => setUnitDetails(event.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
-            />
-          </div>
+          <TextField
+            id="unit-details"
+            label="Apartment, suite or floor"
+            leadingIcon={<Icon symbol="apartment" tone="muted" />}
+            onChange={(event) => setUnitDetails(event.target.value)}
+            placeholder="Apto 8B, piso 3"
+            value={unitDetails}
+          />
 
-          <div>
-            <label htmlFor="delivery-notes" className="mb-1 block text-sm font-medium text-gray-700">
-              Delivery notes
-            </label>
-            <textarea
-              id="delivery-notes"
-              value={deliveryNotes}
-              onChange={(event) => setDeliveryNotes(event.target.value)}
-              rows={3}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
-            />
+          <TextAreaField
+            description="Anything the driver should know when arriving at the building."
+            id="delivery-notes"
+            label="Delivery notes"
+            onChange={(event) => setDeliveryNotes(event.target.value)}
+            placeholder="Meet at the lobby, call on arrival, leave with concierge..."
+            rows={3}
+            value={deliveryNotes}
+          />
+
+          {error ? <FieldMessage tone="error">{error}</FieldMessage> : null}
+
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+            {onBack ? (
+              <Button onClick={onBack} type="button" variant="ghost">
+                Back
+              </Button>
+            ) : null}
+            <Button onClick={onClose} type="button" variant="outline">
+              Close
+            </Button>
+            <Button disabled={isSaving} onClick={handleSave} type="button">
+              {isSaving ? 'Saving...' : 'Save address'}
+            </Button>
           </div>
         </div>
-
-        {error && (
-          <p className="mt-3 text-sm text-red-600" aria-live="polite">
-            {error}
-          </p>
-        )}
-
-        <div className="mt-4 flex items-center justify-end gap-2">
-          {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
-            >
-              Back
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
-          >
-            Close
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="rounded-lg bg-orange-500 px-3 py-2 text-sm font-semibold text-white disabled:opacity-70"
-          >
-            {isSaving ? 'Saving...' : 'Save Address'}
-          </button>
-        </div>
-      </div>
+      </Surface>
     </div>
   );
 }

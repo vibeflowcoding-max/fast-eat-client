@@ -1,6 +1,39 @@
 
 export type Category = string;
 
+export interface MenuItemModifierOption {
+  id: string;
+  name: string;
+  priceDelta: number;
+  available: boolean;
+  stockCount?: number | null;
+}
+
+export interface MenuItemModifierGroup {
+  id: string;
+  name: string;
+  minSelection: number;
+  maxSelection: number | null;
+  required: boolean;
+  options: MenuItemModifierOption[];
+}
+
+export interface MenuItemVariant {
+  id: string;
+  name: string;
+  price: number;
+  isDefault: boolean;
+}
+
+export interface SelectedModifier {
+  modifierItemId: string;
+  name: string;
+  priceDelta: number;
+  quantity: number;
+  groupId?: string;
+  groupName?: string;
+}
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -8,6 +41,13 @@ export interface MenuItem {
   price: number;
   category: Category;
   image: string;
+  ingredients?: string[];
+  restaurantId?: string;
+  branchId?: string;
+  defaultVariantId?: string | null;
+  variants?: MenuItemVariant[];
+  modifierGroups?: MenuItemModifierGroup[];
+  hasStructuredCustomization?: boolean;
 }
 
 export interface RecommendedItem {
@@ -18,6 +58,10 @@ export interface RecommendedItem {
 export interface CartItem extends MenuItem {
   quantity: number;
   notes: string;
+  variantId?: string | null;
+  variantName?: string | null;
+  selectedModifiers?: SelectedModifier[];
+  lineTotal?: number;
 }
 
 export interface ChatMessage {
@@ -35,9 +79,12 @@ export interface OrderMetadata {
   gpsLocation?: string;
   customerLatitude?: number;
   customerLongitude?: number;
+  locationOverriddenFromProfile?: boolean;
+  locationDifferenceAcknowledged?: boolean;
   tableNumber?: string;
   scheduledFor?: string | null;
   optOutCutlery?: boolean;
+  splitDraft?: SavedOrderSplitDraft | null;
 }
 
 export interface OrderHistoryItem {
@@ -68,6 +115,74 @@ export interface RestaurantInfo {
   active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface BranchShellPayload {
+  branchId: string;
+  restaurant: RestaurantInfo | null;
+  tableQuantity: number;
+  isTableAvailable: boolean;
+}
+
+export interface CheckoutFeeRates {
+  serviceFeeRate: number;
+  platformFeeRate: number;
+  source?: string;
+}
+
+export interface BranchCheckoutContextPayload extends BranchShellPayload {
+  feeRates: CheckoutFeeRates;
+}
+
+export interface BranchMenuCategorySummary {
+  id: string;
+  name: string;
+  itemCount: number;
+}
+
+export interface BranchMenuCategoryItemsPayload {
+  category: {
+    id: string;
+    name: string;
+  } | null;
+  items: MenuItem[];
+  nextCursor: string | null;
+  total: number;
+}
+
+export interface ClientBootstrapPayload {
+  authUserId: string;
+  customerId: string | null;
+  profile: {
+    userId: string;
+    email: string | null;
+    fullName: string | null;
+    phone: string | null;
+    urlGoogleMaps: string | null;
+  };
+  customer: {
+    id: string;
+    name: string | null;
+    phone: string | null;
+    email: string | null;
+  } | null;
+  primaryAddress: {
+    id: string;
+    customerId: string;
+    urlAddress: string | null;
+    buildingType: 'Apartment' | 'Residential Building' | 'Hotel' | 'Office Building' | 'Other' | string;
+    unitDetails: string | null;
+    deliveryNotes: string;
+    lat: number | null;
+    lng: number | null;
+    formattedAddress: string | null;
+    placeId: string | null;
+  } | null;
+  completion: {
+    hasProfile: boolean;
+    hasPhone: boolean;
+    hasAddress: boolean;
+  };
 }
 
 export interface MCPOrderPayload {
@@ -193,6 +308,151 @@ export interface DietaryProfile {
   intolerances: string[];
   diet: 'none' | 'vegan' | 'vegetarian' | 'pescatarian' | 'keto' | 'paleo';
   preferences: string[];
+  strictness?: 'low' | 'medium' | 'high';
+  dislikedIngredients?: string[];
+  healthGoals?: string[];
+  syncStatus?: 'synced' | 'local-only';
+}
+
+export interface DietaryOption {
+  id: string;
+  value: string;
+  label: string;
+  iconKey?: string | null;
+  description?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+export interface DietaryOptionGroup {
+  key: 'diet' | 'allergy' | 'strictness' | 'disliked_ingredient' | 'health_goal';
+  name: string;
+  description?: string | null;
+  selectionMode: 'single' | 'multiple';
+  allowCustom: boolean;
+  options: DietaryOption[];
+}
+
+export interface DietaryOptionsCatalog {
+  groups: DietaryOptionGroup[];
+}
+
+export interface SavedOrderSplitDraft {
+  strategy: 'equal' | 'itemized' | 'custom';
+  splitData: Record<string, unknown>;
+  summary: Array<{
+    participantId: string;
+    participantName: string;
+    amount: number;
+    itemsTotal: number;
+    proportionalTaxAndFees: number;
+  }>;
+  savedAt: string;
+}
+
+export interface DeliveryTrackingPayload {
+  orderId: string;
+  status: { code: string; label: string; description?: string | null } | null;
+  serviceMode: string;
+  restaurant: {
+    id: string;
+    name: string | null;
+    coordinates: { latitude: number | null; longitude: number | null };
+  };
+  destination: {
+    coordinates: { latitude: number | null; longitude: number | null };
+  };
+  courier: {
+    assigned: boolean;
+    coordinates: { latitude: number | null; longitude: number | null } | null;
+    updatedAt: string | null;
+    freshness: string;
+  };
+  eta: {
+    minutes: number | null;
+    source: string;
+  };
+  auction: {
+    hasBids: boolean;
+    state: string;
+    startedAt: string | null;
+    endedAt: string | null;
+    latestBid: {
+      id: string;
+      status: string;
+      estimatedTimeMinutes: number | null;
+      bidAmount: number | null;
+      expiresAt: string | null;
+    } | null;
+  };
+}
+
+export interface PlannerRecommendation {
+  restaurant: {
+    id: string;
+    name: string;
+    rating?: number | null;
+  };
+  item: {
+    id: string;
+    name: string;
+    description?: string | null;
+    imageUrl?: string | null;
+    price: number;
+    variantId: string;
+  };
+  rationale: string[];
+  score: number;
+  cartSeed: {
+    restaurantId: string;
+    branchId?: string | null;
+    items: Array<{
+      item_id: string;
+      variant_id?: string | null;
+      quantity: number;
+      modifiers: Array<{ modifier_item_id: string; quantity: number }>;
+    }>;
+  };
+}
+
+export interface PlannerRecommendationsResponse {
+  generatedAt: string;
+  inputs: {
+    budget: number | null;
+    serviceMode: string;
+    searchTerms: string[];
+    dietaryProfile: {
+      allergies: string[];
+      preferences: string[];
+      strictness: string;
+    };
+  };
+  recommendations: PlannerRecommendation[];
+}
+
+export interface MysteryBoxOffer {
+  id: string | null;
+  source: 'curated' | 'generated';
+  canAccept: boolean;
+  restaurant: { id: string; name: string | null };
+  branch: { id: string; name: string | null } | null;
+  title: string;
+  description: string | null;
+  price: number;
+  originalValue: number | null;
+  availableUntil: string | null;
+  dietaryTags: string[];
+  excludedAllergens: string[];
+  itemsPreview: Array<{
+    menu_item_name: string;
+    quantity: number;
+    metadata?: Record<string, unknown>;
+  }>;
+}
+
+export interface MysteryBoxOffersResponse {
+  customerId: string;
+  generatedAt: string;
+  offers: MysteryBoxOffer[];
 }
 
 export interface GroupCartParticipant {
@@ -201,5 +461,26 @@ export interface GroupCartParticipant {
   isHost: boolean;
   items: CartItem[];
   joinedAt: number;
+}
+
+export interface PersistedCartRecord {
+  id: string;
+  customerId: string;
+  restaurantId: string;
+  branchId: string;
+  restaurantSlug: string;
+  restaurantName: string;
+  branchName: string | null;
+  itemCount: number;
+  subtotal: number;
+  isActive: boolean;
+  cartItems: CartItem[];
+  checkoutDraft: OrderMetadata;
+  restaurantSnapshot: RestaurantInfo | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+  lastRestoredAt: string | null;
+  storageSource: 'database' | 'local';
 }
 

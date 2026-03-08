@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Main Home Screen - Food Delivery</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen pb-20">
+<!-- Header -->
+<div class="sticky top-0 z-10 flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between border-b border-primary/10">
+<div class="text-primary flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
+<span class="material-symbols-outlined text-[24px]">location_on</span>
+</div>
+<div class="flex-1 px-3 flex flex-col justify-center cursor-pointer">
+<span class="text-xs font-medium text-slate-500 dark:text-slate-400">Deliver to...</span>
+<h2 class="text-base font-bold leading-tight flex items-center gap-1">123 Main Street <span class="material-symbols-outlined text-[16px] text-primary">expand_more</span></h2>
+</div>
+<div class="flex w-12 items-center justify-end">
+<button class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-background-light dark:bg-background-dark hover:bg-primary/10 text-slate-900 dark:text-slate-100 transition-colors border border-primary/10 relative">
+<span class="material-symbols-outlined text-[24px]">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-primary rounded-full"></span>
+</button>
+</div>
+</div>
+<!-- Main Content -->
+<main class="flex flex-col gap-6 pt-4">
+<!-- Promo Carousel -->
+<div class="flex overflow-x-auto [-ms-scrollbar-style:none] [scrollbar-width:none] [&amp;::-webkit-scrollbar]:hidden px-4 gap-4 snap-x snap-mandatory">
+<div class="snap-center shrink-0 w-[85vw] max-w-[400px] h-40 rounded-xl bg-gradient-to-r from-primary to-orange-400 p-4 flex flex-col justify-between text-white relative overflow-hidden">
+<div class="relative z-10 w-2/3">
+<p class="text-lg font-bold leading-tight mb-1">50% Off First Order</p>
+<p class="text-sm font-medium opacity-90 mb-3">Use code WELCOME50</p>
+<button class="bg-white text-primary px-4 py-1.5 rounded-full text-sm font-bold w-fit">Claim Now</button>
+</div>
+<div class="absolute -right-4 -bottom-4 size-32 bg-white/20 rounded-full blur-xl"></div>
+</div>
+<div class="snap-center shrink-0 w-[85vw] max-w-[400px] h-40 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 p-4 flex flex-col justify-between text-white relative overflow-hidden">
+<div class="relative z-10 w-2/3">
+<p class="text-lg font-bold leading-tight mb-1">Free Delivery Weekend</p>
+<p class="text-sm font-medium opacity-90 mb-3">On orders over $20</p>
+<button class="bg-white text-indigo-500 px-4 py-1.5 rounded-full text-sm font-bold w-fit">Shop Now</button>
+</div>
+<div class="absolute -right-4 -bottom-4 size-32 bg-white/20 rounded-full blur-xl"></div>
+</div>
+<div class="snap-center shrink-0 w-[85vw] max-w-[400px] h-40 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 p-4 flex flex-col justify-between text-white relative overflow-hidden">
+<div class="relative z-10 w-2/3">
+<p class="text-lg font-bold leading-tight mb-1">New Restaurants Added</p>
+<p class="text-sm font-medium opacity-90 mb-3">Check out latest flavors</p>
+<button class="bg-white text-emerald-500 px-4 py-1.5 rounded-full text-sm font-bold w-fit">Explore</button>
+</div>
+<div class="absolute -right-4 -bottom-4 size-32 bg-white/20 rounded-full blur-xl"></div>
+</div>
+</div>
+<!-- Near You Section -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between px-4">
+<h3 class="text-lg font-bold leading-tight">Near You</h3>
+<a class="text-primary text-sm font-medium flex items-center" href="#">See all <span class="material-symbols-outlined text-[16px]">chevron_right</span></a>
+</div>
+<div class="flex overflow-x-auto [-ms-scrollbar-style:none] [scrollbar-width:none] [&amp;::-webkit-scrollbar]:hidden px-4 gap-4 snap-x snap-mandatory pb-4">
+<!-- Restaurant Card 1 -->
+<div class="snap-start shrink-0 w-[70vw] max-w-[280px] flex flex-col gap-3 relative group">
+<button class="absolute top-2 right-2 z-10 size-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+<div class="w-full aspect-video bg-slate-200 dark:bg-slate-700 rounded-xl overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent z-[1]"></div>
+<div class="absolute bottom-2 left-2 z-[2] bg-white text-slate-900 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                             20-30 min
+                         </div>
+</div>
+<div>
+<div class="flex justify-between items-start mb-1">
+<h4 class="text-base font-bold leading-tight truncate">Burger Joint</h4>
+<div class="flex items-center gap-1 bg-background-light dark:bg-background-dark px-1.5 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-[14px] text-yellow-500 fill-current">star</span>
+<span class="text-sm font-medium">4.5</span>
+</div>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm flex items-center gap-1 mb-1">
+<span>American</span> • <span>$$</span>
+</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">local_shipping</span> $1.99 Delivery Fee
+                        </p>
+</div>
+</div>
+<!-- Restaurant Card 2 -->
+<div class="snap-start shrink-0 w-[70vw] max-w-[280px] flex flex-col gap-3 relative group">
+<button class="absolute top-2 right-2 z-10 size-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center text-red-500 transition-colors">
+<span class="material-symbols-outlined text-[20px] fill-current">favorite</span>
+</button>
+<div class="w-full aspect-video bg-slate-200 dark:bg-slate-700 rounded-xl overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent z-[1]"></div>
+<div class="absolute bottom-2 left-2 z-[2] bg-white text-slate-900 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                             15-25 min
+                         </div>
+</div>
+<div>
+<div class="flex justify-between items-start mb-1">
+<h4 class="text-base font-bold leading-tight truncate">Pizza Paradise</h4>
+<div class="flex items-center gap-1 bg-background-light dark:bg-background-dark px-1.5 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-[14px] text-yellow-500 fill-current">star</span>
+<span class="text-sm font-medium">4.8</span>
+</div>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm flex items-center gap-1 mb-1">
+<span>Italian</span> • <span>$$</span>
+</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">local_shipping</span> $0.99 Delivery Fee
+                        </p>
+</div>
+</div>
+<!-- Restaurant Card 3 -->
+<div class="snap-start shrink-0 w-[70vw] max-w-[280px] flex flex-col gap-3 relative group">
+<button class="absolute top-2 right-2 z-10 size-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+<div class="w-full aspect-video bg-slate-200 dark:bg-slate-700 rounded-xl overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent z-[1]"></div>
+<div class="absolute bottom-2 left-2 z-[2] bg-white text-slate-900 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                             30-40 min
+                         </div>
+</div>
+<div>
+<div class="flex justify-between items-start mb-1">
+<h4 class="text-base font-bold leading-tight truncate">Sushi Master</h4>
+<div class="flex items-center gap-1 bg-background-light dark:bg-background-dark px-1.5 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-[14px] text-yellow-500 fill-current">star</span>
+<span class="text-sm font-medium">4.7</span>
+</div>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm flex items-center gap-1 mb-1">
+<span>Japanese</span> • <span>$$$</span>
+</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">local_shipping</span> $2.99 Delivery Fee
+                        </p>
+</div>
+</div>
+</div>
+</section>
+<!-- Promos Section -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between px-4">
+<h3 class="text-lg font-bold leading-tight">Promos</h3>
+<a class="text-primary text-sm font-medium flex items-center" href="#">See all <span class="material-symbols-outlined text-[16px]">chevron_right</span></a>
+</div>
+<div class="flex overflow-x-auto [-ms-scrollbar-style:none] [scrollbar-width:none] [&amp;::-webkit-scrollbar]:hidden px-4 gap-4 snap-x snap-mandatory pb-4">
+<!-- Restaurant Card Promo -->
+<div class="snap-start shrink-0 w-[70vw] max-w-[280px] flex flex-col gap-3 relative group">
+<div class="absolute top-2 left-2 z-10 bg-primary text-white text-xs font-bold px-2 py-1 rounded-lg">
+                        Buy 1 Get 1
+                    </div>
+<button class="absolute top-2 right-2 z-10 size-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+<div class="w-full aspect-video bg-slate-200 dark:bg-slate-700 rounded-xl overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent z-[1]"></div>
+<div class="absolute bottom-2 left-2 z-[2] bg-white text-slate-900 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                             10-20 min
+                         </div>
+</div>
+<div>
+<div class="flex justify-between items-start mb-1">
+<h4 class="text-base font-bold leading-tight truncate">Taco Fiesta</h4>
+<div class="flex items-center gap-1 bg-background-light dark:bg-background-dark px-1.5 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-[14px] text-yellow-500 fill-current">star</span>
+<span class="text-sm font-medium">4.2</span>
+</div>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm flex items-center gap-1 mb-1">
+<span>Mexican</span> • <span>$</span>
+</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">local_shipping</span> Free Delivery
+                        </p>
+</div>
+</div>
+<div class="snap-start shrink-0 w-[70vw] max-w-[280px] flex flex-col gap-3 relative group">
+<div class="absolute top-2 left-2 z-10 bg-primary text-white text-xs font-bold px-2 py-1 rounded-lg">
+                        20% Off
+                    </div>
+<button class="absolute top-2 right-2 z-10 size-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+</button>
+<div class="w-full aspect-video bg-slate-200 dark:bg-slate-700 rounded-xl overflow-hidden relative">
+<div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent z-[1]"></div>
+<div class="absolute bottom-2 left-2 z-[2] bg-white text-slate-900 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                             25-35 min
+                         </div>
+</div>
+<div>
+<div class="flex justify-between items-start mb-1">
+<h4 class="text-base font-bold leading-tight truncate">Wok This Way</h4>
+<div class="flex items-center gap-1 bg-background-light dark:bg-background-dark px-1.5 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-[14px] text-yellow-500 fill-current">star</span>
+<span class="text-sm font-medium">4.6</span>
+</div>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm flex items-center gap-1 mb-1">
+<span>Chinese</span> • <span>$$</span>
+</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">local_shipping</span> $1.49 Delivery Fee
+                        </p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<div class="fixed bottom-0 left-0 w-full z-50 flex gap-2 border-t border-primary/10 bg-background-light dark:bg-background-dark px-4 pb-6 pt-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary" href="#">
+<div class="flex h-8 items-center justify-center rounded-full bg-primary/10 w-16">
+<span class="material-symbols-outlined text-[24px] fill-current">home</span>
+</div>
+<p class="text-xs font-bold leading-normal">Home</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<div class="flex h-8 items-center justify-center w-16">
+<span class="material-symbols-outlined text-[24px]">search</span>
+</div>
+<p class="text-xs font-medium leading-normal">Search</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 hover:text-primary transition-colors relative" href="#">
+<div class="flex h-8 items-center justify-center w-16 relative">
+<span class="material-symbols-outlined text-[24px]">shopping_cart</span>
+<span class="absolute top-0 right-3 size-4 bg-primary text-white text-[10px] font-bold flex items-center justify-center rounded-full">2</span>
+</div>
+<p class="text-xs font-medium leading-normal">Cart</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<div class="flex h-8 items-center justify-center w-16">
+<span class="material-symbols-outlined text-[24px]">person</span>
+</div>
+<p class="text-xs font-medium leading-normal">Profile</p>
+</a>
+</div>
+</body></html>

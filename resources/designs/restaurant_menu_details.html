@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Restaurant Menu</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark pb-20">
+<!-- Top App Bar & Header -->
+<div class="sticky top-0 z-10 bg-background-light dark:bg-background-dark pb-2 border-b border-primary/10">
+<div class="flex items-center p-4 pb-2 justify-between">
+<button class="flex size-12 shrink-0 items-center justify-center text-slate-900 dark:text-slate-100">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</button>
+<div class="flex w-12 items-center justify-end">
+<button class="flex items-center justify-center rounded-full h-12 w-12 bg-transparent text-slate-900 dark:text-slate-100">
+<span class="material-symbols-outlined text-2xl">more_horiz</span>
+</button>
+</div>
+</div>
+<div class="@container px-4">
+<div class="bg-cover bg-center flex flex-col justify-end overflow-hidden rounded-xl min-h-[200px]" data-alt="Restaurant exterior or signature dish" style='background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.1) 50%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuCG6VGRfOzGD0bbR03T2G898gWw8IWr-FOinmt4mTegmac1M_Q-ZTu6OX2CS1oOFxO7Yp916YyIkGU6H9J_4g9NjNOVNA_FS-425qPW7EQExxxTD_4JhYvRltEKO6zNd0GUPFyZFOaYqKZazajTp3YDdFnkz_qJ71ui9Lg09XotOt4q1jTvw0Mq8hgjpdb3UG2ob8-oDlar1nvLirwDX-mthhdcCn0Xr3gGnCxgffg9fGlQP6MqsiXFmB9OE0wQDTUlz64f01XKIJ1s");'>
+<div class="flex p-4 flex-col gap-1">
+<p class="text-white tracking-light text-2xl font-bold leading-tight">Luigi's Authentic Italian</p>
+</div>
+</div>
+</div>
+<p class="text-slate-600 dark:text-slate-400 text-sm font-medium leading-normal pb-3 pt-2 px-4 flex items-center gap-1">
+<span class="text-primary material-symbols-outlined text-sm">star</span> 4.8 (1.2k+ reviews) • Italian • $$ • 25-35 min delivery
+            </p>
+<!-- AI Search -->
+<div class="px-4 py-2">
+<label class="flex flex-col h-12 w-full">
+<div class="flex w-full flex-1 items-stretch rounded-full h-full bg-primary/10 border border-primary/20 focus-within:border-primary transition-colors">
+<div class="text-primary flex items-center justify-center pl-4 rounded-l-full">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-full text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-0 border-none bg-transparent h-full placeholder:text-slate-500 px-4 pl-2 text-sm font-medium leading-normal" placeholder="Ask AI: 'Show me vegan appetizers'" value=""/>
+</div>
+</label>
+</div>
+<!-- Categories -->
+<div class="flex gap-2 px-4 py-3 overflow-x-auto no-scrollbar scroll-smooth">
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary px-5 text-white shadow-sm">
+<span class="text-sm font-bold leading-normal">Popular</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-slate-200 dark:bg-slate-800 px-4 text-slate-700 dark:text-slate-300 border border-transparent">
+<span class="text-sm font-medium leading-normal">Appetizers</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-slate-200 dark:bg-slate-800 px-4 text-slate-700 dark:text-slate-300 border border-transparent">
+<span class="text-sm font-medium leading-normal">Mains</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-slate-200 dark:bg-slate-800 px-4 text-slate-700 dark:text-slate-300 border border-transparent">
+<span class="text-sm font-medium leading-normal">Desserts</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-slate-200 dark:bg-slate-800 px-4 text-slate-700 dark:text-slate-300 border border-transparent">
+<span class="text-sm font-medium leading-normal">Beverages</span>
+</button>
+</div>
+</div>
+<!-- Menu List -->
+<div class="px-4 py-4 space-y-8">
+<!-- Popular Section -->
+<div>
+<h2 class="text-xl font-bold mb-4 text-slate-900 dark:text-slate-100">Popular</h2>
+<div class="space-y-4">
+<!-- Item 1 -->
+<div class="flex gap-4 p-4 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<h3 class="font-bold text-base">Truffle Tagliatelle</h3>
+<span class="material-symbols-outlined text-primary text-sm" title="Popular">local_fire_department</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm line-clamp-2">Handmade pasta with creamy black truffle sauce, parmesan crisp, and fresh parsley.</p>
+</div>
+<div class="mt-2 font-bold text-primary">$24.00</div>
+</div>
+<div class="relative size-24 shrink-0">
+<img alt="Truffle Tagliatelle" class="w-full h-full object-cover rounded-lg" data-alt="Plate of truffle tagliatelle pasta" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFsxp6MKLpFTEhHCcH1tGaF07A5rVzfvNxIB3WqtcTevC9oNpu_lOLX3KwNI9JHWZGLj5shs8MRuvMk-KSfHXnIlxvm43bbNGJpt141KBE4lpoVUV4ZrSnsKMHN-IlP4to10zm9dDnBacr_-lQv46twBm1Orf7POy6Jrs4oslxKeaJmCKyzs_8YXK5-Y0atv1VsfvRirZhl3m5D_c3qReMnYMVgeYiQ9UcZWV6IIpioQkNvWEyrq5T-TARoMf2RrP9jD1VvVB62GV1"/>
+<button class="absolute -bottom-2 -right-2 size-8 bg-white dark:bg-slate-800 rounded-full shadow-md flex items-center justify-center border border-slate-100 dark:border-slate-700 text-primary">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex gap-4 p-4 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="flex-1 flex flex-col justify-between">
+<div>
+<h3 class="font-bold text-base mb-1">Margherita Pizza</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm line-clamp-2">Wood-fired crust, San Marzano tomato sauce, fresh mozzarella, basil, and extra virgin olive oil.</p>
+</div>
+<div class="mt-2 font-bold text-primary">$18.00</div>
+</div>
+<div class="relative size-24 shrink-0">
+<img alt="Margherita Pizza" class="w-full h-full object-cover rounded-lg" data-alt="Wood-fired Margherita pizza" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBj4sI-XFQJYw4mveGomEmXb8MlIvwMnToIONwRGfboSVxfd8_tgDOldxKjFM0qsJEvGEOxuPz92UOZHMcRsXSf_vo94zB7W0egzNPmIwSRvnU6A6WU0m4r-DULdZeGuk9aCLt9TvVjQQr47hk5OX-oDhKTtb7M8Sk5XsoYm4Wp-RYwODgGs34xLlZxCbkr40qsU6lHEpjqaClAW9DHIFZlX4-lOaHw-6DfUXu5Uizi11_4Ab4BIjfIamimDARKkNh2y7Gh0OEA-R3U"/>
+<button class="absolute -bottom-2 -right-2 size-8 bg-white dark:bg-slate-800 rounded-full shadow-md flex items-center justify-center border border-slate-100 dark:border-slate-700 text-primary">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Appetizers Section -->
+<div>
+<h2 class="text-xl font-bold mb-4 text-slate-900 dark:text-slate-100">Appetizers</h2>
+<div class="space-y-4">
+<!-- Item 3 -->
+<div class="flex gap-4 p-4 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="flex-1 flex flex-col justify-between">
+<div>
+<h3 class="font-bold text-base mb-1">Bruschetta al Pomodoro</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm line-clamp-2">Toasted ciabatta topped with diced tomatoes, garlic, basil, and balsamic glaze.</p>
+<span class="inline-block mt-1 text-xs font-medium px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">Vegan</span>
+</div>
+<div class="mt-2 font-bold text-primary">$12.00</div>
+</div>
+<div class="relative size-24 shrink-0">
+<img alt="Bruschetta" class="w-full h-full object-cover rounded-lg" data-alt="Bruschetta with tomatoes on a plate" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrRzx7L6KEKP2VAZu1tGuM20EGezo9Ga46xBNu1n-GaQp7hfKncug2eWlRRUzDKEWOpC3T5yrLCHQuSnkX_CgiPIRiRoESUu2iwmN_kfSmDoJqbYrAG_RCCR5aAebOsVHEhNgKmQv9bPyUhAlxOB_U__Xj3G0CNefWHFg20h0CLmxUyAlsH3n2LM9cfaYOt-grIIXUiyOV0kp5TAuqdxBK6H6oCHNxO-zz9uuht3mfQsS3otDOePZRtiHkPYhJt66CK6_HbDsaI3hV"/>
+<button class="absolute -bottom-2 -right-2 size-8 bg-white dark:bg-slate-800 rounded-full shadow-md flex items-center justify-center border border-slate-100 dark:border-slate-700 text-primary">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="flex gap-4 p-4 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="flex-1 flex flex-col justify-between">
+<div>
+<h3 class="font-bold text-base mb-1">Calamari Fritti</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm line-clamp-2">Crispy fried squid rings served with lemon wedge and marinara dipping sauce.</p>
+</div>
+<div class="mt-2 font-bold text-primary">$16.50</div>
+</div>
+<div class="relative size-24 shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg">
+<span class="material-symbols-outlined text-slate-400 text-3xl">restaurant</span>
+<button class="absolute -bottom-2 -right-2 size-8 bg-white dark:bg-slate-800 rounded-full shadow-md flex items-center justify-center border border-slate-100 dark:border-slate-700 text-primary">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- View Cart FAB -->
+<div class="fixed bottom-6 left-0 w-full px-4 flex justify-center pointer-events-none">
+<button class="pointer-events-auto bg-primary text-white w-full max-w-sm rounded-full py-4 px-6 flex items-center justify-between shadow-lg font-bold">
+<div class="flex items-center gap-2">
+<div class="bg-white/20 px-2 py-0.5 rounded-full text-sm">2</div>
+<span>View order</span>
+</div>
+<span>$42.00</span>
+</button>
+</div>
+</div>
+</body></html>

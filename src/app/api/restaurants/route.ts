@@ -271,7 +271,6 @@ export async function GET(request: NextRequest) {
         }
 
         // Transform the data to flatten categories and enrich from discovery tables
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let result: TransformedRestaurant[] = baseRestaurants.map((restaurant) => {
             const categories = (restaurant.restaurant_restaurant_categories || [])
                 .map((rrc) => rrc.restaurant_categories)

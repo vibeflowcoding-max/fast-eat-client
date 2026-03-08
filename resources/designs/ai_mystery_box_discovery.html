@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Mystery Box Discovery</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen pb-24 relative">
+<div class="flex items-center p-4 pb-2 justify-between sticky top-0 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md z-10">
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">AI Mystery Box</h2>
+</div>
+<div class="px-4 py-3">
+<div class="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-xl min-h-[218px] bg-primary/10 dark:bg-primary/20" data-alt="Glowing delivery box illustration" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDG96mhMe9LnIlnGslBeodudHPZJbxWPxBzj1jxpVbqN7GRLxy-_l9uPV1Y1jNtPEV_48nhLC3XWqF9dYeIdTwSySYrEeQ5uUVdsJPtulWpTt8oyz0e0lL7GnYC8fDRzfKDsE5Sf1uKcbw0-18y6QFKc0_eA55UBNKwXuGl7q0VK5drBaz-1KczJlxlcmQlIfBfUUl5jiNodqj0WSRPIdXP-dLg77uWrrPHt4bbC_2s_lrguitdvrpO2U53IucuqlWVe4AKCexhnXSm");'></div>
+</div>
+<div class="p-4">
+<div class="flex items-stretch justify-between gap-4 rounded-xl bg-white dark:bg-slate-800 p-4 shadow-sm border border-slate-100 dark:border-slate-700">
+<div class="flex flex-col gap-1 flex-[2_2_0px]">
+<p class="text-base font-bold leading-tight">Ready for a Delicious Surprise?</p>
+<p class="text-sm font-normal leading-normal text-slate-600 dark:text-slate-400">Let AI pick your next meal based on your preferences and dietary needs.</p>
+</div>
+<div class="w-16 h-16 bg-center bg-no-repeat bg-cover rounded-xl shrink-0 bg-primary/20 flex items-center justify-center text-primary" data-alt="Surprise icon">
+<span class="material-symbols-outlined" style="font-size: 32px;">stars</span>
+</div>
+</div>
+</div>
+<div class="px-4 pt-4 pb-2">
+<h3 class="text-lg font-bold leading-tight tracking-[-0.015em] mb-3">Budget Range</h3>
+<div class="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+<button class="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 whitespace-nowrap text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Under $15</button>
+<button class="px-4 py-2 rounded-full border border-primary bg-primary text-white whitespace-nowrap text-sm font-medium transition-colors shadow-sm shadow-primary/30">$15 - $25</button>
+<button class="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 whitespace-nowrap text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">$25 - $40</button>
+<button class="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 whitespace-nowrap text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">$40+</button>
+</div>
+</div>
+<div class="px-4 pt-4 pb-2">
+<h3 class="text-lg font-bold leading-tight tracking-[-0.015em] mb-3">Cuisine Vibe</h3>
+<div class="flex flex-wrap gap-3">
+<button class="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<span class="text-primary text-base">🌶️</span> Spicy
+            </button>
+<button class="px-4 py-2 rounded-full border border-primary bg-primary/10 dark:bg-primary/20 text-primary font-medium text-sm flex items-center gap-2 transition-colors">
+<span class="text-base">🥗</span> Healthy
+            </button>
+<button class="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<span class="text-base">🍜</span> Comfort
+            </button>
+<button class="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<span class="text-base">🌍</span> Exotic
+            </button>
+</div>
+</div>
+<div class="px-4 py-4 mt-2">
+<div class="bg-primary/10 dark:bg-primary/5 rounded-xl p-4 flex items-start gap-3 border border-primary/20">
+<span class="material-symbols-outlined text-primary shrink-0 mt-0.5">verified_user</span>
+<div>
+<p class="text-sm font-medium text-slate-800 dark:text-slate-200">Dietary Vault Active</p>
+<p class="text-xs text-slate-600 dark:text-slate-400 mt-1">AI will strictly filter out any allergens or restrictions listed in your profile.</p>
+</div>
+</div>
+</div>
+<div class="px-4 py-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">lock_open</span>
+            Unlock Mystery Meal
+        </button>
+</div>
+<div class="pt-6 pb-8">
+<h3 class="text-lg font-bold leading-tight tracking-[-0.015em] px-4 mb-4">Previous Surprises</h3>
+<div class="flex gap-4 overflow-x-auto px-4 pb-4 hide-scrollbar">
+<div class="min-w-[160px] bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700 shrink-0">
+<div class="h-24 bg-cover bg-center" data-alt="Spicy noodles dish" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCaZD5Ia17F7jghHhHcQYBR24FtxcBJEaN_OMtqZJNmAJ7N4N1anQFFIpfv9Bobi4tRzYiuL9skN94shdV2A2BXrbAkFG9YQkEy-ilJQIj0oqlHnLLE26BkkZ1F9nynCgSjr_bYmJl4Rkvf5ben-WEEFqcGrFM07Z1H0PyvuHPHOio9UUtKQC5yU1OmBtY90EZLnnQRbi2hxRkstp4dr4ONWPU93FeV5h9z4QbJLWwUWJl1RWr_wI00UNVTdsT-q3gE6RT5ZHRCmfVU');"></div>
+<div class="p-3">
+<p class="font-bold text-sm truncate">Spicy Dragon Noodles</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-1">from Wok Star</p>
+<div class="flex items-center gap-1 mt-2">
+<span class="material-symbols-outlined text-yellow-400 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-xs font-medium">5.0</span>
+</div>
+</div>
+</div>
+<div class="min-w-[160px] bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700 shrink-0">
+<div class="h-24 bg-cover bg-center" data-alt="Healthy green bowl" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBCmZQSnrM8tCxszG60Q5zMglcrRnvRwqiXrYo3ysOfxSTpZftm46PHwxv19jpE0QcHIQD6Dvcw-x4l9yS41eCuI9QTfdhWa-vPhtServVQrkF9zjTA0MzfU1NMzMBZ8ffzacgSUwdRl5kzlB-o1WaqAyWXo3Yh67Z-eE1_rdyBd6FXNd8UNlU-ekODdN6ecNZe9u-ZgUHgnajXF4-D4AqRef02kM0nw_byv0s6wODkfpOr7mtScHGl830JPD7m9ZCJtjFZgaWzEhra');"></div>
+<div class="p-3">
+<p class="font-bold text-sm truncate">Zen Quinoa Bowl</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-1">from Pure Root</p>
+<div class="flex items-center gap-1 mt-2">
+<span class="material-symbols-outlined text-yellow-400 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-xs font-medium">4.8</span>
+</div>
+</div>
+</div>
+<div class="min-w-[160px] bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700 shrink-0">
+<div class="h-24 bg-cover bg-center" data-alt="Street tacos" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDnLrKxwBNFmlQ0kNH9hbVMxwvkX2AZppJ-9QtKKk4WP9EjtjGXXgq907Jm4eMntvwaGFGFNcsN-unEW0OhA-ow628Mw3nWNiel6c6KrhlWD02m4ujwb6TLv_NbIJX21GABwgGUs2V_Vn4dteSI2nw64GAQq4KSKy2YAelD5HXjxLBFZawllN9UhHyx0IkJDKc2ax4JWKIFjHEVCKEhzzDgq0UYZRXp3TDQlOPRcRub8D6T1_legP1BfOgsSX3rH2g-mqGaXwudhE_n');"></div>
+<div class="p-3">
+<p class="font-bold text-sm truncate">Street Taco Trio</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-1">from El Camino</p>
+<div class="flex items-center gap-1 mt-2">
+<span class="material-symbols-outlined text-yellow-400 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-xs font-medium">4.9</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed bottom-4 left-4 right-4 bg-white dark:bg-slate-800 rounded-full shadow-lg border border-slate-100 dark:border-slate-700 px-6 py-3 flex justify-between items-center z-50">
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="text-[10px] font-medium">Browse</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">redeem</span>
+<span class="text-[10px] font-medium">Mystery Box</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</a>
+</div>
+<style>
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</body></html>

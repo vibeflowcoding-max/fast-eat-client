@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ord
     }
 
     const supabaseServer = getSupabaseServer();
-    const selectOrderFields = 'id,order_number,branch_id,restaurant_id,status_id,delivery_address,notes,estimated_time,payment_method,total,created_at';
+    const selectOrderFields = 'id,order_number,branch_id,restaurant_id,status_id,delivery_address,notes,estimated_time,payment_method,total,customer_total,delivery_fee,delivery_final_price,created_at';
 
     let { data: orderRaw, error: orderByIdError } = await (supabaseServer as any)
       .from('orders')
@@ -113,13 +113,22 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ord
       (bid) => Boolean(bid.acceptedAt) || bid.status === 'accepted' || bid.status === 'delivering'
     );
 
+    const subtotal = toNumber(orderRaw?.total);
+    const customerTotal = toNumber(orderRaw?.customer_total ?? orderRaw?.total);
+    const deliveryFee = toNumber(orderRaw?.delivery_final_price ?? orderRaw?.delivery_fee);
+    const feesTotal = Math.max(0, customerTotal - subtotal - deliveryFee);
+
     return NextResponse.json({
       order: {
         id: String(orderRaw.id),
         orderNumber: typeof orderRaw?.order_number === 'string' ? orderRaw.order_number : null,
         statusCode: typeof orderStatus?.code === 'string' ? String(orderStatus.code) : null,
         statusLabel: typeof orderStatus?.label === 'string' ? String(orderStatus.label) : null,
-        total: toNumber(orderRaw?.total),
+        total: customerTotal,
+        subtotal,
+        deliveryFee,
+        feesTotal,
+        customerTotal,
         createdAt: String(orderRaw?.created_at ?? ''),
         items: Array.isArray(orderItems)
           ? orderItems.map((item: any) => ({

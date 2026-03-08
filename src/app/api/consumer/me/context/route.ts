@@ -1,50 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { constructSecureUrl } from '@/lib/url-utils';
+import { resolveAuthenticatedUser } from '@/app/api/_lib/auth';
+import { getClientContextPayload } from '@/server/consumer/me';
 
 export async function GET(req: NextRequest) {
   try {
-    const apiUrl = process.env.FAST_EAT_API_URL;
-
-    if (!apiUrl) {
-      return NextResponse.json({ error: 'FAST_EAT_API_URL is not configured' }, { status: 500 });
+    const resolvedUser = await resolveAuthenticatedUser(req);
+    if (resolvedUser instanceof NextResponse) {
+      return resolvedUser;
     }
 
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-
-    const response = await fetch(constructSecureUrl(apiUrl, '/api/consumer/v1/me/context'), {
-      method: 'GET',
-      headers: {
-        Authorization: authHeader,
-      },
-      cache: 'no-store',
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    const data = await response.json();
-    return NextResponse.json(data, {
-      status: response.status,
+    const payload = await getClientContextPayload(resolvedUser.userId);
+    return NextResponse.json(payload, {
       headers: {
         'Cache-Control': 'no-store'
       }
     });
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
+    if (error instanceof Error && error.message.includes('No se encontró')) {
       return NextResponse.json(
-        { error: 'Context proxy timed out' },
-        { status: 504 },
+        { error: error.message },
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Context proxy failed' },
+      { error: error instanceof Error ? error.message : 'Context request failed' },
       { status: 500 }
     );
   }

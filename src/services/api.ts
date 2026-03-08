@@ -1,28 +1,41 @@
-import { CartItem, DeliveryBid, MCPOrderPayload, MenuItem, OrderMetadata } from '../types';
+import { BranchCheckoutContextPayload, BranchMenuCategoryItemsPayload, BranchMenuCategorySummary, BranchShellPayload, CartItem, ClientBootstrapPayload, DeliveryBid, DeliveryTrackingPayload, DietaryOptionsCatalog, DietaryProfile, MenuItem, MysteryBoxOffersResponse, OrderMetadata, PersistedCartRecord, PlannerRecommendationsResponse, RestaurantInfo, SavedOrderSplitDraft } from '../types';
 import { APP_CONSTANTS } from '../constants';
+import { supabase } from '@/lib/supabase';
+import { getLocalSavedCart, listLocalSavedCarts, upsertLocalSavedCart, archiveLocalSavedCart } from '@/lib/saved-carts-storage';
 
 export type InteractionType = 'chat' | 'carrito' | 'generar_orden' | 'get_carrito' | 'delete_cart';
 export type CartAction = 'add' | 'increment' | 'reduce' | 'remove' | 'details' | 'clear' | 'none' | 'recommendation' | 'add-to-cart';
 
-const PROXY_URL = '/api/external';
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
 
-const cleanJsonResponse = (text: string): any => {
-  if (!text) return null;
-  const trimmed = text.trim();
-  try {
-    return JSON.parse(trimmed);
-  } catch (e) {
-    const matches = trimmed.match(/(\{[\s\S]*\}|\[[\s\S]*\])/g);
-    if (matches) {
-      try {
-        return JSON.parse(matches[0]);
-      } catch (e2) {
-        console.warn("No se pudo parsear el JSON extraído");
-      }
-    }
-    return null;
+function isStorageFallbackError(errorMessage: string): boolean {
+  const normalized = errorMessage.toLowerCase();
+  return normalized.includes('could not')
+    || normalized.includes('relation')
+    || normalized.includes('carts')
+    || normalized.includes('saved cart')
+    || normalized.includes('saved carts')
+    || normalized.includes('missing supabase server credentials')
+    || normalized.includes('missing authenticated session')
+    || normalized.includes('missing authorization header')
+    || normalized.includes('unauthorized');
+}
+
+async function getAuthenticatedHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+
+  if (!accessToken) {
+    throw new Error('Missing authenticated session');
   }
-};
+
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${accessToken}`,
+  };
+}
 
 const extractDataFromN8N = (data: any) => {
   if (!data) return { message: "", action: "none", confirmation: false };
@@ -70,56 +83,436 @@ const mapBidFromApi = (bid: any): DeliveryBid => ({
   createdAt: String(bid?.createdAt ?? bid?.created_at ?? new Date().toISOString())
 });
 
-export const fetchMenuFromAPI = async (branchId: string): Promise<{ items: MenuItem[], categories: string[] }> => {
+export function hasStructuredMenuCustomization(rawItem: any): boolean {
+  const inlineVariants = Array.isArray(rawItem?.variants) ? rawItem.variants : [];
+  const nestedModifierGroups = Array.isArray(rawItem?.modifierGroups) ? rawItem.modifierGroups : [];
+  const apiModifierGroups = Array.isArray(rawItem?.modifier_groups) ? rawItem.modifier_groups : [];
+
+  return Boolean(
+    rawItem?.hasStructuredCustomization
+      || nestedModifierGroups.length > 0
+      || apiModifierGroups.length > 0
+      || inlineVariants.length > 1,
+  );
+}
+
+function mapMenuItem(rawItem: any, categoryName?: string): MenuItem {
+  return {
+    id: String(rawItem?.id || rawItem?.productId || rawItem?.name),
+    name: rawItem?.name || 'Platillo',
+    description: rawItem?.description || 'Delicioso platillo tradicional.',
+    price: Number(rawItem?.price || rawItem?.branch_price || rawItem?.base_price || 0),
+    category: categoryName || rawItem?.category || 'General',
+    image: rawItem?.image || rawItem?.image_url || 'https://images.unsplash.com/photo-1580822184713-fc5400e7fe10?auto=format&fit=crop&q=80&w=800',
+    ingredients: Array.isArray(rawItem?.ingredients) ? rawItem.ingredients.map(String) : [],
+    defaultVariantId: rawItem?.defaultVariantId || rawItem?.default_variant_id || null,
+    variants: Array.isArray(rawItem?.variants)
+      ? rawItem.variants.map((variant: any) => ({
+          id: String(variant.id),
+          name: String(variant.name || 'Regular'),
+          price: Number(variant.price || 0),
+          isDefault: Boolean(variant.isDefault ?? variant.is_default),
+        }))
+      : [],
+    modifierGroups: Array.isArray(rawItem?.modifierGroups)
+      ? rawItem.modifierGroups
+      : Array.isArray(rawItem?.modifier_groups)
+        ? rawItem.modifier_groups.map((group: any) => ({
+            id: String(group.id),
+            name: String(group.name || 'Extras'),
+            minSelection: Number(group.minSelection ?? group.min_selection ?? 0),
+            maxSelection: group.maxSelection ?? group.max_selection ?? null,
+            required: Boolean(group.required),
+            options: Array.isArray(group.options)
+              ? group.options.map((option: any) => ({
+                  id: String(option.id),
+                  name: String(option.name || 'Opción'),
+                  priceDelta: Number(option.priceDelta ?? option.price_delta ?? 0),
+                  available: option.available !== false,
+                  stockCount: option.stockCount ?? option.stock_count ?? null,
+                }))
+              : [],
+          }))
+        : [],
+    hasStructuredCustomization: hasStructuredMenuCustomization(rawItem),
+  };
+}
+
+function mapRestaurantInfoPayload(data: any): RestaurantInfo | null {
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  return {
+    id: String(data.id || ''),
+    name: String(data.name || 'Restaurante'),
+    description: String(data.description || ''),
+    category: String(data.category || ''),
+    address: String(data.address || ''),
+    phone: String(data.phone || ''),
+    email: String(data.email || ''),
+    rating: Number(data.rating || 0),
+    image_url: String(data.image_url || ''),
+    google_maps_url: String(data.google_maps_url || ''),
+    opening_hours: typeof data.opening_hours === 'object' && data.opening_hours !== null ? data.opening_hours : {},
+    payment_methods: Array.isArray(data.payment_methods) ? data.payment_methods.map(String) : [],
+    service_modes: Array.isArray(data.service_modes) ? data.service_modes.map(String) : [],
+    active: Boolean(data.active),
+    created_at: String(data.created_at || ''),
+    updated_at: String(data.updated_at || ''),
+  };
+}
+
+export const fetchMenuFromAPI = async (
+  branchId: string,
+  signal?: AbortSignal,
+): Promise<{ items: MenuItem[], categories: string[] }> => {
   try {
-    // Use placeholder to hide real ID, but keep correct structure for Fast Eat API
-    const path = `/mcp/public/branches/:branchId/menu`;
-    const response = await fetch(`${PROXY_URL}?target=fast-eat&path=${encodeURIComponent(path)}`);
+    const normalizedBranchId = String(branchId || '').trim();
+    if (!normalizedBranchId) {
+      return { items: [], categories: [] };
+    }
+
+    const response = await fetch(`/api/menu/branch/${encodeURIComponent(normalizedBranchId)}`, { signal });
     if (!response.ok) throw new Error('Error al cargar el menú');
     const data = await response.json();
-    const rawItems = Array.isArray(data) ? data : (data.menu || []);
+    const categoryEntries = Array.isArray(data?.categories) ? data.categories : [];
+    const normalizedFromCategories: MenuItem[] = categoryEntries.flatMap((category: any) => {
+      const categoryName = String(category?.name || 'General');
+      const categoryItems = Array.isArray(category?.items) ? category.items : [];
+
+      return categoryItems.map((item: any) => ({
+        id: String(item.id || item.productId || item.name),
+        name: item.name || 'Platillo',
+        description: item.description || 'Delicioso platillo tradicional.',
+        price: Number(item.price || item.branch_price || item.base_price || 0),
+        category: categoryName,
+        image: item.image_url || `https://images.unsplash.com/photo-1580822184713-fc5400e7fe10?auto=format&fit=crop&q=80&w=800`,
+        ingredients: Array.isArray(item.ingredients) ? item.ingredients.map(String) : [],
+        defaultVariantId: item.default_variant_id || null,
+        variants: Array.isArray(item.variants)
+          ? item.variants.map((variant: any) => ({
+              id: String(variant.id),
+              name: String(variant.name || 'Regular'),
+              price: Number(variant.price || item.price || 0),
+              isDefault: Boolean(variant.is_default),
+            }))
+          : [],
+        modifierGroups: Array.isArray(item.modifier_groups)
+          ? item.modifier_groups.map((group: any) => ({
+              id: String(group.id),
+              name: String(group.name || 'Extras'),
+              minSelection: Number(group.min_selection || 0),
+              maxSelection: group.max_selection == null ? null : Number(group.max_selection),
+              required: Boolean(group.required),
+              options: Array.isArray(group.options)
+                ? group.options.map((option: any) => ({
+                    id: String(option.id),
+                    name: String(option.name || 'Opción'),
+                    priceDelta: Number(option.price_delta || 0),
+                    available: option.available !== false,
+                    stockCount: option.stock_count ?? null,
+                  }))
+                : [],
+            }))
+          : [],
+        hasStructuredCustomization: hasStructuredMenuCustomization(item),
+      }));
+    });
+
+    const rawItems = normalizedFromCategories.length > 0 ? normalizedFromCategories : (Array.isArray(data) ? data : (data.menu || []));
     const items: MenuItem[] = rawItems.map((item: any) => ({
       id: String(item.id || item.productId || item.name),
       name: item.name || 'Platillo',
       description: item.description || 'Delicioso platillo tradicional.',
-      price: parseFloat(item.branch_price || item.base_price || 0),
+      price: Number(item.price || item.branch_price || item.base_price || 0),
       category: item.category || 'General',
-      image: item.image_url || `https://images.unsplash.com/photo-1580822184713-fc5400e7fe10?auto=format&fit=crop&q=80&w=800`
+      image: item.image || item.image_url || `https://images.unsplash.com/photo-1580822184713-fc5400e7fe10?auto=format&fit=crop&q=80&w=800`,
+      ingredients: Array.isArray(item.ingredients) ? item.ingredients.map(String) : [],
+      defaultVariantId: item.defaultVariantId || item.default_variant_id || null,
+      variants: Array.isArray(item.variants) ? item.variants : [],
+      modifierGroups: Array.isArray(item.modifierGroups) ? item.modifierGroups : Array.isArray(item.modifier_groups) ? item.modifier_groups : [],
+      hasStructuredCustomization: hasStructuredMenuCustomization(item),
     }));
     const categories = Array.from(new Set(items.map(i => i.category)));
     return { items, categories };
   } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+
     console.error('Error fetching menu:', error);
     return { items: [], categories: [] };
   }
 };
 
-export const fetchRestaurantInfo = async (branchId: string): Promise<import('../types').RestaurantInfo | null> => {
+export const fetchRestaurantInfo = async (
+  branchId: string,
+  signal?: AbortSignal,
+): Promise<import('../types').RestaurantInfo | null> => {
   try {
-    const path = `/restaurants/public/branch/:branchId`;
-    const response = await fetch(`${PROXY_URL}?target=fast-eat&path=${encodeURIComponent(path)}`);
+    const normalizedBranchId = String(branchId || '').trim();
+    if (!normalizedBranchId) {
+      return null;
+    }
+
+    const response = await fetch(`/api/restaurants/public/branch/${encodeURIComponent(normalizedBranchId)}`, { signal });
     if (!response.ok) throw new Error('Error al cargar la información del restaurante');
     const data = await response.json();
     if (data.success && data.data) {
-      return data.data;
+      return mapRestaurantInfoPayload(data.data);
     }
-    return null;
+    return mapRestaurantInfoPayload(data?.data ?? data);
   } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+
     console.error('Error fetching restaurant info:', error);
     return null;
   }
 };
 
-export const fetchTableQuantity = async (branchId: string): Promise<{ quantity: number, is_available: boolean }> => {
+export const fetchTableQuantity = async (
+  branchId: string,
+  signal?: AbortSignal,
+): Promise<{ quantity: number, is_available: boolean }> => {
   try {
-    const response = await fetch(`/api/tables?branchId=${branchId}`);
+    const response = await fetch(`/api/tables?branchId=${branchId}`, { signal });
     if (!response.ok) return { quantity: 0, is_available: false };
     return await response.json();
   } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+
     console.error('Error fetching table quantity:', error);
     return { quantity: 0, is_available: false };
   }
 };
+
+export const fetchCheckoutFeeRates = async (branchId: string): Promise<{ serviceFeeRate: number; platformFeeRate: number }> => {
+  try {
+    if (!branchId) {
+      return { serviceFeeRate: 0, platformFeeRate: 0 };
+    }
+
+    const response = await fetch(`/api/checkout/pricing?branchId=${encodeURIComponent(branchId)}`);
+    if (!response.ok) {
+      return { serviceFeeRate: 0, platformFeeRate: 0 };
+    }
+
+    const data = await response.json();
+    const serviceFeeRate = Number(data?.serviceFeeRate);
+    const platformFeeRate = Number(data?.platformFeeRate);
+
+    return {
+      serviceFeeRate: Number.isFinite(serviceFeeRate) ? serviceFeeRate : 0,
+      platformFeeRate: Number.isFinite(platformFeeRate) ? platformFeeRate : 0,
+    };
+  } catch {
+    return { serviceFeeRate: 0, platformFeeRate: 0 };
+  }
+};
+
+export const fetchClientBootstrap = async (
+  signal?: AbortSignal,
+): Promise<ClientBootstrapPayload | null> => {
+  const headers = await getAuthenticatedHeaders();
+  const response = await fetch('/api/consumer/me/bootstrap', {
+    method: 'GET',
+    headers,
+    cache: 'no-store',
+    signal,
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || 'Could not load bootstrap context');
+  }
+
+  return (data?.data || data) as ClientBootstrapPayload;
+};
+
+export const fetchBranchShell = async (
+  branchId: string,
+  signal?: AbortSignal,
+): Promise<BranchShellPayload | null> => {
+  try {
+    const normalizedBranchId = String(branchId || '').trim();
+    if (!normalizedBranchId) {
+      return null;
+    }
+
+    const response = await fetch(`/api/branches/${encodeURIComponent(normalizedBranchId)}/shell`, {
+      cache: 'no-store',
+      signal,
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data?.error || 'Could not load branch shell');
+    }
+
+    const payload = data?.data || data;
+
+    return {
+      branchId: String(payload?.branchId || normalizedBranchId),
+      restaurant: mapRestaurantInfoPayload(payload?.restaurant),
+      tableQuantity: Number(payload?.tableQuantity || 0),
+      isTableAvailable: Boolean(payload?.isTableAvailable),
+    };
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+
+    console.error('Error fetching branch shell:', error);
+    return null;
+  }
+};
+
+export const fetchCheckoutContext = async (
+  branchId: string,
+  signal?: AbortSignal,
+): Promise<BranchCheckoutContextPayload | null> => {
+  try {
+    const normalizedBranchId = String(branchId || '').trim();
+    if (!normalizedBranchId) {
+      return null;
+    }
+
+    const response = await fetch(`/api/branches/${encodeURIComponent(normalizedBranchId)}/checkout-context`, {
+      cache: 'no-store',
+      signal,
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data?.error || 'Could not load checkout context');
+    }
+
+    const payload = data?.data || data;
+    const feeRates = payload?.feeRates || {};
+
+    return {
+      branchId: String(payload?.branchId || normalizedBranchId),
+      restaurant: mapRestaurantInfoPayload(payload?.restaurant),
+      tableQuantity: Number(payload?.tableQuantity || 0),
+      isTableAvailable: Boolean(payload?.isTableAvailable),
+      feeRates: {
+        serviceFeeRate: Number(feeRates?.serviceFeeRate || 0),
+        platformFeeRate: Number(feeRates?.platformFeeRate || 0),
+        source: typeof feeRates?.source === 'string' ? feeRates.source : 'default',
+      },
+    };
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+
+    console.error('Error fetching checkout context:', error);
+    return null;
+  }
+};
+
+export const fetchBranchMenuCategories = async (
+  branchId: string,
+  signal?: AbortSignal,
+): Promise<BranchMenuCategorySummary[]> => {
+  try {
+    const normalizedBranchId = String(branchId || '').trim();
+    if (!normalizedBranchId) {
+      return [];
+    }
+
+    const response = await fetch(`/api/menu/branch/${encodeURIComponent(normalizedBranchId)}/categories`, {
+      cache: 'no-store',
+      signal,
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data?.error || 'Could not load menu categories');
+    }
+
+    const payload = data?.categories || data?.data?.categories || data?.data || [];
+    return Array.isArray(payload)
+      ? payload.map((category: any) => ({
+          id: String(category?.id || category?.name || 'general'),
+          name: String(category?.name || 'General'),
+          itemCount: Number(category?.itemCount || 0),
+        }))
+      : [];
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+
+    console.error('Error fetching branch menu categories:', error);
+    return [];
+  }
+};
+
+export const fetchBranchMenuItems = async (
+  branchId: string,
+  params: { categoryId: string; cursor?: string | null; limit?: number; channel?: string },
+  signal?: AbortSignal,
+): Promise<BranchMenuCategoryItemsPayload> => {
+  const normalizedBranchId = String(branchId || '').trim();
+  const normalizedCategoryId = String(params.categoryId || '').trim();
+
+  if (!normalizedBranchId || !normalizedCategoryId) {
+    return {
+      category: null,
+      items: [],
+      nextCursor: null,
+      total: 0,
+    };
+  }
+
+  const searchParams = new URLSearchParams({
+    categoryId: normalizedCategoryId,
+    limit: String(params.limit || 12),
+    channel: params.channel || 'delivery',
+  });
+
+  if (params.cursor) {
+    searchParams.set('cursor', params.cursor);
+  }
+
+  const response = await fetch(
+    `/api/menu/branch/${encodeURIComponent(normalizedBranchId)}/items?${searchParams.toString()}`,
+    {
+      cache: 'no-store',
+      signal,
+    },
+  );
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data?.error || 'Could not load menu items');
+  }
+
+  const payload = data?.data || data;
+  const categoryName = String(payload?.category?.name || 'General');
+  const items = Array.isArray(payload?.items)
+    ? payload.items.map((item: any) => mapMenuItem(item, categoryName))
+    : [];
+
+  return {
+    category: payload?.category
+      ? {
+          id: String(payload.category.id || normalizedCategoryId),
+          name: categoryName,
+        }
+      : null,
+    items,
+    nextCursor: payload?.nextCursor ? String(payload.nextCursor) : null,
+    total: Number(payload?.total || items.length),
+  };
+};
+
 export const fetchBranches = async (): Promise<any[]> => {
   try {
     const response = await fetch('/api/branches');
@@ -143,16 +536,6 @@ export const sendChatToN8N = async (
   isTest: boolean = false
 ) => {
   try {
-    const n8nOrderTypeMap: Record<string, string> = {
-      'comer_aca': 'comer_ahi',
-      'comer_aqui': 'comer_ahi',
-      'dine_in': 'comer_ahi',
-      'domicilio': 'domicilio',
-      'delivery': 'domicilio',
-      'recoger': 'recoger',
-      'pickup': 'recoger'
-    };
-
     const payload = {
       message,
       fromNumber,
@@ -184,9 +567,8 @@ export const sendChatToN8N = async (
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        target: 'n8n',
+        ...payload,
         isTest,
-        body: payload
       }),
     });
 
@@ -201,7 +583,7 @@ export const sendChatToN8N = async (
       order_id: extracted.order_id,
       order_number: extracted.order_number
     };
-  } catch (error) {
+  } catch {
     return {
       output: APP_CONSTANTS.MESSAGES.CONNECTION_ERROR,
       action: "none" as CartAction,
@@ -220,36 +602,34 @@ export const submitOrderToMCP = async (
   const normalizedCustomerName = String(orderMetadata.customerName || '').trim();
   const normalizedCustomerPhone = String(orderMetadata.customerPhone || fallbackPhone || '').trim();
 
-  const payload: MCPOrderPayload = {
-    tool: 'create_branch_order',
-    arguments: {
-      branchId: branchId,
-      totalAmount: total,
-      customerName: normalizedCustomerName,
-      customerPhone: normalizedCustomerPhone,
-      fromNumber: normalizedCustomerPhone,
-      customer: {
-        name: normalizedCustomerName,
-        phone: normalizedCustomerPhone,
-        address: orderMetadata.address || null,
-        latitude: orderMetadata.customerLatitude,
-        longitude: orderMetadata.customerLongitude,
-      },
-      paymentMethod: orderMetadata.paymentMethod,
-      orderType: orderMetadata.orderType,
-      source: 'client',
-      address: orderMetadata.address,
-      customerLatitude: orderMetadata.customerLatitude,
-      customerLongitude: orderMetadata.customerLongitude,
-      ...(orderMetadata.tableNumber ? { tableNumber: orderMetadata.tableNumber } : {}),
-      items: cart.map(item => ({
-        productId: item.id,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        notes: item.notes
-      }))
-    }
+  const payload = {
+    branchId,
+    totalAmount: total,
+    customerName: normalizedCustomerName,
+    customerPhone: normalizedCustomerPhone,
+    fromNumber: normalizedCustomerPhone,
+    paymentMethod: orderMetadata.paymentMethod,
+    orderType: orderMetadata.orderType,
+    source: 'client',
+    address: orderMetadata.address,
+    customerLatitude: orderMetadata.customerLatitude,
+    customerLongitude: orderMetadata.customerLongitude,
+    scheduledFor: orderMetadata.scheduledFor,
+    optOutCutlery: Boolean(orderMetadata.optOutCutlery),
+    ...(orderMetadata.tableNumber ? { tableNumber: orderMetadata.tableNumber } : {}),
+    items: cart.map(item => ({
+      item_id: item.id,
+      productId: item.id,
+      variantId: item.variantId || item.defaultVariantId || null,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      notes: item.notes,
+      modifiers: (item.selectedModifiers || []).map((modifier) => ({
+        modifier_item_id: modifier.modifierItemId,
+        quantity: modifier.quantity,
+      })),
+    })),
   };
 
   const response = await fetch('/api/orders', {
@@ -265,6 +645,209 @@ export const submitOrderToMCP = async (
   return await response.json();
 };
 
+export const fetchDietaryProfile = async (): Promise<DietaryProfile | null> => {
+  const headers = await getAuthenticatedHeaders();
+  const response = await fetch('/api/profile/dietary', {
+    method: 'GET',
+    headers,
+    cache: 'no-store',
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || 'Could not fetch dietary profile');
+  }
+
+  const profile = data?.data?.profile || data?.profile || null;
+  if (!profile) {
+    return null;
+  }
+
+  const preferences = Array.isArray(profile.preferences) ? profile.preferences.map(String) : [];
+  const inferredDiet = preferences.includes('vegan')
+    ? 'vegan'
+    : preferences.includes('vegetarian')
+      ? 'vegetarian'
+      : preferences.includes('pescatarian')
+        ? 'pescatarian'
+        : preferences.includes('keto')
+          ? 'keto'
+          : preferences.includes('paleo')
+            ? 'paleo'
+            : 'none';
+
+  return {
+    diet: inferredDiet,
+    allergies: Array.isArray(profile.allergies) ? profile.allergies.map(String) : [],
+    intolerances: [],
+    preferences,
+    strictness: profile.strictness || 'medium',
+    dislikedIngredients: Array.isArray(profile.dislikedIngredients)
+      ? profile.dislikedIngredients.map(String)
+      : Array.isArray(profile.disliked_ingredients)
+        ? profile.disliked_ingredients.map(String)
+        : [],
+    healthGoals: Array.isArray(profile.healthGoals)
+      ? profile.healthGoals.map(String)
+      : Array.isArray(profile.health_goals)
+        ? profile.health_goals.map(String)
+        : [],
+    syncStatus: 'synced',
+  };
+};
+
+export const fetchDietaryOptions = async (): Promise<DietaryOptionsCatalog> => {
+  const response = await fetch('/api/profile/dietary/options', {
+    method: 'GET',
+    cache: 'no-store',
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || 'Could not fetch dietary options');
+  }
+
+  return data?.data || data;
+};
+
+export const saveDietaryProfile = async (profile: DietaryProfile): Promise<DietaryProfile> => {
+  const headers = await getAuthenticatedHeaders();
+  const preferences = Array.from(new Set([
+    ...(profile.preferences || []),
+    ...(profile.diet && profile.diet !== 'none' ? [profile.diet] : []),
+  ].filter(Boolean)));
+
+  const response = await fetch('/api/profile/dietary', {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({
+      allergies: profile.allergies || [],
+      preferences,
+      strictness: profile.strictness || 'medium',
+      dislikedIngredients: profile.dislikedIngredients || [],
+      healthGoals: profile.healthGoals || [],
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || 'Could not save dietary profile');
+  }
+
+  return {
+    ...profile,
+    preferences,
+    syncStatus: 'synced',
+  };
+};
+
+export const saveOrderSplitDraft = async (orderId: string, split: SavedOrderSplitDraft): Promise<any> => {
+  const headers = await getAuthenticatedHeaders();
+  const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/splits`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      strategy: split.strategy,
+      splitData: split.splitData,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || 'Could not save split');
+  }
+
+  return data?.data?.split || data?.split || null;
+};
+
+export const fetchLatestOrderSplit = async (orderId: string): Promise<any> => {
+  const headers = await getAuthenticatedHeaders();
+  const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/splits/latest`, {
+    method: 'GET',
+    headers,
+    cache: 'no-store',
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || 'Could not load split');
+  }
+
+  return data?.data?.split || data?.split || null;
+};
+
+export const fetchOrderTracking = async (orderId: string): Promise<DeliveryTrackingPayload> => {
+  const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/tracking`, {
+    method: 'GET',
+    cache: 'no-store',
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || 'Could not load tracking');
+  }
+
+  return data?.data || data;
+};
+
+export const fetchPlannerRecommendations = async (payload: {
+  limit?: number;
+  budget?: number;
+  serviceMode?: 'delivery' | 'pickup';
+  mood?: string;
+}): Promise<PlannerRecommendationsResponse> => {
+  const headers = await getAuthenticatedHeaders();
+  const response = await fetch('/api/planner/recommendations', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || 'Could not generate recommendations');
+  }
+
+  return data?.data || data;
+};
+
+export const fetchMysteryBoxOffers = async (payload: {
+  limit?: number;
+  maxPrice?: number;
+  serviceMode?: 'delivery' | 'pickup';
+  restaurantId?: string;
+  branchId?: string;
+}): Promise<MysteryBoxOffersResponse> => {
+  const headers = await getAuthenticatedHeaders();
+  const response = await fetch('/api/mystery-box/offers', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || 'Could not load mystery box offers');
+  }
+
+  return data?.data || data;
+};
+
+export const acceptMysteryBoxOffer = async (offerId: string): Promise<any> => {
+  const headers = await getAuthenticatedHeaders();
+  const response = await fetch(`/api/mystery-box/offers/${encodeURIComponent(offerId)}/accept`, {
+    method: 'POST',
+    headers,
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || 'Could not accept mystery box offer');
+  }
+
+  return data?.data || data;
+};
+
 export const getCartFromN8N = async (branchId: string, fromNumber: string, isTest: boolean = false): Promise<any[]> => {
   try {
     const payload = {
@@ -273,13 +856,12 @@ export const getCartFromN8N = async (branchId: string, fromNumber: string, isTes
       branch_id: branchId,
       intencion: "get_carrito"
     };
-    const response = await fetch('/api/chat', { // Updated to use /api/chat
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        target: 'n8n',
+        ...payload,
         isTest,
-        body: payload
       }),
     });
     const rawData = await response.json();
@@ -287,22 +869,12 @@ export const getCartFromN8N = async (branchId: string, fromNumber: string, isTes
     const finalData = data?.output || data;
     if (finalData?.cart?.items) return finalData.cart.items;
     return [];
-  } catch (error) {
+  } catch {
     return [];
   }
 };
 
 export const sendOrderToN8N = async (message: string, cart: CartItem[], branchId: string, fromNumber: string, interaction: string, action: string, item: any, orderMetadata: OrderMetadata, isTest: boolean = false): Promise<any> => {
-  const n8nOrderTypeMap: Record<string, string> = {
-    'comer_aca': 'comer_ahi',
-    'comer_aqui': 'comer_ahi',
-    'dine_in': 'comer_ahi',
-    'domicilio': 'domicilio',
-    'delivery': 'domicilio',
-    'recoger': 'recoger',
-    'pickup': 'recoger'
-  };
-
   const payload = {
     message,
     fromNumber,
@@ -332,9 +904,8 @@ export const sendOrderToN8N = async (message: string, cart: CartItem[], branchId
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      target: 'n8n',
+      ...payload,
       isTest,
-      body: payload
     }),
   });
 
@@ -377,10 +948,127 @@ export const listOrderBids = async (orderId: string): Promise<{ orderId: string;
   };
 };
 
+export const fetchSavedCarts = async (): Promise<PersistedCartRecord[]> => {
+  try {
+    const headers = await getAuthenticatedHeaders();
+    const response = await fetch('/api/carts', {
+      method: 'GET',
+      headers,
+      cache: 'no-store',
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.error || `Error HTTP: ${response.status}`);
+    }
+
+    return Array.isArray(data?.carts) ? data.carts : [];
+  } catch (error) {
+    if (isStorageFallbackError(error instanceof Error ? error.message : '')) {
+      return listLocalSavedCarts();
+    }
+
+    throw error;
+  }
+};
+
+export const saveCurrentCart = async (payload: {
+  branchId: string;
+  cartItems: CartItem[];
+  checkoutDraft: OrderMetadata;
+  restaurantSnapshot: RestaurantInfo | null;
+  metadata?: Record<string, unknown>;
+}): Promise<PersistedCartRecord> => {
+  try {
+    const headers = await getAuthenticatedHeaders();
+    const response = await fetch('/api/carts', {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.error || `Error HTTP: ${response.status}`);
+    }
+
+    return data.cart as PersistedCartRecord;
+  } catch (error) {
+    if (!isStorageFallbackError(error instanceof Error ? error.message : '')) {
+      throw error;
+    }
+
+    return upsertLocalSavedCart({
+      ...payload,
+      restaurantId: payload.restaurantSnapshot?.id || payload.branchId,
+      restaurantSlug: payload.restaurantSnapshot?.name?.toLowerCase().replace(/ /g, '-') || payload.branchId,
+      restaurantName: payload.restaurantSnapshot?.name || 'Restaurant',
+      branchName: payload.restaurantSnapshot?.name || null,
+    });
+  }
+};
+
+export const fetchSavedCartById = async (cartId: string): Promise<PersistedCartRecord> => {
+  try {
+    const headers = await getAuthenticatedHeaders();
+    const response = await fetch(`/api/carts/${encodeURIComponent(cartId)}`, {
+      method: 'GET',
+      headers,
+      cache: 'no-store',
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.error || `Error HTTP: ${response.status}`);
+    }
+
+    return data.cart as PersistedCartRecord;
+  } catch (error) {
+    if (isStorageFallbackError(error instanceof Error ? error.message : '')) {
+      const cart = getLocalSavedCart(cartId);
+      if (cart) {
+        return cart;
+      }
+    }
+
+    throw error;
+  }
+};
+
+export const archiveSavedCart = async (cartId: string): Promise<void> => {
+  try {
+    const headers = await getAuthenticatedHeaders();
+    const response = await fetch(`/api/carts/${encodeURIComponent(cartId)}`, {
+      method: 'DELETE',
+      headers,
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.error || `Error HTTP: ${response.status}`);
+    }
+  } catch (error) {
+    if (isStorageFallbackError(error instanceof Error ? error.message : '')) {
+      archiveLocalSavedCart(cartId);
+      return;
+    }
+
+    throw error;
+  }
+};
+
 export const acceptBid = async (
   orderId: string,
   bidId: string
-): Promise<{ orderId: string; status: string; label: string | null; deliveryFinalPrice: number }> => {
+): Promise<{
+  orderId: string;
+  status: string;
+  label: string | null;
+  deliveryFinalPrice: number;
+  subtotal: number;
+  feesTotal: number;
+  customerTotal: number;
+}> => {
   const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/bids/${encodeURIComponent(bidId)}/accept`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }
@@ -399,7 +1087,10 @@ export const acceptBid = async (
     label: typeof payload?.label === 'string'
       ? payload.label
       : (typeof payload?.statusLabel === 'string' ? payload.statusLabel : null),
-    deliveryFinalPrice: Number(payload?.deliveryFinalPrice ?? 0)
+    deliveryFinalPrice: Number(payload?.deliveryFinalPrice ?? 0),
+    subtotal: Number(payload?.subtotal ?? 0),
+    feesTotal: Number(payload?.feesTotal ?? 0),
+    customerTotal: Number(payload?.customerTotal ?? payload?.total ?? 0),
   };
 };
 

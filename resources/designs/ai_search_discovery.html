@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Search and Discovery</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col antialiased">
+<div class="sticky top-0 z-10 bg-background-light dark:bg-background-dark pt-safe pb-4 border-b border-primary/10 dark:border-primary/20">
+<div class="flex items-center px-4 py-2 justify-between">
+<button class="flex size-10 shrink-0 items-center justify-center text-slate-900 dark:text-slate-100 hover:bg-primary/10 rounded-full transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h2 class="text-lg font-bold flex-1 text-center pr-10">Search</h2>
+</div>
+<div class="px-4 mt-2">
+<label class="flex flex-col w-full h-12 group relative shadow-sm rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary/50 transition-all">
+<div class="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/5 to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+<div class="flex w-full flex-1 items-stretch h-full relative z-10 bg-white dark:bg-slate-800/50">
+<div class="text-primary flex items-center justify-center pl-4">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<input class="form-input flex w-full flex-1 resize-none bg-transparent border-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-400 px-3 text-base font-medium" placeholder="What are you craving? (AI powered)" value=""/>
+<div class="flex items-center justify-center pr-2">
+<button class="p-2 text-slate-500 hover:text-primary transition-colors rounded-full">
+<span class="material-symbols-outlined">mic</span>
+</button>
+</div>
+</div>
+</label>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-2 ml-1 flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size: 14px;">info</span>
+                Personalized based on your past orders and dietary preferences.
+            </p>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto pb-24">
+<div class="px-4 py-5">
+<div class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1.5 rounded-full bg-primary/10 dark:bg-primary/20 text-primary px-4 border border-primary/20">
+<span class="material-symbols-outlined fill" style="font-size: 18px;">restaurant</span>
+<span class="text-sm font-semibold">Dinner ideas</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-4 border border-slate-200 dark:border-slate-700">
+<span class="material-symbols-outlined" style="font-size: 18px;">eco</span>
+<span class="text-sm font-medium">Vegan options</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-4 border border-slate-200 dark:border-slate-700">
+<span class="material-symbols-outlined" style="font-size: 18px;">bolt</span>
+<span class="text-sm font-medium">Fast delivery</span>
+</button>
+</div>
+</div>
+<div class="mb-6">
+<h3 class="text-lg font-bold px-4 mb-3">Recent Searches</h3>
+<div class="flex gap-2 px-4 flex-wrap">
+<div class="flex h-8 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 shadow-sm">
+<span class="material-symbols-outlined text-slate-400 mr-1" style="font-size: 16px;">history</span>
+<span class="text-sm font-medium">Spicy Thai</span>
+</div>
+<div class="flex h-8 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 shadow-sm">
+<span class="material-symbols-outlined text-slate-400 mr-1" style="font-size: 16px;">history</span>
+<span class="text-sm font-medium">Gluten-free Pizza</span>
+</div>
+<div class="flex h-8 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 shadow-sm">
+<span class="material-symbols-outlined text-slate-400 mr-1" style="font-size: 16px;">history</span>
+<span class="text-sm font-medium">Sushi rolls</span>
+</div>
+</div>
+</div>
+<div class="mb-8">
+<div class="flex items-center justify-between px-4 mb-3">
+<h3 class="text-lg font-bold">Order Again</h3>
+<button class="text-sm text-primary font-medium hover:underline">See all</button>
+</div>
+<div class="flex overflow-x-auto gap-4 px-4 pb-4 no-scrollbar">
+<div class="w-40 shrink-0 bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700/50">
+<div class="h-24 bg-slate-200 dark:bg-slate-700 relative">
+<img alt="Margherita Pizza" class="w-full h-full object-cover" data-alt="Delicious Margherita Pizza" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCahzBnhrC9GNQP5zXqo14B1KCc0cKQoyrCgHniFLPqgndflBTCpCIA5UuuZElwO0KD1yZ6nz3V9yXUjmkk3S7R1CTX8iTZwwIYsWiadnW5cYavkUYBi6V9USsMEJWOhXZKacnlDFURM1L3yst6oISZb7uUcYOnHUPj6vtFEzlLQuBZ1Uvjuezjs0AnP1rvVGYWLPUDsbcwAcZkEcwAAuXeeJwB9iP9IxuVG0lSXpPVgOVPn2xyNXM0X-1ni2nT_Ms1iA30O5UfZ1JH"/>
+<div class="absolute top-2 right-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full p-1 shadow-sm">
+<span class="material-symbols-outlined fill text-primary" style="font-size: 16px;">favorite</span>
+</div>
+</div>
+<div class="p-3">
+<h4 class="font-bold text-sm truncate">Luigi's Pizzeria</h4>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">Margherita Pizza Large</p>
+<div class="mt-2 flex items-center justify-between">
+<span class="text-sm font-bold">$18.50</span>
+<button class="bg-primary/10 text-primary rounded-full size-6 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-size: 16px;">add</span>
+</button>
+</div>
+</div>
+</div>
+<div class="w-40 shrink-0 bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700/50">
+<div class="h-24 bg-slate-200 dark:bg-slate-700 relative">
+<img alt="Sushi Platter" class="w-full h-full object-cover" data-alt="Fresh Sushi Platter" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAF9eGfK4oqK46Yfdd1BPtYh-GTCHfCvx29OgZM3AfVTN9W5xHc1lNZlCFb9iDy5BxcvNq1Abwf4U2zQSWptSPOpiTOJH5wddojHi3m_vZ1HbHQ1bZhqSWT07V3ulWc2F7loHjm-Gk4BqxuMeV4e16jsFsZF5Nvl-INEu57XENJZsIxZC40fM6gL6VnysNjeFPrREnzq2KVc0R6BuufmihVKSjYQzJk1xuT4Dp7r-TdZz7buSjWkRFtQ627dHAI477Bla2KEULvLjfk"/>
+</div>
+<div class="p-3">
+<h4 class="font-bold text-sm truncate">Sakura Sushi</h4>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">Spicy Tuna Roll (8pcs)</p>
+<div class="mt-2 flex items-center justify-between">
+<span class="text-sm font-bold">$12.00</span>
+<button class="bg-primary/10 text-primary rounded-full size-6 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-size: 16px;">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="px-4 mb-8">
+<h3 class="text-lg font-bold mb-4">Browse Categories</h3>
+<div class="grid grid-cols-4 gap-4">
+<a class="flex flex-col items-center gap-2 group" href="#">
+<div class="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-primary transition-all">
+<span class="text-3xl">🍕</span>
+</div>
+<span class="text-xs font-semibold text-center">Pizza</span>
+</a>
+<a class="flex flex-col items-center gap-2 group" href="#">
+<div class="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-primary transition-all">
+<span class="text-3xl">🍣</span>
+</div>
+<span class="text-xs font-semibold text-center">Sushi</span>
+</a>
+<a class="flex flex-col items-center gap-2 group" href="#">
+<div class="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-primary transition-all">
+<span class="text-3xl">🌮</span>
+</div>
+<span class="text-xs font-semibold text-center">Mexican</span>
+</a>
+<a class="flex flex-col items-center gap-2 group" href="#">
+<div class="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-primary transition-all">
+<span class="text-3xl">🥗</span>
+</div>
+<span class="text-xs font-semibold text-center">Healthy</span>
+</a>
+<a class="flex flex-col items-center gap-2 group" href="#">
+<div class="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-primary transition-all">
+<span class="text-3xl">🍔</span>
+</div>
+<span class="text-xs font-semibold text-center">Burgers</span>
+</a>
+<a class="flex flex-col items-center gap-2 group" href="#">
+<div class="w-16 h-16 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-primary transition-all">
+<span class="text-3xl">🍦</span>
+</div>
+<span class="text-xs font-semibold text-center">Desserts</span>
+</a>
+<a class="flex flex-col items-center gap-2 group" href="#">
+<div class="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-primary transition-all">
+<span class="text-3xl">☕</span>
+</div>
+<span class="text-xs font-semibold text-center">Coffee</span>
+</a>
+<a class="flex flex-col items-center gap-2 group" href="#">
+<div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-primary transition-all">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-400">grid_view</span>
+</div>
+<span class="text-xs font-semibold text-center">More</span>
+</a>
+</div>
+</div>
+</div>
+<div class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 pb-safe z-50">
+<div class="flex px-2 py-2">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined fill">search</span>
+<span class="text-[10px] font-bold">Search</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-500 hover:text-primary transition-colors relative" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="text-[10px] font-medium">Cart</span>
+<span class="absolute top-0 right-1/4 w-2 h-2 bg-primary rounded-full"></span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</a>
+</div>
+</div>
+</body></html>

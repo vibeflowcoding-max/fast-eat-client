@@ -23,6 +23,7 @@ View your app in AI Studio: https://ai.studio/apps/drive/1NGB2Jfd47cqXVQHqls4Xej
    - Copy [.env.example](.env.example) to `.env.local`
    - Update the values as needed for your environment
    - For full local functionality, set Supabase vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+   - `FAST_EAT_API_URL` is deprecated and is not required for normal app runtime
 
 3. Run the app:
    `npm run dev`

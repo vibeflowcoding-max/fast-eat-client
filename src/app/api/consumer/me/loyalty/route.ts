@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { constructSecureUrl } from '@/lib/url-utils';
+import { resolveAuthenticatedUser } from '@/app/api/_lib/auth';
+import { getLoyaltyProfileLocal } from '@/server/consumer/personalization';
 
 function parseBearerHeader(request: NextRequest): string | null {
   const header = request.headers.get('authorization') || request.headers.get('Authorization');
@@ -17,36 +18,21 @@ function parseBearerHeader(request: NextRequest): string | null {
 
 export async function GET(request: NextRequest) {
   try {
-    const apiUrl = process.env.FAST_EAT_API_URL;
-    if (!apiUrl) {
-      return NextResponse.json({ error: 'FAST_EAT_API_URL is not configured' }, { status: 500 });
-    }
-
     const authHeader = parseBearerHeader(request);
     if (!authHeader) {
       return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
     }
 
-    const response = await fetch(constructSecureUrl(apiUrl, '/api/consumer/me/loyalty'), {
-      method: 'GET',
-      headers: {
-        Authorization: authHeader,
-      },
-      cache: 'no-store',
-    });
+    const resolvedUser = await resolveAuthenticatedUser(request);
+    if (resolvedUser instanceof NextResponse) {
+      return resolvedUser;
+    }
 
-    const body = await response.text();
-    const payload = body ? JSON.parse(body) : {};
-
-    return NextResponse.json(payload, {
-      status: response.status,
-      headers: {
-        'Cache-Control': 'no-store',
-      },
-    });
+    const loyalty = await getLoyaltyProfileLocal(resolvedUser.userId);
+    return NextResponse.json({ success: true, data: loyalty }, { status: 200, headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Loyalty proxy failed' },
+      { error: error instanceof Error ? error.message : 'Loyalty request failed' },
       { status: 500 }
     );
   }

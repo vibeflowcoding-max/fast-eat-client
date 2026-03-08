@@ -21,8 +21,14 @@ export function constructSecureUrl(baseUrl: string | undefined, path: string): s
   }
 
   try {
-    const url = new URL(path, baseUrl);
-    const baseOrigin = new URL(baseUrl).origin;
+    if (/^https?:\/\//i.test(path)) {
+      throw new Error(`Invalid path: Path must not change the URL origin. Received: ${path}`);
+    }
+
+    const sanitizedBaseUrl = `${baseUrl.replace(/\/+$/, '')}/`;
+    const sanitizedPath = path ? `/${path.replace(/^\/+/, '')}` : '';
+    const url = new URL(sanitizedPath, sanitizedBaseUrl);
+    const baseOrigin = new URL(sanitizedBaseUrl).origin;
 
     // SSRF Protection: Ensure the path didn't override the base URL's origin.
     // This prevents absolute paths (e.g. "https://attacker.com") or

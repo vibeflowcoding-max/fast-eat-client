@@ -2,14 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { SlidersHorizontal, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useCartStore } from '@/store';
 import { useCategories } from '@/hooks/useCategories';
 import { useRestaurants } from '@/hooks/useRestaurants';
 import CategoryBar from '@/components/CategoryBar';
 import ProfileCompletionPrompt from '@/components/ProfileCompletionPrompt';
-import ProfileCompletionModal from '@/components/ProfileCompletionModal';
-import AddressDetailsModal, { BuildingType } from '@/components/AddressDetailsModal';
 import LoadingScreen from '@/components/LoadingScreen';
 import BottomNav from '@/components/BottomNav';
 import HomeHeroSearch from '@/features/home-discovery/components/HomeHeroSearch';
@@ -24,14 +22,17 @@ import {
     ViewedRestaurantSignal
 } from '@/features/home-discovery/types';
 import { useHomeRails } from '@/features/home-discovery/hooks/useHomeRails';
+import { useHomeAddressRecovery } from '@/features/home-discovery/hooks/useHomeAddressRecovery';
 import { emitHomeEvent } from '@/features/home-discovery/analytics';
 import { buildPreferenceHints, getViewedRestaurantsHistory, trackViewedRestaurant } from '@/features/home-discovery/utils/discoveryStorage';
 import dynamic from 'next/dynamic';
-import ActivityFeed from '@/features/social/components/ActivityFeed';
-import LoyaltyWidget from '@/features/gamification/components/LoyaltyWidget';
-import StoryMenuFeed from '@/features/content/components/StoryMenuFeed';
-import DynamicPromoBanner from '@/features/home-discovery/components/DynamicPromoBanner';
 import { useTranslations } from 'next-intl';
+
+const AddressDetailsModal = dynamic(() => import('@/components/AddressDetailsModal'));
+const ActivityFeed = dynamic(() => import('@/features/social/components/ActivityFeed'));
+const LoyaltyWidget = dynamic(() => import('@/features/gamification/components/LoyaltyWidget'));
+const StoryMenuFeed = dynamic(() => import('@/features/content/components/StoryMenuFeed'));
+const DynamicPromoBanner = dynamic(() => import('@/features/home-discovery/components/DynamicPromoBanner'));
 
 const HomeDiscoveryWidget = dynamic(
     () => import('@/features/home-discovery/components/HomeDiscoveryWidget'),
@@ -91,6 +92,50 @@ function normalizeSearchValue(value: string): string {
     return value.trim().toLowerCase();
 }
 
+function getInitialViewedHistory(): ViewedRestaurantSignal[] {
+    if (typeof window === 'undefined') {
+        return [];
+    }
+
+    return getViewedRestaurantsHistory();
+}
+
+function getInitialPreferenceHints(): HomePreferenceHints {
+    const initialHistory = getInitialViewedHistory();
+    return buildPreferenceHints(initialHistory);
+}
+
+function getInitialHomeFilterSortState(): { filters: HomeFiltersState; sortBy: HomeSortOption } {
+    if (typeof window === 'undefined') {
+        return {
+            filters: DEFAULT_HOME_FILTERS,
+            sortBy: 'best_value',
+        };
+    }
+
+    const stored = window.sessionStorage.getItem(HOME_FILTERS_SORT_SESSION_KEY);
+    if (!stored) {
+        return {
+            filters: DEFAULT_HOME_FILTERS,
+            sortBy: 'best_value',
+        };
+    }
+
+    try {
+        const parsed = JSON.parse(stored) as { filters?: HomeFiltersState; sortBy?: HomeSortOption };
+        return {
+            filters: parsed.filters ? { ...DEFAULT_HOME_FILTERS, ...parsed.filters } : DEFAULT_HOME_FILTERS,
+            sortBy: parsed.sortBy ?? 'best_value',
+        };
+    } catch {
+        window.sessionStorage.removeItem(HOME_FILTERS_SORT_SESSION_KEY);
+        return {
+            filters: DEFAULT_HOME_FILTERS,
+            sortBy: 'best_value',
+        };
+    }
+}
+
 export default function HomePage() {
     const t = useTranslations('home');
     const {
@@ -98,9 +143,8 @@ export default function HomePage() {
         customerName,
         fromNumber,
         customerAddress,
+        isAuthenticated,
         profilePromptDismissedAt,
-        setCustomerName,
-        setFromNumber,
         setCustomerAddress,
         setOnboarded,
         setProfilePromptDismissedAt
@@ -114,25 +158,44 @@ export default function HomePage() {
     const isPredictiveReorderEnabled = process.env.NEXT_PUBLIC_HOME_PREDICTIVE_REORDER?.toLowerCase() !== 'false';
     const isStoryMenusEnabled = process.env.NEXT_PUBLIC_HOME_STORY_MENUS?.toLowerCase() !== 'false';
     const isFriendsActivityEnabled = process.env.NEXT_PUBLIC_HOME_FRIENDS_ACTIVITY?.toLowerCase() !== 'false';
-    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-    const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+    const initialFilterSortState = React.useMemo(() => getInitialHomeFilterSortState(), []);
     const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
-    const [locationRequestLoading, setLocationRequestLoading] = useState(false);
-    const [locationPermissionError, setLocationPermissionError] = useState<string | null>(null);
-    const [addressInitialPosition, setAddressInitialPosition] = useState<{ lat: number; lng: number } | null>(userLocation ?? null);
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeIntent, setActiveIntent] = useState<DiscoveryIntent | null>(null);
-    const [showNonCriticalRails, setShowNonCriticalRails] = useState(false);
+    const [nonCriticalRailsReadyKey, setNonCriticalRailsReadyKey] = useState<string | null>(null);
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
     const [suggestions, setSuggestions] = useState<HomeSearchSuggestionItem[]>([]);
     const [suggestionsLoading, setSuggestionsLoading] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [suggestionImpressionQuery, setSuggestionImpressionQuery] = useState('');
-    const [filters, setFilters] = useState<HomeFiltersState>(DEFAULT_HOME_FILTERS);
-    const [sortBy, setSortBy] = useState<HomeSortOption>('best_value');
-    const [viewedHistory, setViewedHistory] = useState<ViewedRestaurantSignal[]>([]);
-    const [preferenceHints, setPreferenceHints] = useState<HomePreferenceHints>({ categoryWeights: {} });
+    const [filters, setFilters] = useState<HomeFiltersState>(initialFilterSortState.filters);
+    const [sortBy, setSortBy] = useState<HomeSortOption>(initialFilterSortState.sortBy);
+    const [viewedHistory, setViewedHistory] = useState<ViewedRestaurantSignal[]>(getInitialViewedHistory);
+    const [preferenceHints, setPreferenceHints] = useState<HomePreferenceHints>(getInitialPreferenceHints);
+    const beginSuggestionFetch = React.useEffectEvent(() => {
+        setSuggestionsLoading(true);
+        setShowSuggestions(true);
+    });
+
+    const {
+        addressInitialPosition,
+        handleDismissProfilePrompt,
+        handleOpenProfileCompletion,
+        handleSaveAddress,
+        isAddressModalOpen,
+        setIsAddressModalOpen,
+    } = useHomeAddressRecovery({
+        isAuthenticated,
+        customerName,
+        fromNumber,
+        customerAddress,
+        userLocation,
+        setCustomerAddress,
+        setOnboarded,
+        setProfilePromptDismissedAt,
+        t,
+    });
 
     const railLabels = React.useMemo(() => ({
         promosTitle: t('rails.promos.title'),
@@ -176,36 +239,6 @@ export default function HomePage() {
 
     useEffect(() => {
         emitHomeEvent({ name: 'home_view' });
-    }, []);
-
-    useEffect(() => {
-        const history = getViewedRestaurantsHistory();
-        setViewedHistory(history);
-        setPreferenceHints(buildPreferenceHints(history));
-    }, []);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') {
-            return;
-        }
-
-        const stored = window.sessionStorage.getItem(HOME_FILTERS_SORT_SESSION_KEY);
-        if (!stored) {
-            return;
-        }
-
-        try {
-            const parsed = JSON.parse(stored) as { filters?: HomeFiltersState; sortBy?: HomeSortOption };
-            if (parsed.filters) {
-                setFilters({ ...DEFAULT_HOME_FILTERS, ...parsed.filters });
-            }
-
-            if (parsed.sortBy) {
-                setSortBy(parsed.sortBy);
-            }
-        } catch {
-            window.sessionStorage.removeItem(HOME_FILTERS_SORT_SESSION_KEY);
-        }
     }, []);
 
     useEffect(() => {
@@ -262,14 +295,14 @@ export default function HomePage() {
     }, []);
 
     // Filter restaurants by search query
-    const filteredRestaurants = restaurants.filter((restaurant) => {
+    const filteredRestaurants = React.useMemo(() => restaurants.filter((restaurant) => {
         if (!searchQuery) return true;
         const query = searchQuery.toLowerCase();
         return (
             restaurant.name.toLowerCase().includes(query) ||
             restaurant.categories?.some(c => c.name.toLowerCase().includes(query))
         );
-    });
+    }), [restaurants, searchQuery]);
 
     const searchQueryNormalized = React.useMemo(() => normalizeSearchValue(searchQuery), [searchQuery]);
 
@@ -347,183 +380,6 @@ export default function HomePage() {
         }
     }, [shouldShowProfilePrompt]);
 
-    const loadedAddressForPhoneRef = React.useRef<string | null>(null);
-    useEffect(() => {
-        const normalizedPhone = fromNumber.trim();
-        if (!normalizedPhone || customerAddress || loadedAddressForPhoneRef.current === normalizedPhone) {
-            return;
-        }
-
-        const controller = new AbortController();
-
-        fetch(`/api/customer/address?phone=${encodeURIComponent(normalizedPhone)}`, { signal: controller.signal })
-            .then(async (response) => {
-                if (!response.ok) {
-                    throw new Error('Could not fetch customer address');
-                }
-
-                return response.json();
-            })
-            .then((data) => {
-                loadedAddressForPhoneRef.current = normalizedPhone;
-
-                if (!data?.address) {
-                    return;
-                }
-
-                setCustomerAddress({
-                    customerId: data.address.customer_id,
-                    urlAddress: data.address.url_address,
-                    buildingType: data.address.building_type,
-                    unitDetails: data.address.unit_details ?? undefined,
-                    deliveryNotes: data.address.delivery_notes,
-                    lat: typeof data.address.lat === 'number' ? data.address.lat : undefined,
-                    lng: typeof data.address.lng === 'number' ? data.address.lng : undefined,
-                    formattedAddress: typeof data.address.formatted_address === 'string' ? data.address.formatted_address : undefined,
-                    placeId: typeof data.address.place_id === 'string' ? data.address.place_id : undefined,
-                });
-
-                if (typeof data.address.lat === 'number' && typeof data.address.lng === 'number') {
-                    const recoveredPosition = { lat: data.address.lat, lng: data.address.lng };
-                    useCartStore.getState().setUserLocation(recoveredPosition);
-                    setAddressInitialPosition(recoveredPosition);
-                }
-            })
-            .catch((error) => {
-                if ((error as { name?: string })?.name === 'AbortError') {
-                    return;
-                }
-            });
-
-        return () => controller.abort();
-    }, [customerAddress, fromNumber, setCustomerAddress]);
-
-    const handleOpenProfileCompletion = React.useCallback(() => {
-        setIsProfileModalOpen(true);
-        emitHomeEvent({ name: 'profile_prompt_click' });
-    }, []);
-
-    const handleDismissProfilePrompt = React.useCallback(() => {
-        setProfilePromptDismissedAt(Date.now());
-        emitHomeEvent({ name: 'profile_prompt_dismiss' });
-    }, [setProfilePromptDismissedAt]);
-
-    const handleProfileContinue = React.useCallback(async (value: { name: string; phone: string }) => {
-        const response = await fetch('/api/customer/profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(value)
-        });
-
-        if (!response.ok) {
-            const payload = await response.json().catch(() => null);
-            throw new Error(payload?.error || t('errors.saveProfile'));
-        }
-
-        setCustomerName(value.name);
-        setFromNumber(value.phone);
-        setOnboarded(true);
-
-        if (!isProfileIncomplete) {
-            setProfilePromptDismissedAt(null);
-        }
-    }, [isProfileIncomplete, setCustomerName, setFromNumber, setOnboarded, setProfilePromptDismissedAt, t]);
-
-    const handleRequestLocationFromProfile = React.useCallback(() => {
-        if (!navigator.geolocation) {
-            setLocationPermissionError(t('errors.geolocationUnsupported'));
-            setIsAddressModalOpen(true);
-            return;
-        }
-
-        emitHomeEvent({ name: 'location_permission_request' });
-        setLocationRequestLoading(true);
-        setLocationPermissionError(null);
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const nextPosition = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                };
-
-                setAddressInitialPosition(nextPosition);
-                useCartStore.getState().setUserLocation(nextPosition);
-                setIsAddressModalOpen(true);
-                emitHomeEvent({ name: 'location_permission_granted' });
-                setLocationRequestLoading(false);
-            },
-            () => {
-                setLocationPermissionError(t('errors.permissionDenied'));
-                setIsAddressModalOpen(true);
-                emitHomeEvent({ name: 'location_permission_denied' });
-                setLocationRequestLoading(false);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            }
-        );
-    }, [t]);
-
-    const handleSaveAddress = React.useCallback(async (value: {
-        urlAddress: string;
-        buildingType: BuildingType;
-        unitDetails?: string;
-        deliveryNotes: string;
-        lat?: number;
-        lng?: number;
-        formattedAddress?: string;
-        placeId?: string;
-    }) => {
-        emitHomeEvent({ name: 'address_form_save_click' });
-
-        if (!fromNumber.trim() || !customerName.trim()) {
-            setIsAddressModalOpen(false);
-            setLocationPermissionError(t('errors.namePhoneRequired'));
-            setIsProfileModalOpen(true);
-            throw new Error(t('errors.namePhoneRequiredAddress'));
-        }
-
-        const payload = {
-            phone: fromNumber.trim(),
-            fullName: customerName.trim(),
-            ...value
-        };
-
-        const response = await fetch('/api/customer/address', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            emitHomeEvent({ name: 'address_form_save_error' });
-            const errorPayload = await response.json().catch(() => null);
-            throw new Error(errorPayload?.error || t('errors.saveAddress'));
-        }
-
-        const data = await response.json();
-        setCustomerAddress({
-            customerId: data.address?.customer_id,
-            urlAddress: value.urlAddress,
-            buildingType: value.buildingType,
-            unitDetails: value.unitDetails,
-            deliveryNotes: value.deliveryNotes,
-            lat: value.lat,
-            lng: value.lng,
-            formattedAddress: value.formattedAddress,
-            placeId: value.placeId,
-        });
-        setProfilePromptDismissedAt(null);
-        setOnboarded(true);
-        emitHomeEvent({ name: 'address_form_save_success' });
-
-        setIsAddressModalOpen(false);
-        setIsProfileModalOpen(true);
-    }, [customerName, fromNumber, setCustomerAddress, setOnboarded, setProfilePromptDismissedAt, t]);
-
     const rails = useHomeRails({
         restaurants: filteredRestaurants,
         activeIntent,
@@ -563,7 +419,7 @@ export default function HomePage() {
             setViewedHistory(updatedHistory);
             setPreferenceHints(buildPreferenceHints(updatedHistory));
         },
-        [isPersonalizedRail, restaurants]
+        [isPersonalizedRail]
     );
 
     useEffect(() => {
@@ -593,16 +449,11 @@ export default function HomePage() {
 
         const normalizedQuery = normalizeSearchValue(debouncedSearchQuery);
         if (normalizedQuery.length < 2) {
-            setSuggestions([]);
-            setSuggestionsLoading(false);
-            setShowSuggestions(false);
-            setSuggestionImpressionQuery('');
             return;
         }
 
         const controller = new AbortController();
-        setSuggestionsLoading(true);
-        setShowSuggestions(true);
+        beginSuggestionFetch();
 
         fetchSuggestions(normalizedQuery, controller.signal)
             .then((matchedRestaurants) => {
@@ -662,6 +513,11 @@ export default function HomePage() {
 
         return () => controller.abort();
     }, [debouncedSearchQuery, fetchSuggestions, isSearchSuggestionsV1Enabled, suggestionImpressionQuery]);
+
+    const nonCriticalRailsKey = React.useMemo(
+        () => `${activeIntent ?? 'all'}|${selectedCategoryId ?? 'all'}|${searchQuery}|${restaurants.length}`,
+        [activeIntent, restaurants.length, searchQuery, selectedCategoryId]
+    );
 
     const handleSuggestionSelect = React.useCallback((suggestion: HomeSearchSuggestionItem) => {
         const normalizedSuggestion = normalizeSearchValue(suggestion.label);
@@ -725,15 +581,13 @@ export default function HomePage() {
     }, [clearSearch]);
 
     useEffect(() => {
-        setShowNonCriticalRails(false);
-
         const globalWindow = window as typeof window & {
             requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
             cancelIdleCallback?: (id: number) => void;
         };
 
         if (typeof globalWindow.requestIdleCallback === 'function') {
-            const idleId = globalWindow.requestIdleCallback(() => setShowNonCriticalRails(true), { timeout: 300 });
+            const idleId = globalWindow.requestIdleCallback(() => setNonCriticalRailsReadyKey(nonCriticalRailsKey), { timeout: 300 });
 
             return () => {
                 if (typeof globalWindow.cancelIdleCallback === 'function') {
@@ -742,11 +596,11 @@ export default function HomePage() {
             };
         }
 
-        const timeoutId = window.setTimeout(() => setShowNonCriticalRails(true), 120);
+        const timeoutId = window.setTimeout(() => setNonCriticalRailsReadyKey(nonCriticalRailsKey), 120);
         return () => window.clearTimeout(timeoutId);
-    }, [activeIntent, searchQuery, selectedCategoryId, restaurants.length]);
+    }, [nonCriticalRailsKey]);
 
-    const visibleRails = showNonCriticalRails ? rails : rails.slice(0, 3);
+    const visibleRails = nonCriticalRailsReadyKey === nonCriticalRailsKey ? rails : rails.slice(0, 3);
 
     const dynamicRailEmptyVariant = React.useMemo(() => {
         if (searchQuery.trim()) {
@@ -943,32 +797,6 @@ export default function HomePage() {
                 }}
             />
 
-            <ProfileCompletionModal
-                isOpen={isProfileModalOpen}
-                initialName={customerName}
-                initialPhone={fromNumber}
-                hasConfiguredAddress={Boolean(customerAddress?.urlAddress)}
-                locationRequestLoading={locationRequestLoading}
-                locationPermissionError={locationPermissionError}
-                onRequestLocation={handleRequestLocationFromProfile}
-                onEnterAddressManually={({ name, phone }) => {
-                    setCustomerName(name);
-                    setFromNumber(phone);
-                    setLocationPermissionError(null);
-                    setIsProfileModalOpen(false);
-                    setIsAddressModalOpen(true);
-                }}
-                onContinue={handleProfileContinue}
-                onLater={() => {
-                    setIsProfileModalOpen(false);
-                    setProfilePromptDismissedAt(Date.now());
-                    emitHomeEvent({ name: 'profile_prompt_dismiss' });
-                }}
-                onClose={() => {
-                    setIsProfileModalOpen(false);
-                }}
-            />
-
             <AddressDetailsModal
                 isOpen={isAddressModalOpen}
                 initialValue={customerAddress ?? undefined}
@@ -976,7 +804,7 @@ export default function HomePage() {
                 onClose={() => setIsAddressModalOpen(false)}
                 onBack={() => {
                     setIsAddressModalOpen(false);
-                    setIsProfileModalOpen(true);
+                    router.push('/profile');
                 }}
                 onSave={handleSaveAddress}
                 onPermissionRequested={() => emitHomeEvent({ name: 'location_permission_request' })}

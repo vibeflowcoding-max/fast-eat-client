@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+
 import React, { useEffect, useState } from 'react';
 import { fetchBranches } from '../services/api';
 
@@ -58,7 +60,7 @@ const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({ onSelectBra
                             className="group flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-100 hover:border-black hover:bg-gray-50 transition-all duration-300 text-left w-full active:scale-[0.98]"
                         >
                             {branch.image_url ? (
-                                <img src={branch.image_url} alt={branch.name} className="w-16 h-16 rounded-xl object-cover shadow-sm group-hover:scale-110 transition-transform" />
+                                <img src={branch.image_url} alt={branch.name} loading="lazy" decoding="async" fetchPriority="low" width={64} height={64} className="w-16 h-16 rounded-xl object-cover shadow-sm group-hover:scale-110 transition-transform" />
                             ) : (
                                 <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center text-2xl group-hover:bg-white group-hover:shadow-sm transition-all">
                                     🏪

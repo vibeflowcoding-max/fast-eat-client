@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import React, { useState, useRef } from 'react';
 import { Camera, Upload, X, Star, CheckCircle2 } from 'lucide-react';
 import { useLoyaltyStore } from '../../gamification/store/useLoyaltyStore';

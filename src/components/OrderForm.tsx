@@ -1,6 +1,8 @@
 import React from 'react';
 import { OrderMetadata } from '../types';
 import { useTranslations } from 'next-intl';
+import { formatPhoneForDisplay } from '@/lib/phone';
+import { Button, ChoiceCard, Surface } from '@/../resources/components';
 
 interface OrderFormProps {
     orderMetadata: OrderMetadata;
@@ -12,7 +14,21 @@ interface OrderFormProps {
     onGetLocation: () => void;
     hasProfileLocation?: boolean;
     profileLocationLabel?: string;
+    isUsingDifferentDeliveryLocation?: boolean;
+    onUseSavedProfileLocation?: () => void;
+    onUseDifferentLocation?: () => void;
+    onOpenLocationPicker?: () => void;
+    locationPickerLoading?: boolean;
+    locationServicePrompt?: string | null;
+    isAutoSavingProfileLocation?: boolean;
+    locationDifferenceWarningVisible?: boolean;
+    locationDifferenceAcknowledged?: boolean;
+    onToggleLocationDifferenceAcknowledged?: (value: boolean) => void;
     tableQuantity?: number;
+}
+
+function toLocalDateTimeValue(date: Date): string {
+    return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
 }
 
 const OrderForm: React.FC<OrderFormProps> = ({
@@ -21,34 +37,41 @@ const OrderForm: React.FC<OrderFormProps> = ({
     paymentOptions,
     serviceOptions,
     fromNumber,
-    isLocating,
-    onGetLocation,
+    isLocating: _isLocating,
+    onGetLocation: _onGetLocation,
     hasProfileLocation = false,
     profileLocationLabel,
+    isUsingDifferentDeliveryLocation = false,
+    onUseSavedProfileLocation,
+    onUseDifferentLocation,
+    onOpenLocationPicker,
+    locationPickerLoading = false,
+    locationServicePrompt = null,
+    isAutoSavingProfileLocation = false,
+    locationDifferenceWarningVisible = false,
+    locationDifferenceAcknowledged = false,
+    onToggleLocationDifferenceAcknowledged,
     tableQuantity = 0
 }) => {
     const t = useTranslations('checkout.orderForm');
+    const [minimumScheduledDateTime] = React.useState(() => toLocalDateTimeValue(new Date()));
 
     return (
-        <div className="ui-panel p-6 rounded-3xl border-2 space-y-6">
+        <Surface className="space-y-6" padding="lg" variant="base">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Customer Info */}
                 <div className="space-y-4">
                     <div className="space-y-1">
                         <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('fullName')}</label>
-                        <input
-                            type="text"
-                            placeholder={t('fullNamePlaceholder')}
-                            className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black placeholder:text-gray-300 focus:outline-none focus:border-[var(--color-brand)] transition-all"
-                            value={orderMetadata.customerName}
-                            onChange={e => setOrderMetadata({ ...orderMetadata, customerName: e.target.value })}
-                        />
+                        <Surface className="w-full text-sm font-black text-gray-900 dark:text-slate-100" variant="muted">
+                            {orderMetadata.customerName || t('fullNamePlaceholder')}
+                        </Surface>
                     </div>
                     <div className="space-y-1 opacity-60">
                         <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('phone')}</label>
-                        <div className="px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black ui-text-muted">
-                            {fromNumber ? `+${fromNumber}` : t('phoneUnavailable')}
-                        </div>
+                        <Surface className="text-sm font-black ui-text-muted" variant="muted">
+                            {formatPhoneForDisplay(fromNumber) || t('phoneUnavailable')}
+                        </Surface>
                     </div>
                 </div>
 
@@ -124,28 +147,69 @@ const OrderForm: React.FC<OrderFormProps> = ({
                 <div className="space-y-1 animate-fadeIn">
                     <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('deliveryAddress')}</label>
 
-                    {hasProfileLocation ? (
-                        <div className="ui-state-success flex items-start gap-2 px-4 py-3 rounded-xl shadow-sm">
+                    {hasProfileLocation && (
+                        <Surface className="space-y-2" variant="muted">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t('deliveryLocationSource')}</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <ChoiceCard
+                                    checked={!isUsingDifferentDeliveryLocation}
+                                    description={profileLocationLabel || undefined}
+                                    onClick={onUseSavedProfileLocation}
+                                    title={t('useProfileLocation')}
+                                    type="radio"
+                                />
+                                <ChoiceCard
+                                    checked={isUsingDifferentDeliveryLocation}
+                                    onClick={onUseDifferentLocation}
+                                    title={t('useDifferentLocation')}
+                                    type="radio"
+                                />
+                            </div>
+                        </Surface>
+                    )}
+
+                    {locationServicePrompt && (
+                        <Surface className="inline-block text-[10px] font-bold" variant="raised">
+                            {locationServicePrompt}
+                        </Surface>
+                    )}
+
+                    {isAutoSavingProfileLocation && (
+                        <Surface className="inline-block text-[10px] font-bold" variant="raised">
+                            Saving current location to your profile...
+                        </Surface>
+                    )}
+
+                    {!isUsingDifferentDeliveryLocation && hasProfileLocation ? (
+                        <Surface className="flex items-start gap-2" variant="raised">
                             <span className="text-sm">📍</span>
                             <div className="flex-1 min-w-0">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-green-700">Ubicación de perfil</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-green-700">{t('profileLocationTag')}</p>
                                 <p className="text-xs font-bold text-green-800 break-words mt-1">{profileLocationLabel || orderMetadata.gpsLocation || orderMetadata.address}</p>
                             </div>
-                        </div>
+                        </Surface>
                     ) : (
                         <>
-                            <textarea
-                                placeholder={t('deliveryPlaceholder')}
-                                className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black placeholder:text-gray-300 focus:outline-none focus:border-[var(--color-brand)] transition-all resize-none h-20"
-                                value={orderMetadata.address}
-                                onChange={e => setOrderMetadata({ ...orderMetadata, address: e.target.value })}
-                            />
+                            <Surface className="space-y-2" variant="muted">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t('currentOrderLocation')}</p>
+                                <p className="text-xs font-bold text-gray-800 break-words">{orderMetadata.gpsLocation || orderMetadata.address || t('locationNotSelected')}</p>
+                            </Surface>
                             <div className="flex flex-col gap-2 mt-2">
+                                <Button
+                                    onClick={onOpenLocationPicker}
+                                    disabled={locationPickerLoading}
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    <span aria-hidden="true">🗺️</span>
+                                    {locationPickerLoading ? t('openMapLocationPickerLoading') : t('openMapLocationPicker')}
+                                </Button>
+
                                 {orderMetadata.gpsLocation && (
                                     <div className="flex flex-col gap-1 animate-fadeIn mt-1">
                                         <label className="text-[7px] font-black uppercase tracking-widest text-green-600 ml-1">Ubicación GPS Adjunta</label>
                                         <label className="text-[7px] font-black uppercase tracking-widest text-green-600 ml-1">{t('gpsAttached')}</label>
-                                        <div className="ui-state-success flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm">
+                                        <Surface className="flex items-center gap-2" variant="raised">
                                             <span className="text-sm">📍</span>
                                             <input
                                                 type="text"
@@ -154,41 +218,38 @@ const OrderForm: React.FC<OrderFormProps> = ({
                                                 className="w-full bg-transparent text-xs font-bold focus:outline-none truncate"
                                                 onClick={(e) => e.currentTarget.select()}
                                             />
-                                            <button
-                                                type="button"
+                                            <Button
                                                 onClick={() => setOrderMetadata({
                                                     ...orderMetadata,
                                                     gpsLocation: undefined,
+                                                    address: '',
                                                     customerLatitude: undefined,
                                                     customerLongitude: undefined,
                                                 })}
-                                                className="text-green-600 hover:text-[var(--color-brand)] font-bold px-1 py-1"
-                                            >✕</button>
-                                        </div>
+                                                size="sm"
+                                                type="button"
+                                                variant="ghost"
+                                            >✕</Button>
+                                        </Surface>
                                     </div>
                                 )}
 
-                                <button
-                                    onClick={onGetLocation}
-                                    disabled={isLocating}
-                                    className="ui-state-success flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-sm active:scale-95 disabled:opacity-50"
-                                >
-                                    {isLocating ? (
-                                        <>
-                                            <div className="w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                                            {t('gettingGps')}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span>📍</span>
-                                            {orderMetadata.gpsLocation ? t('updateGps') : t('shareGps')}
-                                        </>
-                                    )}
-                                </button>
                                 {(!Number.isFinite(orderMetadata.customerLatitude) || !Number.isFinite(orderMetadata.customerLongitude)) && (
-                                    <p className="ui-state-warning text-[10px] font-bold rounded-lg px-2 py-1 inline-block">
+                                    <Surface className="inline-block text-[10px] font-bold" variant="raised">
                                         {t('gpsRequired')}
-                                    </p>
+                                    </Surface>
+                                )}
+
+                                {locationDifferenceWarningVisible && (
+                                    <label className="ui-state-warning flex items-start gap-2 rounded-xl px-3 py-3 text-xs font-bold">
+                                        <input
+                                            type="checkbox"
+                                            checked={locationDifferenceAcknowledged}
+                                            onChange={(event) => onToggleLocationDifferenceAcknowledged?.(event.target.checked)}
+                                            className="mt-0.5"
+                                        />
+                                        <span>{t('differentLocationWarning')}</span>
+                                    </label>
                                 )}
                             </div>
                         </>
@@ -227,7 +288,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                                 checked={!!orderMetadata.scheduledFor}
                                 onChange={(e) => setOrderMetadata({
                                     ...orderMetadata,
-                                    scheduledFor: e.target.checked ? new Date(Date.now() + 3600000 - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16) : null
+                                    scheduledFor: e.target.checked ? toLocalDateTimeValue(new Date(Date.now() + 3600000)) : null
                                 })}
                             />
                             <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-brand)]"></div>
@@ -246,14 +307,14 @@ const OrderForm: React.FC<OrderFormProps> = ({
                                 type="datetime-local"
                                 className="w-full px-4 py-3 ui-panel-soft border-2 rounded-xl text-sm font-black focus:outline-none focus:border-[var(--color-brand)] transition-all"
                                 value={orderMetadata.scheduledFor}
-                                min={new Date(Date.now() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16)}
+                                min={minimumScheduledDateTime}
                                 onChange={(e) => setOrderMetadata({ ...orderMetadata, scheduledFor: e.target.value })}
                             />
                         </div>
                     )}
                 </div>
             </div>
-        </div>
+        </Surface>
     );
 };
 

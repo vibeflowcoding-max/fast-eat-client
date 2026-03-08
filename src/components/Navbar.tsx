@@ -1,13 +1,37 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { RestaurantInfo } from '../types';
 import SearchBar from './SearchBar';
 import OrderNotificationsTray from './OrderNotificationsTray';
 import { useCartStore } from '@/store';
-import { Package, ShoppingCart, Zap, Heart, Star, ArrowLeft } from 'lucide-react';
+import { Package, ShoppingCart, Zap, Heart, Star, ArrowLeft, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
+import { audioManager } from '@/lib/audio';
+import { BidNotification } from '@/types';
+
+type OrderStatusCue = {
+    orderId: string;
+    statusCode: string;
+    statusLabel: string;
+    description: string;
+};
+
+const STATUS_CUE_DESCRIPTION_KEY_BY_CODE: Record<string, string> = {
+    PENDING: 'statusCueDescriptions.pending',
+    CONFIRMED: 'statusCueDescriptions.confirmed',
+    AUCTION_ACTIVE: 'statusCueDescriptions.auctionActive',
+    DRIVER_ASSIGNED: 'statusCueDescriptions.driverAssigned',
+    PREPARING: 'statusCueDescriptions.preparing',
+    READY: 'statusCueDescriptions.ready',
+    DELIVERING: 'statusCueDescriptions.delivering',
+    DELIVERED: 'statusCueDescriptions.delivered',
+    COMPLETED: 'statusCueDescriptions.completed',
+    PICKED_UP: 'statusCueDescriptions.pickedUp',
+    CANCELLED: 'statusCueDescriptions.cancelled',
+    REFUNDED: 'statusCueDescriptions.refunded',
+};
 
 interface NavbarProps {
     restaurantInfo: RestaurantInfo | null;
@@ -35,8 +59,8 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({
     restaurantInfo,
-    isTestMode,
-    toggleTestMode,
+    isTestMode: _isTestMode,
+    toggleTestMode: _toggleTestMode,
     onShowHistory,
     onOpenCart,
     totalItemsCount,
@@ -52,19 +76,30 @@ const Navbar: React.FC<NavbarProps> = ({
     isLoading,
     onOpenReviews,
     onGoBack,
-    customerName,
+    customerName: _customerName,
     searchQuery,
     setSearchQuery,
 }) => {
     const [isTrayOpen, setIsTrayOpen] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
+    const [activeCue, setActiveCue] = useState<BidNotification | null>(null);
+    const [activeStatusCue, setActiveStatusCue] = useState<OrderStatusCue | null>(null);
+    const cueTimeoutRef = useRef<number | null>(null);
+    const statusCueTimeoutRef = useRef<number | null>(null);
+    const lastUnreadIdRef = useRef<string | null>(null);
     const t = useTranslations('nav');
+    const tTracking = useTranslations('tracking');
     const bidNotifications = useCartStore((state) => state.bidNotifications);
-    const unreadCount = useMemo(
-        () => bidNotifications.filter((notification) => !notification.read).length,
+    const clientContext = useCartStore((state) => state.clientContext);
+    const hydrateClientContext = useCartStore((state) => state.hydrateClientContext);
+    const markBidNotificationRead = useCartStore((state) => state.markBidNotificationRead);
+    const setDeepLinkTarget = useCartStore((state) => state.setDeepLinkTarget);
+    const unreadNotifications = useMemo(
+        () => bidNotifications.filter((notification) => !notification.read),
         [bidNotifications]
     );
+    const unreadCount = unreadNotifications.length;
 
     const ratingLabel =
         typeof restaurantInfo?.rating === 'number' && restaurantInfo.rating > 0
@@ -78,6 +113,11 @@ const Navbar: React.FC<NavbarProps> = ({
 
     React.useEffect(() => {
         let mounted = true;
+        const cachedFavorites = Array.isArray(clientContext?.favorites) ? clientContext.favorites : [];
+
+        if (restaurantInfo?.id && cachedFavorites.length > 0) {
+            setIsFavorite(cachedFavorites.includes(restaurantInfo.id));
+        }
 
         async function loadFavoriteState() {
             if (!restaurantInfo?.id) {
@@ -108,7 +148,12 @@ const Navbar: React.FC<NavbarProps> = ({
 
                 const payload = await response.json();
                 if (mounted) {
-                    setIsFavorite(Boolean(payload?.isFavorite));
+                    if (Array.isArray(payload?.favoriteRestaurantIds)) {
+                        hydrateClientContext({ favorites: payload.favoriteRestaurantIds.map(String) });
+                        setIsFavorite(payload.favoriteRestaurantIds.map(String).includes(restaurantInfo.id));
+                    } else {
+                        setIsFavorite(Boolean(payload?.isFavorite));
+                    }
                 }
             } catch {
                 if (mounted) {
@@ -117,12 +162,167 @@ const Navbar: React.FC<NavbarProps> = ({
             }
         }
 
-        loadFavoriteState();
+        if (!restaurantInfo?.id || cachedFavorites.length === 0) {
+            loadFavoriteState();
+        }
 
         return () => {
             mounted = false;
         };
-    }, [restaurantInfo?.id]);
+    }, [clientContext?.favorites, hydrateClientContext, restaurantInfo?.id]);
+
+    useEffect(() => {
+        const unlock = () => {
+            void audioManager.unlock();
+            window.removeEventListener('pointerdown', unlock);
+            window.removeEventListener('keydown', unlock);
+            window.removeEventListener('touchstart', unlock);
+        };
+
+        window.addEventListener('pointerdown', unlock, { passive: true, once: true });
+        window.addEventListener('keydown', unlock, { once: true });
+        window.addEventListener('touchstart', unlock, { passive: true, once: true });
+
+        return () => {
+            window.removeEventListener('pointerdown', unlock);
+            window.removeEventListener('keydown', unlock);
+            window.removeEventListener('touchstart', unlock);
+        };
+    }, []);
+
+    useEffect(() => {
+        const latestUnread = unreadNotifications[0] ?? null;
+
+        if (!latestUnread) {
+            setActiveCue(null);
+            lastUnreadIdRef.current = null;
+            return;
+        }
+
+        if (latestUnread.id === lastUnreadIdRef.current) {
+            return;
+        }
+
+        lastUnreadIdRef.current = latestUnread.id;
+        setActiveCue(latestUnread);
+
+        if (cueTimeoutRef.current) {
+            window.clearTimeout(cueTimeoutRef.current);
+        }
+
+        cueTimeoutRef.current = window.setTimeout(() => {
+            setActiveCue(null);
+        }, 7000);
+
+        return () => {
+            if (cueTimeoutRef.current) {
+                window.clearTimeout(cueTimeoutRef.current);
+            }
+        };
+    }, [unreadNotifications]);
+
+    useEffect(() => {
+        const handleStatusChanged = (event: Event) => {
+            const customEvent = event as CustomEvent<{
+                orderId?: string;
+                statusCode?: string;
+                statusLabel?: string;
+                description?: string | null;
+            }>;
+
+            const orderId = String(customEvent.detail?.orderId || '').trim();
+            if (!orderId) {
+                return;
+            }
+
+            const statusCode = String(customEvent.detail?.statusCode || '').trim();
+            const normalizedStatusCode = statusCode.toUpperCase();
+            const statusLabel = String(customEvent.detail?.statusLabel || 'Estado actualizado').trim();
+            const descriptionFromDb = String(customEvent.detail?.description || '').trim();
+            const translationKey = STATUS_CUE_DESCRIPTION_KEY_BY_CODE[normalizedStatusCode];
+            const localizedDescription = translationKey ? tTracking(translationKey) : '';
+            const description = localizedDescription || descriptionFromDb || statusLabel;
+
+            setActiveStatusCue({
+                orderId,
+                statusCode: normalizedStatusCode,
+                statusLabel,
+                description,
+            });
+
+            if (statusCueTimeoutRef.current) {
+                window.clearTimeout(statusCueTimeoutRef.current);
+            }
+
+            statusCueTimeoutRef.current = window.setTimeout(() => {
+                setActiveStatusCue(null);
+            }, 8000);
+        };
+
+        window.addEventListener('fast-eat:order_status_changed', handleStatusChanged as EventListener);
+
+        return () => {
+            window.removeEventListener('fast-eat:order_status_changed', handleStatusChanged as EventListener);
+            if (statusCueTimeoutRef.current) {
+                window.clearTimeout(statusCueTimeoutRef.current);
+            }
+        };
+    }, [tTracking]);
+
+    const openFromCue = (notification: BidNotification) => {
+        markBidNotificationRead(notification.id);
+        setDeepLinkTarget({ orderId: notification.orderId, bidId: notification.id });
+        setActiveCue(null);
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fast-eat:bid_notification_click', {
+                detail: {
+                    orderId: notification.orderId,
+                    bidId: notification.id,
+                    source: 'navbar_cue'
+                }
+            }));
+            window.dispatchEvent(new CustomEvent('fast-eat:bid_notification_conversion', {
+                detail: {
+                    orderId: notification.orderId,
+                    bidId: notification.id,
+                    source: 'navbar_cue'
+                }
+            }));
+        }
+        onShowHistory();
+    };
+
+    const dismissCue = (notification: BidNotification) => {
+        markBidNotificationRead(notification.id);
+        setActiveCue(null);
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fast-eat:bid_notification_dismiss', {
+                detail: {
+                    orderId: notification.orderId,
+                    bidId: notification.id,
+                    source: 'navbar_cue'
+                }
+            }));
+        }
+    };
+
+    const dismissStatusCue = () => {
+        if (!activeStatusCue) {
+            return;
+        }
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fast-eat:order_status_notification_dismiss', {
+                detail: {
+                    orderId: activeStatusCue.orderId,
+                    statusCode: activeStatusCue.statusCode,
+                    source: 'navbar_status_cue'
+                }
+            }));
+        }
+
+        setActiveStatusCue(null);
+    };
 
     const handleToggleFavorite = async () => {
         if (!restaurantInfo?.id || isFavoriteLoading) {
@@ -137,6 +337,11 @@ const Navbar: React.FC<NavbarProps> = ({
         const optimisticValue = !isFavorite;
         setIsFavorite(optimisticValue);
         setIsFavoriteLoading(true);
+        const previousFavorites = Array.isArray(clientContext?.favorites) ? clientContext.favorites : [];
+        const nextFavorites = optimisticValue
+            ? Array.from(new Set([...previousFavorites, restaurantInfo.id]))
+            : previousFavorites.filter((entry) => entry !== restaurantInfo.id);
+        hydrateClientContext({ favorites: nextFavorites });
 
         try {
             if (optimisticValue) {
@@ -166,14 +371,76 @@ const Navbar: React.FC<NavbarProps> = ({
             }
         } catch {
             setIsFavorite(!optimisticValue);
+            hydrateClientContext({ favorites: previousFavorites });
         } finally {
             setIsFavoriteLoading(false);
         }
     };
 
     return (
-        <div className="sticky top-0 ui-panel shadow-2xl z-50 border-b">
+        <div
+            data-menu-sticky-nav="true"
+            className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(252,246,239,0.96)_100%)] shadow-[0_20px_48px_-32px_rgba(98,60,29,0.35)] backdrop-blur-xl"
+        >
             <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col">
+                {activeStatusCue && (
+                    <div className="pt-3">
+                        <div className="ui-panel-soft flex items-center justify-between gap-3 rounded-[1.3rem] border border-[var(--color-border)] px-3 py-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (typeof window !== 'undefined') {
+                                        window.dispatchEvent(new CustomEvent('fast-eat:order_status_notification_click', {
+                                            detail: {
+                                                orderId: activeStatusCue.orderId,
+                                                statusCode: activeStatusCue.statusCode,
+                                                source: 'navbar_status_cue'
+                                            }
+                                        }));
+                                    }
+
+                                    onShowHistory();
+                                }}
+                                className="text-left flex-1"
+                                aria-label={t('trackOrders')}
+                            >
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-brand)]">Estado de orden actualizado</p>
+                                <p className="text-xs font-semibold text-[var(--color-text)]">{activeStatusCue.description}</p>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={dismissStatusCue}
+                                className="ui-btn-secondary rounded-full p-1"
+                                aria-label="Dismiss order status notification"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {activeCue && (
+                    <div className="pt-3">
+                        <div className="ui-chip-brand flex items-center justify-between gap-3 rounded-[1.3rem] px-3 py-2 animate-pulse">
+                            <button
+                                type="button"
+                                onClick={() => openFromCue(activeCue)}
+                                className="text-left flex-1"
+                                aria-label={t('openOfferNotifications')}
+                            >
+                                <p className="text-[10px] font-black uppercase tracking-widest">Nueva oferta recibida</p>
+                                <p className="text-xs font-semibold">Orden #{activeCue.orderId.slice(0, 8)} · ₡{Math.round(activeCue.bid.bidAmount).toLocaleString()}</p>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => dismissCue(activeCue)}
+                                className="ui-btn-secondary rounded-full p-1"
+                                aria-label="Dismiss bid notification"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                )}
                 <div className="flex items-center justify-between py-3 md:py-4">
                     <div className="flex items-center gap-3 md:gap-4 overflow-visible no-scrollbar scroll-smooth flex-nowrap pr-4 -mr-4 md:pr-0 md:mr-0">
                         <button
@@ -244,7 +511,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
                     <button
                         onClick={onOpenCart}
-                        className={`relative flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-full transition-all shrink-0 ml-4 md:ml-0 shadow-sm ${cartLength > 0 ? 'ui-btn-primary shadow-red-200 shadow-lg hover:scale-105 active:scale-95' : 'ui-btn-secondary'}`}
+                        className={`relative ml-4 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-all shadow-sm md:ml-0 md:h-14 md:w-14 ${cartLength > 0 ? 'ui-btn-primary shadow-lg hover:scale-105 active:scale-95' : 'ui-btn-secondary'}`}
                         aria-label={t('myOrder')}
                     >
                         <ShoppingCart className="w-6 h-6" strokeWidth={2.5} fill={cartLength > 0 ? "currentColor" : "none"} />
@@ -264,7 +531,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 <div className="relative group">
                     {canScrollLeft && (
                         <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent z-10 flex items-center">
-                            <button onClick={() => scrollTabs('left')} className="p-1 text-red-600">
+                            <button onClick={() => scrollTabs('left')} className="p-1 text-[var(--color-brand)]">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
                                 </svg>
@@ -291,7 +558,7 @@ const Navbar: React.FC<NavbarProps> = ({
                                     key={cat}
                                     data-cat={cat}
                                     onClick={() => setActiveCategory(cat)}
-                                    className={`px-5 md:px-10 py-2.5 md:py-4 rounded-xl transition-all text-[9px] md:text-[11px] font-black uppercase tracking-widest border-2 flex-shrink-0 ${activeCategory === cat ? 'ui-btn-primary border-transparent shadow-xl scale-105' : 'ui-btn-secondary ui-text-muted'}`}
+                                    className={`flex-shrink-0 rounded-xl border-2 px-5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all md:px-10 md:py-4 md:text-[11px] ${activeCategory === cat ? 'ui-btn-primary border-transparent shadow-xl scale-105' : 'ui-btn-secondary ui-text-muted'}`}
                                 >
                                     {cat}
                                 </button>
@@ -300,7 +567,7 @@ const Navbar: React.FC<NavbarProps> = ({
                     </div>
                     {canScrollRight && (
                         <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-l from-white to-transparent z-10 flex items-center justify-end">
-                            <button onClick={() => scrollTabs('right')} className="p-1 text-red-600">
+                            <button onClick={() => scrollTabs('right')} className="p-1 text-[var(--color-brand)]">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
                                 </svg>

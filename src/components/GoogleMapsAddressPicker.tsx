@@ -22,6 +22,7 @@ function samePosition(a: LatLng | null | undefined, b: LatLng | null | undefined
 interface GoogleMapsAddressPickerProps {
   initialUrl?: string;
   initialPosition?: LatLng | null;
+  preferCurrentLocationOnLoad?: boolean;
   onChange: (urlAddress: string, position: LatLng | null, normalizedAddress?: MapsGeocodeData) => void;
   onPermissionDenied?: () => void;
   onPermissionGranted?: () => void;
@@ -80,6 +81,7 @@ function toLatLngLiteral(value: any): LatLng | null {
 export default function GoogleMapsAddressPicker({
   initialUrl,
   initialPosition,
+  preferCurrentLocationOnLoad = false,
   onChange,
   onPermissionDenied,
   onPermissionGranted,
@@ -146,8 +148,8 @@ export default function GoogleMapsAddressPicker({
         setReverseGeocodeError(null);
         onChange(mapsUrl, nextPosition, normalized);
       })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError') {
+      .catch((requestError: unknown) => {
+        if (requestError instanceof DOMException && requestError.name === 'AbortError') {
           return;
         }
 
@@ -326,7 +328,7 @@ export default function GoogleMapsAddressPicker({
 
         emitPositionChange(basePosition);
 
-        if (!hasExplicitInitialSelection && navigator.geolocation) {
+        if ((preferCurrentLocationOnLoad || !hasExplicitInitialSelection) && navigator.geolocation) {
           onPermissionRequestedRef.current?.();
 
           navigator.geolocation.getCurrentPosition(
@@ -358,7 +360,7 @@ export default function GoogleMapsAddressPicker({
         }
 
         setMapLoading(false);
-      } catch (error) {
+      } catch {
         mapsLoaderPromise = null;
         mapsLoaderInitialized = false;
         if (!cancelled) {
@@ -373,7 +375,7 @@ export default function GoogleMapsAddressPicker({
     return () => {
       cancelled = true;
     };
-  }, [emitPositionChange, initialPosition, initialUrl, mapId, moveMapToPosition, position]);
+  }, [emitPositionChange, initialPosition, initialUrl, mapId, moveMapToPosition, position, preferCurrentLocationOnLoad]);
 
   const handleUseMyLocation = React.useCallback(() => {
     if (!navigator.geolocation) {

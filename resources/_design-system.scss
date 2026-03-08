@@ -1,0 +1,59 @@
+// FastEat Design System - Generated from POC Designs
+
+// --- Colors ---
+$color-primary: #ec5b13;
+$color-primary-hover: rgba(236, 91, 19, 0.9);
+
+$color-bg-light: #f8f6f6;
+$color-bg-dark: #221610;
+
+$color-surface-light: #ffffff;
+$color-surface-dark: #2c1d15;
+
+$color-surface-hover-dark: #3d2a1e;
+$color-surface-nested-dark: #352319;
+
+$color-border-light: #e2e8f0; // Slate 200
+$color-border-dark: #1e293b; // Slate 800
+
+$color-text-light: #0f172a; // Slate 900
+$color-text-dark: #f1f5f9; // Slate 100
+
+// --- Gradients ---
+$gradient-primary: linear-gradient(to right, #ec5b13, #fb923c);
+$gradient-purple: linear-gradient(to right, #a855f7, #6366f1);
+$gradient-success: linear-gradient(to right, #10b981, #2dd4bf);
+
+// --- Typography ---
+$font-family-base: 'Plus Jakarta Sans', sans-serif;
+
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// --- Shadows ---
+$shadow-container: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+$shadow-action-bar: 0 -4px 10px rgba(0, 0, 0, 0.05);
+
+// --- Borders ---
+$radius-default: 1rem;
+$radius-lg: 2rem;
+$radius-xl: 3rem;
+$radius-full: 9999px;
+
+// --- Layout ---
+$mobile-max-width: 448px; // max-w-md
+
+// --- Mixins ---
+@mixin glassmorphism($opacity: 0.8) {
+    background-color: rgba($color-surface-light, $opacity);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+@mixin dark-glassmorphism($opacity: 0.8) {
+    background-color: rgba($color-surface-dark, $opacity);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}

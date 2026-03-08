@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noEmit": true,
+    "allowJs": false
+  },
+  "include": [
+    "src/app/api/_lib/**/*.ts",
+    "src/app/api/_server/**/*.ts",
+    "src/app/api/chat/route.ts",
+    "src/app/api/customer/address/route.ts",
+    "src/app/api/customer/profile/route.ts",
+    "src/app/api/orders/route.ts",
+    "src/hooks/useRestaurants.ts",
+    "src/features/home-discovery/hooks/useHomeRails.ts",
+    "src/features/home-discovery/hooks/useHomeAddressRecovery.ts",
+    "src/store.ts"
+  ]
+}

@@ -4,6 +4,7 @@ import HomePage from './HomePage';
 import { emitHomeEvent } from '@/features/home-discovery/analytics';
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
     push: vi.fn()
   })
@@ -34,6 +35,13 @@ vi.mock('@/store', () => ({
   })
 }));
 
+vi.mock('@/lib/client-auth', () => ({
+  getAccessToken: vi.fn(async () => null),
+  getAuthenticatedJsonHeaders: vi.fn(async () => ({
+    'Content-Type': 'application/json',
+  })),
+}));
+
 vi.mock('@/hooks/useCategories', () => ({
   useCategories: () => ({
     categories: [],
@@ -54,6 +62,27 @@ vi.mock('@/features/home-discovery/hooks/useHomeRails', () => ({
   useHomeRails: () => []
 }));
 
+vi.mock('@/features/home-discovery/hooks/useHomeAddressRecovery', () => ({
+  useHomeAddressRecovery: () => ({
+    addressInitialPosition: null,
+    handleDismissProfilePrompt: vi.fn(),
+    handleOpenProfileCompletion: vi.fn(),
+    handleRequestLocationFromProfile: vi.fn(),
+    handleSaveAddress: vi.fn(),
+    isAddressModalOpen: false,
+    locationRequestLoading: false,
+    setIsAddressModalOpen: vi.fn(),
+  }),
+}));
+
+vi.mock('@/components/ProfileCompletionPrompt', () => ({
+  default: () => null,
+}));
+
+vi.mock('@/components/BottomNav', () => ({
+  default: () => null,
+}));
+
 vi.mock('@/components/UserOnboardingModal', () => ({
   default: () => null
 }));
@@ -67,7 +96,12 @@ vi.mock('@/features/home-discovery/components/HomeHeroSearch', () => ({
 }));
 
 vi.mock('@/features/home-discovery/components/IntentChipsBar', () => ({
-  default: () => <div>Intents</div>
+  default: ({ children, onOpenFilters }: any) => (
+    <div>
+      <button type="button" onClick={onOpenFilters}>Open filters</button>
+      {children}
+    </div>
+  )
 }));
 
 vi.mock('@/components/CategoryBar', () => ({
@@ -119,6 +153,15 @@ describe('HomePage filters and sort controls', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.sessionStorage.clear();
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ address: null }),
+    })) as any);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('supports chip toggle, sort change, clear-all, and keyboard interaction', async () => {
@@ -140,7 +183,8 @@ describe('HomePage filters and sort controls', () => {
       })
     );
 
-    await user.selectOptions(screen.getByLabelText('Ordenar'), 'fastest');
+    await user.click(screen.getByRole('button', { name: 'Open filters' }));
+    await user.selectOptions(screen.getByLabelText('Ordenar por'), 'fastest');
     expect(emitHomeEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'home_sort_change',
@@ -148,7 +192,7 @@ describe('HomePage filters and sort controls', () => {
       })
     );
 
-    await user.click(screen.getByRole('button', { name: 'Limpiar todo' }));
+    await user.click(screen.getByRole('button', { name: 'Limpiar todos los filtros' }));
     expect(emitHomeEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'home_filter_clear'

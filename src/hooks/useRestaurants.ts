@@ -8,8 +8,30 @@ interface UseRestaurantsOptions {
     userLocation?: UserLocation | null;
 }
 
+interface RestaurantCacheEntry {
+    data: RestaurantWithBranches[];
+    cachedAt: number;
+}
+
 const MIN_SUGGESTION_QUERY_LENGTH = 2;
 const MAX_SUGGESTION_CACHE_ENTRIES = 25;
+const RESTAURANTS_CACHE_TTL_MS = 2 * 60 * 1000;
+
+const restaurantsCache = new Map<string, RestaurantCacheEntry>();
+const restaurantsInflight = new Map<string, Promise<RestaurantWithBranches[]>>();
+
+function isAbortLikeError(error: unknown): boolean {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+        return true;
+    }
+
+    if (error instanceof Error) {
+        const normalized = error.message.toLowerCase();
+        return normalized.includes('aborted') || normalized.includes('signal is aborted');
+    }
+
+    return false;
+}
 
 function normalizeQuery(value: string): string {
     return value.trim().toLowerCase();
@@ -50,6 +72,16 @@ export function useRestaurants({ categoryId, userLocation }: UseRestaurantsOptio
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const suggestionCacheRef = useRef<Map<string, RestaurantWithBranches[]>>(new Map());
+    const latitude = userLocation?.lat;
+    const longitude = userLocation?.lng;
+
+    const buildCacheKey = useCallback(() => {
+        return JSON.stringify({
+            categoryId: categoryId || null,
+            lat: typeof latitude === 'number' ? Number(latitude.toFixed(3)) : null,
+            lng: typeof longitude === 'number' ? Number(longitude.toFixed(3)) : null,
+        });
+    }, [categoryId, latitude, longitude]);
 
     const setSuggestionCache = useCallback((key: string, value: RestaurantWithBranches[]) => {
         const cache = suggestionCacheRef.current;
@@ -67,9 +99,17 @@ export function useRestaurants({ categoryId, userLocation }: UseRestaurantsOptio
         }
     }, []);
 
-    const fetchRestaurants = useCallback(async () => {
-        // Only show loading if we don't have data yet to avoid flicker/loop issues
-        if (restaurants.length === 0) setLoading(true);
+    const fetchRestaurants = useCallback(async (signal?: AbortSignal) => {
+        const cacheKey = buildCacheKey();
+        const cachedEntry = restaurantsCache.get(cacheKey);
+        if (cachedEntry && (Date.now() - cachedEntry.cachedAt) < RESTAURANTS_CACHE_TTL_MS) {
+            setRestaurants(cachedEntry.data);
+            setLoading(false);
+            setError(null);
+            return cachedEntry.data;
+        }
+
+        setLoading(true);
         setError(null);
 
         try {
@@ -79,29 +119,58 @@ export function useRestaurants({ categoryId, userLocation }: UseRestaurantsOptio
                 params.set('categoryId', categoryId);
             }
 
-            if (userLocation) {
-                params.set('lat', userLocation.lat.toString());
-                params.set('lng', userLocation.lng.toString());
+            if (typeof latitude === 'number' && typeof longitude === 'number') {
+                params.set('lat', latitude.toString());
+                params.set('lng', longitude.toString());
             }
 
             const url = `/api/restaurants${params.toString() ? `?${params.toString()}` : ''}`;
-            const response = await fetch(url);
+            const existingLoader = restaurantsInflight.get(cacheKey);
+            const loader = existingLoader || (async () => {
+                const response = await fetch(url);
 
-            if (!response.ok) {
-                throw new Error('Failed to fetch restaurants');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch restaurants');
+                }
+
+                const data = await response.json();
+                const normalized = Array.isArray(data) ? data : [];
+                restaurantsCache.set(cacheKey, {
+                    data: normalized,
+                    cachedAt: Date.now(),
+                });
+                return normalized;
+            })();
+
+            restaurantsInflight.set(cacheKey, loader);
+            const data = await loader;
+            if (!signal?.aborted) {
+                setRestaurants(data);
+            }
+            return data;
+        } catch (err) {
+            if (signal?.aborted || isAbortLikeError(err)) {
+                return [];
             }
 
-            const data = await response.json();
-            setRestaurants(data);
-        } catch (err) {
             setError(err instanceof Error ? err.message : 'Unknown error');
+            return [];
         } finally {
-            setLoading(false);
+            restaurantsInflight.delete(cacheKey);
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
         }
-    }, [categoryId, userLocation]);
+    }, [buildCacheKey, categoryId, latitude, longitude]);
 
     useEffect(() => {
-        fetchRestaurants();
+        const controller = new AbortController();
+
+        void fetchRestaurants(controller.signal);
+
+        return () => {
+            controller.abort();
+        };
     }, [fetchRestaurants]);
 
     const fetchSuggestions = useCallback(async (rawQuery: string, signal?: AbortSignal) => {
@@ -132,9 +201,9 @@ export function useRestaurants({ categoryId, userLocation }: UseRestaurantsOptio
         const params = new URLSearchParams();
         params.set('query', normalizedQuery);
 
-        if (userLocation) {
-            params.set('lat', userLocation.lat.toString());
-            params.set('lng', userLocation.lng.toString());
+        if (typeof latitude === 'number' && typeof longitude === 'number') {
+            params.set('lat', latitude.toString());
+            params.set('lng', longitude.toString());
         }
 
         const response = await fetch(`/api/restaurants?${params.toString()}`, { signal });
@@ -147,7 +216,13 @@ export function useRestaurants({ categoryId, userLocation }: UseRestaurantsOptio
         const rankedResults = rankRestaurantsByQuery(result, normalizedQuery);
         setSuggestionCache(normalizedQuery, rankedResults);
         return rankedResults;
-    }, [setSuggestionCache, userLocation]);
+    }, [latitude, longitude, setSuggestionCache]);
 
-    return { restaurants, loading, error, refetch: fetchRestaurants, fetchSuggestions };
+    return {
+        restaurants,
+        loading,
+        error,
+        refetch: () => fetchRestaurants(),
+        fetchSuggestions,
+    };
 }

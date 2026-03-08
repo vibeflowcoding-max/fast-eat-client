@@ -1,8 +1,12 @@
 "use client";
 
 import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import LoadingScreen from '@/components/LoadingScreen';
-import HomePage from '@/components/HomePage';
+
+const HomePage = dynamic(() => import('@/components/HomePage'), {
+    loading: () => <LoadingScreen />,
+});
 
 export default function Home() {
     return (

@@ -23,7 +23,21 @@ export async function POST(req: NextRequest) {
     const isEnglish = requestLocale.startsWith('en');
 
     try {
-        const body = await req.json();
+        const body = await req.json().catch(() => null);
+        if (!body || typeof body !== 'object') {
+            return NextResponse.json(
+                {
+                    should_prompt: false,
+                    confidence: 0,
+                    status: 'incomplete_data',
+                    reason: 'request_body_invalid',
+                    source: 'client',
+                    traceId
+                },
+                { status: 400 }
+            );
+        }
+
         const { order_history, current_time, location } = body;
 
         if (!Array.isArray(order_history) || order_history.length === 0) {
@@ -71,11 +85,19 @@ Be conservative: only prompt if confidence is high (>0.7).`;
             }
         });
 
-        if (!response.text) {
-            throw new Error('No text returned from Gemini');
+        const responseText = typeof response.text === 'string' ? response.text.trim() : '';
+        if (!responseText) {
+            return NextResponse.json({
+                should_prompt: false,
+                confidence: 0,
+                status: 'analysis_unavailable',
+                reason: 'predictive_reorder_empty_response',
+                source: 'ai',
+                traceId
+            });
         }
 
-        const resultObject = JSON.parse(response.text) as {
+        let resultObject: {
             should_prompt?: boolean;
             confidence?: number;
             restaurantId?: string;
@@ -83,6 +105,32 @@ Be conservative: only prompt if confidence is high (>0.7).`;
             prompt_message?: string;
             reason?: string;
         };
+
+        try {
+            resultObject = JSON.parse(responseText) as {
+                should_prompt?: boolean;
+                confidence?: number;
+                restaurantId?: string;
+                itemId?: string;
+                prompt_message?: string;
+                reason?: string;
+            };
+        } catch (parseError) {
+            console.warn('[discovery.predictive-reorder.parse-error]', {
+                traceId,
+                error: parseError,
+                responseText: responseText.slice(0, 300),
+            });
+
+            return NextResponse.json({
+                should_prompt: false,
+                confidence: 0,
+                status: 'analysis_unavailable',
+                reason: 'predictive_reorder_invalid_response',
+                source: 'ai',
+                traceId
+            });
+        }
 
         const shouldPrompt = Boolean(resultObject.should_prompt);
         const confidence = typeof resultObject.confidence === 'number' ? resultObject.confidence : 0;

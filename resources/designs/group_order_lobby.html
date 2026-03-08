@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Group Order Lobby</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="relative flex min-h-screen w-full flex-col group/design-root overflow-x-hidden max-w-md mx-auto border-x border-slate-200 dark:border-slate-800 bg-background-light dark:bg-background-dark">
+<!-- Header -->
+<div class="flex items-center p-4 pb-2 justify-between sticky top-0 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur z-10 border-b border-primary/10">
+<button class="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-primary/10 text-slate-900 dark:text-slate-100 transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">Group Order Lobby</h2>
+</div>
+<div class="flex-1 overflow-y-auto pb-32">
+<!-- Restaurant Info & Lobby Status -->
+<div class="p-4 flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="size-12 rounded-xl bg-center bg-no-repeat bg-cover" data-alt="Burger joint logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAv13p9ppGm6uj4ggg7plk_AZdZ5Kj7C111fCVvZHFe12yUJaTtzoqAFSLfTI0p1EYrhWorF7cCh5h4dKxTKkKHpJ5E96RO0q1ZPWKZal5RlikOCkRLnQzhZD4NnmbDZrY0k1UID8VcdKoW9lH95kKlxZ3OwRdWIwuVqANZyB-QYnQ_bfpY3e3DTa5sPbbGjZ6jx2fWjEL_zseadTotxBJS5oTnQyOFZqkVqI7tkzFoiQsSmaB9_GsVz-C9YiR-5vWtIJnLi7L_3AQg");'></div>
+<div>
+<h3 class="font-bold text-lg leading-tight">Burger Joint</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400">Waiting for friends to join...</p>
+</div>
+</div>
+<!-- Progress/Status -->
+<div class="flex flex-col gap-2 p-4 rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10">
+<div class="flex gap-4 justify-between items-center">
+<p class="text-sm font-medium text-slate-900 dark:text-slate-100">Lobby Status</p>
+<p class="text-xs font-bold text-primary px-2 py-1 bg-primary/20 rounded-full">3 Joined</p>
+</div>
+<div class="rounded-full bg-primary/20 h-2 mt-1">
+<div class="h-2 rounded-full bg-primary" style="width: 60%;"></div>
+</div>
+</div>
+<!-- Invite Actions -->
+<div class="flex gap-3">
+<button class="flex flex-1 items-center justify-center rounded-full h-12 px-4 bg-primary text-white gap-2 text-sm font-bold shadow-sm shadow-primary/30 transition-transform active:scale-95">
+<span class="material-symbols-outlined text-xl">share</span>
+<span>Share Invite</span>
+</button>
+<button class="flex items-center justify-center rounded-full h-12 w-12 bg-primary/10 text-primary transition-transform active:scale-95">
+<span class="material-symbols-outlined text-xl">qr_code_2</span>
+</button>
+</div>
+</div>
+<hr class="border-t-8 border-primary/5 dark:border-primary/5 mx-0 my-2"/>
+<!-- Participants List -->
+<div class="p-4 flex flex-col gap-4">
+<h4 class="font-bold text-lg mb-2">Participants (3)</h4>
+<!-- You (Host) -->
+<div class="flex flex-col gap-3 p-4 rounded-xl border border-primary/20 bg-white dark:bg-slate-800 shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-10 rounded-full bg-center bg-cover border-2 border-primary" data-alt="User avatar placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCCLwt5QzAjkFs6zt42GDtVVbeDoaGsej2NyhMgbycfKsB27d54VCNnhXUKsApLUb5Hr1lWHFwjAFL8hCVPgHELc2NRR9PAs5ngUjfhtaUIH2kAvBuHF3maihfSSz8AoOAPBodUloCvDP6PA3Kw89IRDvUhz2gbRIgzU1X1g37Wn9KXb7bTaAK2pi9p1-xzYUaqT9O_06sGwy18g_tj_yaSI944cV8Y1TjCf8RbUcu2ZCJaowa80D40NoIvIv4dFCB9DMv70zZqBPls");'></div>
+<div class="absolute -bottom-1 -right-1 size-4 bg-green-500 rounded-full border-2 border-white dark:border-slate-800"></div>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-bold">You</span>
+<span class="text-[10px] uppercase tracking-wider font-bold bg-primary text-white px-2 py-0.5 rounded-full">Host</span>
+</div>
+<span class="text-xs text-green-600 dark:text-green-400 font-medium">Ready</span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-bold text-lg">$24.50</span>
+</div>
+</div>
+<div class="bg-primary/5 dark:bg-slate-700/50 rounded-lg p-3 text-sm flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="text-slate-600 dark:text-slate-300">1x Classic Cheeseburger</span>
+<span class="font-medium">$14.50</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-slate-600 dark:text-slate-300">1x Large Fries</span>
+<span class="font-medium">$6.00</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-slate-600 dark:text-slate-300">1x Vanilla Shake</span>
+<span class="font-medium">$4.00</span>
+</div>
+</div>
+</div>
+<!-- Alex -->
+<div class="flex flex-col gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-10 rounded-full bg-center bg-cover border border-slate-200 dark:border-slate-600" data-alt="Alex avatar placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuChDMOPlufUFVuXuRV_dbuXi9g3ksA2_IJSd1L_xT8QU_DVRewn3vayD7voo5GyOnSMSKQF13_z3CtLLA2pzJBjSD9vnZWuPR1210AKC1Jx_2dcEMbpbhCu23sxm7EB6CIeqxUep6IX4CpuTXQbGakdUUtvN5cOJaMCnmVAxFaK3LSqDl8niIO15B6fLjkiEhZO6O-TdTAbvvDsCkGbe-cclLrmPxmlHkOAgknoUVgEq0PArUd1--ocK68Qf4hlnTL-a4D0-txjhLU9");'></div>
+<div class="absolute -bottom-1 -right-1 size-4 bg-amber-500 rounded-full border-2 border-white dark:border-slate-800"></div>
+</div>
+<div class="flex flex-col">
+<span class="font-bold">Alex</span>
+<span class="text-xs text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">edit</span>
+                                    Adding Items
+                                </span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-bold text-lg">$18.00</span>
+</div>
+</div>
+<div class="bg-slate-50 dark:bg-slate-700/30 rounded-lg p-3 text-sm flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="text-slate-600 dark:text-slate-300">1x Spicy Chicken Sandwich</span>
+<span class="font-medium">$13.50</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-slate-600 dark:text-slate-300">1x Onion Rings</span>
+<span class="font-medium">$4.50</span>
+</div>
+</div>
+</div>
+<!-- Sarah -->
+<div class="flex flex-col gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm opacity-80">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-10 rounded-full bg-center bg-cover border border-slate-200 dark:border-slate-600" data-alt="Sarah avatar placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBdgIOabeX4mcHW-6XzMrBIOgfkrxzyI0qRmp58a_8gwp2u7HOH13EFQ7HJteLjQyAREGbFDTkXDehAcnsbSa27YKW8xMFCHbPGebPu9lAnu1CkqepSpKVOYzyJ9x8yqOwLGSqk2xmZ8dljHn7hNLGdrezlpHlOcfB5vSEyehAThdVnBhXh8NVw-v7XGlR_nmSrOCrTxOJvRZUVS6C8ZFwD_W-E26aulhWZYhYsZCCpA9d2piiGVdeZ7KnETu1gvfGWGU8yg38pr0jE");'></div>
+<div class="absolute -bottom-1 -right-1 size-4 bg-slate-400 rounded-full border-2 border-white dark:border-slate-800 animate-pulse"></div>
+</div>
+<div class="flex flex-col">
+<span class="font-bold">Sarah</span>
+<span class="text-xs text-slate-500 font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">search</span>
+                                    Browsing menu...
+                                </span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-bold text-lg text-slate-400">$0.00</span>
+</div>
+</div>
+<div class="text-xs text-center text-slate-400 italic py-2">
+                        No items added yet
+                    </div>
+</div>
+</div>
+</div>
+<!-- Floating Checkout Action -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] rounded-t-3xl pb-8">
+<div class="flex justify-between items-center mb-4 px-2">
+<div class="flex flex-col">
+<span class="text-sm text-slate-500 dark:text-slate-400">Group Total</span>
+<span class="font-bold text-2xl">$42.50</span>
+</div>
+<div class="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+<button class="px-3 py-1.5 text-xs font-bold rounded-md bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-colors">Split Bill</button>
+<button class="px-3 py-1.5 text-xs font-medium rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Host Pays</button>
+</div>
+</div>
+<button class="w-full bg-primary text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/30 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+<span>Checkout Group Order</span>
+<span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</body></html>

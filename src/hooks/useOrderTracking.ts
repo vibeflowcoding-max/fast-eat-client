@@ -1,15 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CartItem, DeliveryBid } from '../types';
 import { useCartStore } from '../store';
+import { audioManager } from '@/lib/audio';
 
 export interface OrderUpdate {
   orderId: string;
   orderNumber: string;
-  previousStatus: { code: string; label: string };
-  newStatus: { code: string; label: string };
+  previousStatus: { code: string; label: string; description?: string | null };
+  newStatus: { code: string; label: string; description?: string | null };
   updatedAt: string;
   items?: CartItem[];
   total?: number;
+  subtotal?: number;
+  feesTotal?: number;
+  deliveryFee?: number;
+  customerTotal?: number;
   source?: string;
   securityCode?: string;
   deliveryFinalPrice?: number;
@@ -37,6 +42,14 @@ interface CanonicalAuctionEventEnvelope {
 }
 
 const EVENT_TTL_MS = 5 * 60 * 1000;
+
+const TERMINAL_STATUS_CODES = new Set([
+  'COMPLETED',
+  'DELIVERED',
+  'CANCELLED',
+  'CANCELED',
+  'REFUNDED',
+]);
 
 const normalizeBid = (payload: any): DeliveryBid => ({
   id: String(payload?.id || payload?.bidId || ''),
@@ -78,24 +91,39 @@ const normalizeOrderStatus = (statusCode: string): string => {
   return lookup[normalized] || normalized;
 };
 
-const resolveStatusObject = (data: any): { code: string; label: string } => {
+const isTerminalStatus = (statusCode: string | null | undefined): boolean => {
+  const normalized = normalizeOrderStatus(String(statusCode || ''));
+  return TERMINAL_STATUS_CODES.has(normalized);
+};
+
+const resolveStatusObject = (data: any): { code: string; label: string; description?: string | null } => {
   const incomingStatus = data?.newStatus;
 
   if (incomingStatus && typeof incomingStatus === 'object') {
     const resolvedCode = normalizeOrderStatus(String(incomingStatus.code || data?.statusCode || data?.status || 'UNKNOWN'));
     const resolvedLabel = String(incomingStatus.label || data?.label || data?.newStatusLabel || 'Estado actualizado');
+    const resolvedDescription =
+      typeof incomingStatus.description === 'string'
+        ? incomingStatus.description
+        : typeof data?.description === 'string'
+          ? data.description
+          : null;
+
     return {
       code: resolvedCode,
       label: resolvedLabel,
+      description: resolvedDescription,
     };
   }
 
   const resolvedCode = normalizeOrderStatus(String(data?.statusCode || data?.status || incomingStatus || 'UNKNOWN'));
   const resolvedLabel = String(data?.label || data?.newStatusLabel || 'Estado actualizado');
+  const resolvedDescription = typeof data?.description === 'string' ? data.description : null;
 
   return {
     code: resolvedCode,
     label: resolvedLabel,
+    description: resolvedDescription,
   };
 };
 
@@ -108,11 +136,13 @@ export function useOrderTracking(branchId: string, phone: string, customerId?: s
     addBid,
     updateBid,
     addBidNotification,
-    setAuctionState
+    setAuctionState,
+    clearCart
   } = useCartStore();
   const [isConnected, setIsConnected] = useState(false);
   const processedEventsRef = useRef<Map<string, number>>(new Map());
   const activeOrdersRef = useRef(activeOrders);
+  const isClosingRef = useRef(false);
 
   useEffect(() => {
     activeOrdersRef.current = activeOrders;
@@ -140,6 +170,7 @@ export function useOrderTracking(branchId: string, phone: string, customerId?: s
       params.set('branchId', branchId);
     }
     const url = `/api/track?${params.toString()}`;
+    isClosingRef.current = false;
     
     // SSE connection
     const eventSource = new EventSource(url);
@@ -171,8 +202,47 @@ export function useOrderTracking(branchId: string, phone: string, customerId?: s
 
         processedEventsRef.current.set(eventKey, Date.now());
         pruneProcessedEvents();
+
+        const emitStatusChange = (orderId: string, status: { code: string; label: string; description?: string | null }) => {
+          if (typeof window === 'undefined') {
+            return;
+          }
+
+          window.dispatchEvent(new CustomEvent('fast-eat:order_status_changed', {
+            detail: {
+              orderId,
+              statusCode: status.code,
+              statusLabel: status.label,
+              description: status.description || null,
+              occurredAt: envelope.occurredAt || data.updatedAt || new Date().toISOString(),
+              source: eventType,
+            },
+          }));
+        };
         
         console.debug('📥 SSE Received Data:', data);
+
+        const resolvedClientTotal =
+          Number(data?.customerTotal ?? data?.customer_total ?? data?.total);
+        const normalizedClientTotal = Number.isFinite(resolvedClientTotal)
+          ? resolvedClientTotal
+          : undefined;
+        const resolvedSubtotal = Number(data?.subtotal ?? data?.baseSubtotal ?? data?.orderSubtotal);
+        const normalizedSubtotal = Number.isFinite(resolvedSubtotal) ? resolvedSubtotal : undefined;
+        const resolvedDeliveryFee = Number(data?.deliveryFee ?? data?.delivery_fee ?? data?.deliveryFinalPrice ?? data?.delivery_final_price);
+        const normalizedDeliveryFee = Number.isFinite(resolvedDeliveryFee) ? resolvedDeliveryFee : undefined;
+        const resolvedFeesTotal = Number(data?.feesTotal ?? data?.fees_total ?? data?.serviceAndPlatformFees);
+        const normalizedFeesTotal = Number.isFinite(resolvedFeesTotal)
+          ? resolvedFeesTotal
+          : (normalizedClientTotal !== undefined && normalizedSubtotal !== undefined && normalizedDeliveryFee !== undefined
+            ? Math.max(0, normalizedClientTotal - normalizedSubtotal - normalizedDeliveryFee)
+            : undefined);
+        const resolvedSecurityCode =
+          typeof data?.securityCode === 'string'
+            ? data.securityCode
+            : typeof data?.security_code === 'string'
+              ? data.security_code
+              : undefined;
 
         if (eventType === 'delivery_bid_created') {
           const orderId = String(envelope.orderId || data.orderId || '');
@@ -187,6 +257,18 @@ export function useOrderTracking(branchId: string, phone: string, customerId?: s
             receivedAt: envelope.occurredAt || data.createdAt || new Date().toISOString(),
             read: false
           });
+
+          audioManager.playBidNotification();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fast-eat:bid_notification_impression', {
+              detail: {
+                orderId,
+                bidId: bid.id,
+                bidAmount: bid.bidAmount,
+                source: 'sse_event'
+              }
+            }));
+          }
           return;
         }
 
@@ -213,6 +295,8 @@ export function useOrderTracking(branchId: string, phone: string, customerId?: s
             deliveryFinalPrice: data.deliveryFinalPrice
           });
 
+          emitStatusChange(orderId, status);
+
           const updatedAt = String(data.updatedAt || envelope.occurredAt || new Date().toISOString());
           const existingOrder = currentActiveOrders[orderId];
 
@@ -221,37 +305,59 @@ export function useOrderTracking(branchId: string, phone: string, customerId?: s
               newStatus: {
                 code: status.code,
                 label: status.label,
+                description: status.description || null,
               },
               updatedAt,
               deliveryId: data.deliveryId,
               deliveryFinalPrice: data.deliveryFinalPrice,
+              total: normalizedClientTotal,
+              subtotal: normalizedSubtotal,
+              deliveryFee: normalizedDeliveryFee,
+              feesTotal: normalizedFeesTotal,
+              customerTotal: normalizedClientTotal,
+              securityCode: resolvedSecurityCode,
             });
           } else {
             addActiveOrder({
               orderId,
               orderNumber: String(envelope.data?.orderNumber || data.orderNumber || 'PENDING'),
-              previousStatus: { code: 'UNKNOWN', label: 'Desconocido' },
-              newStatus: { code: status.code, label: status.label },
+              previousStatus: { code: 'UNKNOWN', label: 'Desconocido', description: null },
+              newStatus: { code: status.code, label: status.label, description: status.description || null },
               updatedAt,
               deliveryId: data.deliveryId,
               deliveryFinalPrice: data.deliveryFinalPrice,
+              total: normalizedClientTotal,
+              subtotal: normalizedSubtotal,
+              deliveryFee: normalizedDeliveryFee,
+              feesTotal: normalizedFeesTotal,
+              customerTotal: normalizedClientTotal,
+              securityCode: resolvedSecurityCode,
             });
+          }
+
+          if (isTerminalStatus(status.code)) {
+            clearCart();
           }
         }
 
         if (data && (data.orderId || data.id)) {
             const id = data.orderId || data.id;
             const status = resolveStatusObject(data);
+            emitStatusChange(id, status);
             const orderUpdate: OrderUpdate = {
                 orderId: id,
                 orderNumber: data.orderNumber || 'PENDING',
-                previousStatus: data.previousStatus || { code: 'UNKNOWN', label: 'Desconocido' },
+                previousStatus: data.previousStatus || { code: 'UNKNOWN', label: 'Desconocido', description: null },
               newStatus: status,
                 updatedAt: data.updatedAt || new Date().toISOString(),
                 items: data.items,
-                total: data.total,
+                total: normalizedClientTotal,
+                subtotal: normalizedSubtotal,
+                deliveryFee: normalizedDeliveryFee,
+                feesTotal: normalizedFeesTotal,
+                customerTotal: normalizedClientTotal,
                 source: data.source,
-                securityCode: data.securityCode,
+                securityCode: resolvedSecurityCode,
                 deliveryFinalPrice: data.deliveryFinalPrice,
                 deliveryId: data.deliveryId,
                 confirmedByDelivery: Boolean(data.confirmedByDelivery ?? data.confirmed_by_delivery),
@@ -260,6 +366,10 @@ export function useOrderTracking(branchId: string, phone: string, customerId?: s
                 cancellationReason: data.cancellationReason
             };
             addActiveOrder(orderUpdate);
+
+            if (isTerminalStatus(status.code)) {
+              clearCart();
+            }
         }
       } catch (e) {
         console.warn("⚠️ SSE Parse Error:", e, event.data);
@@ -279,18 +389,24 @@ export function useOrderTracking(branchId: string, phone: string, customerId?: s
     eventSource.addEventListener('auction_state_changed', handleMessage);
 
     eventSource.onerror = (e) => {
-      console.error("🔴 SSE: Connection Error", e);
+      if (isClosingRef.current || eventSource.readyState === EventSource.CLOSED) {
+        setIsConnected(false);
+        return;
+      }
+
+      console.warn("🟠 SSE: Connection interrupted", e);
       if (eventSource.readyState === EventSource.CLOSED) {
         setIsConnected(false);
       }
     };
 
     return () => {
+      isClosingRef.current = true;
       console.log("🔌 SSE: Closing connection");
       eventSource.close();
       setIsConnected(false);
     };
-  }, [branchId, phone, customerId, addActiveOrder, updateActiveOrder, addBid, updateBid, addBidNotification, setAuctionState]);
+  }, [branchId, phone, customerId, addActiveOrder, updateActiveOrder, addBid, updateBid, addBidNotification, setAuctionState, clearCart]);
 
   const orders = useMemo(
     () => (Object.values(activeOrders) as OrderUpdate[])

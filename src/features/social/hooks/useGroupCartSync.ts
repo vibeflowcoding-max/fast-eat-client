@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useEffectEvent, useRef } from 'react';
 import { useCartStore } from '@/store';
 import { supabase } from '@/lib/supabase';
 import { GroupCartParticipant } from '@/types';
@@ -14,7 +14,7 @@ export function useGroupCartSync() {
     // We use a ref for the channel to access it without causing re-renders/reconnects
     const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-    const broadcastMyState = useCallback(() => {
+    const broadcastMyState = useEffectEvent(() => {
         if (!participantId || !groupSessionId || !channelRef.current) return;
 
         channelRef.current.send({
@@ -28,7 +28,7 @@ export function useGroupCartSync() {
                 joinedAt: Date.now()
             } as GroupCartParticipant
         });
-    }, [participantId, participantName, isHost, items, groupSessionId]);
+    });
 
     useEffect(() => {
         if (!groupSessionId || !participantId) return;
@@ -92,14 +92,14 @@ export function useGroupCartSync() {
             supabase.removeChannel(channel);
             channelRef.current = null;
         };
-    }, [groupSessionId, participantId]); // Intentionally omitted items to preserve connection
+    }, [groupSessionId, participantId]);
 
     // Whenever MY cart items change, broadcast the update
     useEffect(() => {
         if (channelRef.current && groupSessionId && participantId) {
             broadcastMyState();
         }
-    }, [items, broadcastMyState, groupSessionId, participantId]);
+    }, [items, groupSessionId, participantId]);
 
     return {
         groupSessionId,

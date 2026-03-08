@@ -1,48 +1,155 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { constructSecureUrl } from '@/lib/url-utils';
+import { z } from 'zod';
+import { postN8nWebhook } from '@/app/api/_server/upstreams/n8n';
+import { getSupabaseServer } from '@/lib/supabase-server';
+import { createBranchOrderRpcLocal, createConsumerOrderLocal } from '@/server/orders/create';
+
+const n8nOrderSchema = z.object({
+  message: z.string().trim().min(1),
+  fromNumber: z.string().trim().optional().default(''),
+  branch_id: z.string().trim().min(1),
+  intencion: z.string().trim().min(1),
+  action: z.string().trim().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  isTest: z.boolean().optional(),
+}).passthrough();
+
+const mcpOrderSchema = z.object({
+  tool: z.string().trim().min(1),
+  arguments: z.record(z.string(), z.unknown()).optional(),
+});
+
+const clientConsumerOrderSchema = z.object({
+  branchId: z.string().trim().min(1),
+  totalAmount: z.number(),
+  customerName: z.string().trim().min(1),
+  customerPhone: z.string().trim().min(1),
+  paymentMethod: z.string().trim().optional().default('cash'),
+  orderType: z.string().trim().optional().default('pickup'),
+  source: z.string().trim().optional().default('client'),
+  address: z.string().trim().optional(),
+  customerLatitude: z.number().optional(),
+  customerLongitude: z.number().optional(),
+  scheduledFor: z.string().trim().nullable().optional(),
+  optOutCutlery: z.boolean().optional(),
+  tableNumber: z.string().trim().optional(),
+  items: z.array(z.object({
+    item_id: z.string().trim().optional(),
+    productId: z.string().trim().optional(),
+    id: z.string().trim().optional(),
+    variantId: z.string().trim().nullable().optional(),
+    variant_id: z.string().trim().nullable().optional(),
+    quantity: z.number(),
+    price: z.number().optional(),
+    notes: z.string().optional(),
+    modifiers: z.array(z.object({
+      modifier_item_id: z.string().trim(),
+      quantity: z.number().optional(),
+    })).optional(),
+  })).min(1),
+});
+
+function getRecordValue(record: Record<string, unknown>, key: string) {
+  return record[key];
+}
+
+function getStringValue(record: Record<string, unknown>, key: string): string {
+  const value = getRecordValue(record, key);
+
+  return typeof value === 'string' ? value : '';
+}
+
+function getNullableStringValue(record: Record<string, unknown>, key: string): string | null {
+  const value = getRecordValue(record, key);
+
+  return typeof value === 'string' ? value : null;
+}
+
+function getUnknownNumberValue(record: Record<string, unknown>, key: string): unknown {
+  return getRecordValue(record, key);
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const payload = await req.json();
-    const isWrappedPayload =
-      payload &&
-      typeof payload === 'object' &&
-      ('target' in payload || 'body' in payload || 'isTest' in payload);
+    const payload = await req.json().catch(() => null);
 
-    const target = isWrappedPayload ? payload.target : undefined;
-    const body = isWrappedPayload ? payload.body : payload;
-    const isTest = isWrappedPayload ? payload.isTest : false;
+    const parsedN8nPayload = n8nOrderSchema.safeParse(payload);
+    if (parsedN8nPayload.success) {
+      const { isTest = false, ...n8nPayload } = parsedN8nPayload.data;
+      const { response, payload: data } = await postN8nWebhook(n8nPayload, isTest);
+
+      if (!response.ok) {
+        return NextResponse.json(
+          { success: false, message: 'Error al procesar la orden' },
+          { status: response.status },
+        );
+      }
+
+      return NextResponse.json(data);
+    }
+
+    const parsedClientConsumerPayload = clientConsumerOrderSchema.safeParse(payload);
+    if (parsedClientConsumerPayload.success) {
+      const body = parsedClientConsumerPayload.data;
+      const supabaseServer = getSupabaseServer();
+      const { data: branchRecord, error: branchError } = await (supabaseServer as any)
+        .from('branches')
+        .select('id, restaurant_id')
+        .eq('id', body.branchId)
+        .maybeSingle();
+
+      if (branchError || !branchRecord?.restaurant_id) {
+        return NextResponse.json({ success: false, message: 'Could not resolve restaurant for branch' }, { status: 400 });
+      }
+
+      const order = await createConsumerOrderLocal({
+        restaurant_id: String(branchRecord.restaurant_id),
+        customer_name: body.customerName,
+        customer_phone: body.customerPhone,
+        delivery_address: body.address || null,
+        total_amount: body.totalAmount,
+        order_type: String(body.orderType || 'pickup').toLowerCase(),
+        source: (body.source || 'client') as 'client' | 'virtualMenu' | 'bot',
+        customerLatitude: body.customerLatitude,
+        customerLongitude: body.customerLongitude,
+        scheduledFor: body.scheduledFor || undefined,
+        optOutCutlery: Boolean(body.optOutCutlery),
+        metadata: {
+          branchId: body.branchId,
+          tableNumber: body.tableNumber || null,
+        },
+        items: body.items.map((item) => ({
+          item_id: item.item_id || item.productId || item.id || '',
+          variant_id: item.variantId || item.variant_id || undefined,
+          quantity: item.quantity,
+          notes: item.notes || undefined,
+          modifiers: (item.modifiers || []).map((modifier) => ({
+            modifier_item_id: modifier.modifier_item_id,
+            quantity: modifier.quantity || 1,
+          })),
+        })),
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: { order },
+        message: 'Pedido creado exitosamente',
+      }, { status: 201 });
+    }
+
+    // Ensure branchId is correctly set in arguments if missing
+    const parsedMcpPayload = mcpOrderSchema.safeParse(payload);
+    if (!parsedMcpPayload.success) {
+      return NextResponse.json({ success: false, message: 'Invalid order payload' }, { status: 400 });
+    }
+
     const cookieStore = await cookies();
-    
-    // Get Branch ID from Session Cookie as a fallback
     const sessionBranchId = cookieStore.get('session_branch_id')?.value;
     const DEFAULT_BRANCH_ID = process.env.DEFAULT_BRANCH_ID;
     const branchIdToUse = sessionBranchId || DEFAULT_BRANCH_ID;
 
-    if (target === 'n8n') {
-      const N8N_BASE_URL = process.env.N8N_BASE_URL;
-      const N8N_TEST_BASE_URL = process.env.N8N_TEST_BASE_URL;
-      const WEBHOOK_ID = process.env.N8N_WEBHOOK_ID || '';
-      const url = constructSecureUrl(isTest ? N8N_TEST_BASE_URL : N8N_BASE_URL, WEBHOOK_ID);
-      
-      console.log(`[API/Orders] Generating order via n8n: ${url}`);
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      
-      const data = await response.json();
-      return NextResponse.json(data);
-    }
-
-    const FAST_EAT_API_URL = process.env.FAST_EAT_API_URL;
-    const ORDER_PATH = '/mcp/order';
-    const url = constructSecureUrl(FAST_EAT_API_URL, ORDER_PATH);
-
-    // Ensure branchId is correctly set in arguments if missing
-    let finalBody = body;
+    let finalBody = parsedMcpPayload.data;
     if (finalBody?.arguments && (!finalBody.arguments.branchId || finalBody.arguments.branchId === ':branchId')) {
       if (branchIdToUse) {
         finalBody.arguments.branchId = branchIdToUse;
@@ -54,37 +161,40 @@ export async function POST(req: NextRequest) {
 
     if (isToolPayload && finalBody.tool === 'create_branch_order' && finalBody.arguments) {
       const args = finalBody.arguments;
+      const customer = typeof args.customer === 'object' && args.customer !== null
+        ? (args.customer as Record<string, unknown>)
+        : {};
       const normalizedCustomerPhone = String(
-        args.customer?.phone ||
-        args.customer?.fromNumber ||
-        args.customerPhone ||
-        args.customer_phone ||
-        args.phone ||
-        args.fromNumber ||
+        getStringValue(customer, 'phone') ||
+        getStringValue(customer, 'fromNumber') ||
+        getStringValue(args, 'customerPhone') ||
+        getStringValue(args, 'customer_phone') ||
+        getStringValue(args, 'phone') ||
+        getStringValue(args, 'fromNumber') ||
         ''
       ).trim();
-      const paymentMethodRaw = String(args.payment_method_code || args.paymentMethod || 'CASH').toLowerCase();
+      const paymentMethodRaw = String(getRecordValue(args, 'payment_method_code') || getRecordValue(args, 'paymentMethod') || 'CASH').toLowerCase();
       const paymentMethodCode =
         paymentMethodRaw === 'cash' ? 'CASH' :
         paymentMethodRaw === 'card' ? 'CARD' :
         paymentMethodRaw === 'sinpe' ? 'SINPE' :
-        String(args.payment_method_code || args.paymentMethod || 'CASH').toUpperCase();
+        String(getRecordValue(args, 'payment_method_code') || getRecordValue(args, 'paymentMethod') || 'CASH').toUpperCase();
 
-      const serviceModeRaw = String(args.service_mode || args.orderType || 'pickup').toLowerCase();
+      const serviceModeRaw = String(getRecordValue(args, 'service_mode') || getRecordValue(args, 'orderType') || 'pickup').toLowerCase();
       const serviceMode =
         serviceModeRaw === 'delivery' || serviceModeRaw === 'domicilio' ? 'delivery' :
         serviceModeRaw === 'dine_in' || serviceModeRaw === 'comer_ahi' || serviceModeRaw === 'comer_aqui' ? 'dine_in' :
         'pickup';
 
       finalBody.arguments = {
-        branch_id: args.branch_id || args.branchId,
+        branch_id: getRecordValue(args, 'branch_id') || getRecordValue(args, 'branchId'),
         customer: {
-          name: args.customer?.name || args.customerName,
+          name: getStringValue(customer, 'name') || getStringValue(args, 'customerName'),
           phone: normalizedCustomerPhone,
-          email: args.customer?.email || args.customerEmail || null,
-          address: args.customer?.address || args.address || null,
-          latitude: args.customerLatitude ?? args.customer_latitude ?? args.customer?.latitude ?? null,
-          longitude: args.customerLongitude ?? args.customer_longitude ?? args.customer?.longitude ?? null,
+          email: getNullableStringValue(customer, 'email') || getNullableStringValue(args, 'customerEmail'),
+          address: getNullableStringValue(customer, 'address') || getNullableStringValue(args, 'address'),
+          latitude: getUnknownNumberValue(args, 'customerLatitude') ?? getUnknownNumberValue(args, 'customer_latitude') ?? getUnknownNumberValue(customer, 'latitude') ?? null,
+          longitude: getUnknownNumberValue(args, 'customerLongitude') ?? getUnknownNumberValue(args, 'customer_longitude') ?? getUnknownNumberValue(customer, 'longitude') ?? null,
         },
         items: Array.isArray(args.items)
           ? args.items.map((item: any) => ({
@@ -95,95 +205,73 @@ export async function POST(req: NextRequest) {
           : [],
         payment_method_code: paymentMethodCode,
         service_mode: serviceMode,
-        table_number: args.table_number || args.tableNumber || null,
-        delivery_address: args.delivery_address || args.address || null,
-        notes: args.notes || null,
-        source: args.source || 'client',
+        table_number: getRecordValue(args, 'table_number') || getRecordValue(args, 'tableNumber') || null,
+        delivery_address: getNullableStringValue(args, 'delivery_address') || getNullableStringValue(args, 'address'),
+        notes: getNullableStringValue(args, 'notes'),
+        source: getStringValue(args, 'source') || 'client',
         delivery_enabled: serviceMode === 'delivery',
         allow_delivery_auction: serviceMode === 'delivery',
       };
     }
 
-    const upstreamBody = isToolPayload
-      ? {
-          jsonrpc: '2.0',
-          id: `order-${Date.now()}`,
-          method: 'tools/call',
-          params: {
-            name: finalBody.tool,
-            arguments: finalBody.arguments ?? {},
-          },
-        }
-      : finalBody;
-
-    console.log(`[API/Orders] Forwarding direct order to: ${url}`);
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s timeout
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json, text/event-stream',
-        },
-        body: JSON.stringify(upstreamBody),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[API/Orders] External API Error (${response.status}):`, errorText);
-        try {
-          const errorJson = JSON.parse(errorText);
-          return NextResponse.json({ 
-            success: false, 
-            message: errorJson.message || 'Error al procesar la orden' 
-          }, { status: response.status });
-        } catch {
-          return NextResponse.json({ success: false, message: 'Error de conexión' }, { status: response.status });
-        }
-      }
-
-      const data = await response.json();
-
-      if (isToolPayload && data?.result?.content?.[0]?.text) {
-        try {
-          const parsedToolResult = JSON.parse(data.result.content[0].text);
-          return NextResponse.json(parsedToolResult);
-        } catch {
-          return NextResponse.json(data);
-        }
-      }
-
-      if (data?.error) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: data.error?.message || 'Error al procesar la orden',
-          },
-          { status: 400 },
-        );
-      }
-
-      return NextResponse.json(data);
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
-        console.warn("[API/Orders] Request timed out after 55s");
-        return NextResponse.json({ 
-          success: false, 
-          message: "El servidor está tardando en responder, pero es posible que tu orden se esté procesando. Por favor, espera un momento antes de reintentar." 
-        }, { status: 504 });
-      }
-      throw fetchError;
+    if (!isToolPayload || finalBody.tool !== 'create_branch_order' || !finalBody.arguments) {
+      return NextResponse.json(
+        { success: false, message: 'Unsupported order payload' },
+        { status: 400 },
+      );
     }
-  } catch (error: any) {
+
+    const supabaseServer = getSupabaseServer();
+    const branchId = String(finalBody.arguments.branch_id || finalBody.arguments.branchId || '').trim();
+
+    if (!branchId) {
+      return NextResponse.json({ success: false, message: 'branch_id is required' }, { status: 400 });
+    }
+
+    const { data: branchRecord, error: branchError } = await (supabaseServer as any)
+      .from('branches')
+      .select('id, restaurant_id')
+      .eq('id', branchId)
+      .maybeSingle();
+
+    if (branchError || !branchRecord?.restaurant_id) {
+      return NextResponse.json({ success: false, message: 'Could not resolve restaurant for branch' }, { status: 400 });
+    }
+
+    const rpcResult = await createBranchOrderRpcLocal({
+      branchId,
+      restaurantId: String(branchRecord.restaurant_id),
+      customer: {
+        name: getStringValue(finalBody.arguments.customer ?? {}, 'name') || getStringValue(finalBody.arguments, 'customerName') || 'Cliente',
+        phone: getStringValue(finalBody.arguments.customer ?? {}, 'phone') || getStringValue(finalBody.arguments, 'customerPhone') || getStringValue(finalBody.arguments, 'phone'),
+        email: getNullableStringValue(finalBody.arguments.customer ?? {}, 'email') || getNullableStringValue(finalBody.arguments, 'customerEmail'),
+        address: getNullableStringValue(finalBody.arguments.customer ?? {}, 'address') || getNullableStringValue(finalBody.arguments, 'delivery_address') || getNullableStringValue(finalBody.arguments, 'address'),
+      },
+      items: Array.isArray(finalBody.arguments.items)
+        ? finalBody.arguments.items.map((item: any) => ({
+            menu_item_id: String(item.menu_item_id || item.menuItemId || item.productId || item.id || ''),
+            quantity: Number(item.quantity || 1),
+            special_instructions: item.special_instructions || item.specialInstructions || item.notes || null,
+          }))
+        : [],
+      paymentMethodCode: String(finalBody.arguments.payment_method_code || finalBody.arguments.paymentMethod || 'CASH').toUpperCase(),
+      serviceMode: (String(finalBody.arguments.service_mode || finalBody.arguments.orderType || 'pickup').toLowerCase() === 'delivery'
+        ? 'delivery'
+        : String(finalBody.arguments.service_mode || finalBody.arguments.orderType || 'pickup').toLowerCase() === 'dine_in'
+          ? 'dine_in'
+          : 'pickup') as 'pickup' | 'delivery' | 'dine_in' | 'takeaway',
+      deliveryAddress: getNullableStringValue(finalBody.arguments, 'delivery_address') || getNullableStringValue(finalBody.arguments, 'address'),
+      notes: getNullableStringValue(finalBody.arguments, 'notes'),
+      tableNumber: finalBody.arguments.table_number ? Number(finalBody.arguments.table_number) : (finalBody.arguments.tableNumber ? Number(finalBody.arguments.tableNumber) : null),
+    });
+
+    return NextResponse.json(rpcResult);
+  } catch (error) {
     console.error("[API/Orders] Fatal Error:", error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: error instanceof Error ? error.message : 'Unexpected order error' },
+      { status: 500 },
+    );
   }
 }
 

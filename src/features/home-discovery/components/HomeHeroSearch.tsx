@@ -80,7 +80,7 @@ export default function HomeHeroSearch({
 
             <div className="relative">
                 <label htmlFor={searchInputId} className="sr-only">{t('searchLabel')}</label>
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" size={20} />
                 <input
                     id={searchInputId}
                     type="text"
@@ -96,13 +96,13 @@ export default function HomeHeroSearch({
                 </div>
 
                 {showSuggestions && (
-                    <div className="absolute z-50 mt-2 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
+                    <div className="ui-panel absolute z-50 mt-2 w-full rounded-2xl p-2 shadow-[0_22px_48px_-28px_rgba(98,60,29,0.35)]">
                         {suggestionsLoading && (
-                            <p className="px-2 py-1.5 text-sm text-gray-500">{t('searchingSuggestions')}</p>
+                            <p className="px-2 py-1.5 text-sm text-[var(--color-text-muted)]">{t('searchingSuggestions')}</p>
                         )}
 
                         {!suggestionsLoading && suggestions.length === 0 && (
-                            <p className="px-2 py-1.5 text-sm text-gray-500">{t('noSuggestions')}</p>
+                            <p className="px-2 py-1.5 text-sm text-[var(--color-text-muted)]">{t('noSuggestions')}</p>
                         )}
 
                         {!suggestionsLoading && suggestions.length > 0 && (
@@ -112,10 +112,10 @@ export default function HomeHeroSearch({
                                         <button
                                             type="button"
                                             onClick={() => onSuggestionSelect?.(suggestion)}
-                                            className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                                            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-muted)]"
                                         >
                                             <span>{suggestion.label}</span>
-                                            <span className="text-xs text-gray-400">
+                                            <span className="text-xs text-[var(--color-text-muted)]">
                                                 {suggestion.kind === 'restaurant' ? t('suggestionKind.restaurant') : t('suggestionKind.category')}
                                             </span>
                                         </button>
@@ -128,19 +128,19 @@ export default function HomeHeroSearch({
             </div>
 
             {showRecovery && (
-                <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
-                    <p className="text-sm font-medium text-gray-800">{t('noResults')}</p>
+                <div className="ui-panel mt-3 rounded-2xl p-4">
+                    <p className="text-sm font-bold text-[var(--color-text)]">{t('noResults')}</p>
 
                     {recoveryAlternatives.length > 0 && (
                         <div className="mt-2">
-                            <p className="text-xs text-gray-500">{t('nearbyRestaurants')}</p>
+                            <p className="text-xs text-[var(--color-text-muted)]">{t('nearbyRestaurants')}</p>
                             <div className="mt-1 flex flex-wrap gap-2">
                                 {recoveryAlternatives.map((alternative) => (
                                     <button
                                         key={alternative.id}
                                         type="button"
                                         onClick={() => onRecoveryAlternativeSelect?.(alternative.id)}
-                                        className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-700"
+                                        className="ui-btn-secondary rounded-full px-3 py-1 text-xs font-semibold"
                                     >
                                         {alternative.label}
                                     </button>
@@ -151,14 +151,14 @@ export default function HomeHeroSearch({
 
                     {recoveryCategories.length > 0 && (
                         <div className="mt-3">
-                            <p className="text-xs text-gray-500">{t('popularCategories')}</p>
+                            <p className="text-xs text-[var(--color-text-muted)]">{t('popularCategories')}</p>
                             <div className="mt-1 flex flex-wrap gap-2">
                                 {recoveryCategories.map((category) => (
                                     <button
                                         key={category.id}
                                         type="button"
                                         onClick={() => onRecoveryCategorySelect?.(category.label)}
-                                        className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs text-orange-700"
+                                        className="ui-chip-brand rounded-full px-3 py-1 text-xs font-semibold"
                                     >
                                         {category.label}
                                     </button>
@@ -170,7 +170,7 @@ export default function HomeHeroSearch({
                     <button
                         type="button"
                         onClick={onClearSearch}
-                        className="mt-3 text-sm font-medium text-orange-600"
+                        className="mt-3 text-sm font-bold text-[var(--color-brand)]"
                     >
                         {t('clearSearch')}
                     </button>

@@ -302,36 +302,42 @@ export function useHomeRails({
         const filtered = applyHomeFilters(restaurants, filters);
         const orderedBySort = sortRestaurants(filtered, sortBy);
         const ordered = sortByIntent(orderedBySort, activeIntent);
-        const orderedByValue = [...ordered].sort((left, right) => (estimateFinalPrice(left) ?? Number.MAX_SAFE_INTEGER) - (estimateFinalPrice(right) ?? Number.MAX_SAFE_INTEGER));
-        const orderedByFee = [...ordered].sort((left, right) => (estimateDeliveryFee(left) ?? Number.MAX_SAFE_INTEGER) - (estimateDeliveryFee(right) ?? Number.MAX_SAFE_INTEGER));
-        const orderedByDistance = [...ordered].sort(
-            (left, right) => (left.distance ?? Number.MAX_SAFE_INTEGER) - (right.distance ?? Number.MAX_SAFE_INTEGER)
-        );
-        const orderedByQuality = [...ordered].sort((left, right) => {
-            const ratingDelta = (right.rating ?? 0) - (left.rating ?? 0);
-            if (ratingDelta !== 0) {
-                return ratingDelta;
-            }
+        const analyzedRestaurants = ordered.map((restaurant) => ({
+            restaurant,
+            finalPrice: estimateFinalPrice(restaurant),
+            deliveryFee: estimateDeliveryFee(restaurant),
+            distance: restaurant.distance ?? Number.MAX_SAFE_INTEGER,
+            rating: restaurant.rating ?? 0,
+            reviewCount: restaurant.review_count ?? 0,
+        }));
 
-            return (right.review_count ?? 0) - (left.review_count ?? 0);
-        });
-        const promoItems = ordered.filter((restaurant) => Boolean(restaurant.promo_text));
+        const orderedByFee = [...analyzedRestaurants]
+            .sort((left, right) => (left.deliveryFee ?? Number.MAX_SAFE_INTEGER) - (right.deliveryFee ?? Number.MAX_SAFE_INTEGER))
+            .map(({ restaurant }) => restaurant);
+        const orderedByDistance = [...analyzedRestaurants]
+            .sort((left, right) => left.distance - right.distance)
+            .map(({ restaurant }) => restaurant);
+        const orderedByQuality = [...analyzedRestaurants]
+            .sort((left, right) => {
+                const ratingDelta = right.rating - left.rating;
+                if (ratingDelta !== 0) {
+                    return ratingDelta;
+                }
 
-        const nearby = ordered.filter((restaurant) => {
-            if (restaurant.distance === undefined || restaurant.distance === null) {
-                return false;
-            }
+                return right.reviewCount - left.reviewCount;
+            })
+            .map(({ restaurant }) => restaurant);
+        const promoItems = analyzedRestaurants
+            .filter(({ restaurant }) => Boolean(restaurant.promo_text))
+            .map(({ restaurant }) => restaurant);
 
-            return restaurant.distance <= 5;
-        });
+        const nearby = analyzedRestaurants
+            .filter(({ distance }) => Number.isFinite(distance) && distance <= 5)
+            .map(({ restaurant }) => restaurant);
 
-        const other = ordered.filter((restaurant) => {
-            if (restaurant.distance === undefined || restaurant.distance === null) {
-                return true;
-            }
-
-            return restaurant.distance > 5;
-        });
+        const other = analyzedRestaurants
+            .filter(({ distance }) => !Number.isFinite(distance) || distance > 5)
+            .map(({ restaurant }) => restaurant);
 
         const coreRails: HomeRail[] = [
             {
@@ -380,10 +386,9 @@ export function useHomeRails({
             });
         }
 
-        const combosUnderBudget = orderedByValue.filter((restaurant) => {
-            const finalPrice = estimateFinalPrice(restaurant);
-            return finalPrice !== null && finalPrice <= COMBO_BUDGET_CENTS;
-        });
+        const combosUnderBudget = analyzedRestaurants
+            .filter(({ finalPrice }) => finalPrice !== null && finalPrice <= COMBO_BUDGET_CENTS)
+            .map(({ restaurant }) => restaurant);
         additionalRails.push({
             railId: 'combos-under-budget',
             title: railLabels.combosUnderBudgetTitle,
@@ -391,10 +396,9 @@ export function useHomeRails({
             items: combosUnderBudget.slice(0, 8)
         });
 
-        const lowDeliveryFee = orderedByFee.filter((restaurant) => {
-            const deliveryFee = estimateDeliveryFee(restaurant);
-            return deliveryFee !== null && deliveryFee <= 1000;
-        });
+        const lowDeliveryFee = analyzedRestaurants
+            .filter(({ deliveryFee }) => deliveryFee !== null && deliveryFee <= 1000)
+            .map(({ restaurant }) => restaurant);
         additionalRails.push({
             railId: 'low-delivery-fee',
             title: railLabels.lowDeliveryFeeTitle,

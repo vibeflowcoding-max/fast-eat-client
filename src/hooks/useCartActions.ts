@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react';
 import { useCartStore } from '../store';
-import { sendChatToN8N, submitOrderToMCP, CartAction } from '../services/api';
+import { sendChatToN8N, submitOrderToMCP, CartAction, saveOrderSplitDraft } from '../services/api';
 import { CartItem, OrderMetadata } from '../types';
+import { normalizePhoneWithSinglePlus } from '@/lib/phone';
+import { getAuthenticatedJsonHeaders } from '@/lib/client-auth';
 
 export const useCartActions = () => {
   const {
@@ -9,14 +11,15 @@ export const useCartActions = () => {
     branchId,
     fromNumber,
     isTestMode,
-    expirationTime,
-    setExpirationTime,
     updateItem,
     removeItem,
     clearCart,
     addActiveOrder,
     customerAddress,
-    setCustomerAddress
+    setCustomerAddress,
+    setCustomerId,
+    customerName,
+    isAuthenticated,
   } = useCartStore();
 
   const [isSyncing, setIsSyncing] = useState(false);
@@ -47,12 +50,11 @@ export const useCartActions = () => {
         const response = await sendChatToN8N(message, currentCart, branchId, fromNumber, 'carrito', action, { ...item, quantity: newQuantity }, orderMetadata, isTestMode);
 
         if (response.confirmation) {
-          if (!expirationTime) setExpirationTime(Date.now() + 40 * 60 * 1000);
           setChefNotification({ content: response.output, item_ids: response.item_ids });
         } else {
           setChefNotification({ content: "Lo sentimos, hubo un problema al sincronizar. 🏮" });
         }
-      } catch (error) {
+      } catch {
         setChefNotification({ content: "Error de conexión. 🏮" });
       } finally {
         setIsSyncing(false);
@@ -95,14 +97,13 @@ export const useCartActions = () => {
     try {
       const res = await sendChatToN8N(message, useCartStore.getState().items, branchId, fromNumber, 'carrito', action, newItem, orderMetadata, isTestMode);
       if (res.confirmation) {
-        if (!expirationTime) setExpirationTime(Date.now() + 40 * 60 * 1000);
         setChefNotification({ content: res.output, item_ids: res.item_ids });
         return true;
       } else {
         setChefNotification({ content: "Error en el servidor. 🏮" });
         return false;
       }
-    } catch (e) {
+    } catch {
       setChefNotification({ content: "Error de conexión. 🏮" });
       return false;
     } finally {
@@ -122,7 +123,7 @@ export const useCartActions = () => {
         setChefNotification({ content: "No se pudo vaciar el carrito." });
         return false;
       }
-    } catch (e) {
+    } catch {
       setChefNotification({ content: "Error de red al vaciar el carrito." });
       return false;
     } finally {
@@ -134,7 +135,8 @@ export const useCartActions = () => {
     if (isOrdering) return false;
     setIsOrdering(true);
     try {
-      const normalizedCustomerPhone = String(orderMetadata.customerPhone || fromNumber || '').trim();
+      const normalizedCustomerPhone = normalizePhoneWithSinglePlus(fromNumber || orderMetadata.customerPhone || '');
+      const canonicalCustomerName = String(customerName || orderMetadata.customerName || '').trim();
       const deliveryLocationReference = String(orderMetadata.gpsLocation || orderMetadata.address || '').trim();
 
       if (orderMetadata.orderType === 'delivery' && !deliveryLocationReference) {
@@ -144,6 +146,7 @@ export const useCartActions = () => {
 
       const finalMetadata = {
         ...orderMetadata,
+        customerName: canonicalCustomerName,
         customerPhone: normalizedCustomerPhone,
         address: orderMetadata.gpsLocation
           ? `${orderMetadata.address?.trim() || ''}\n\n📍 Ubicación GPS (Link):\n${orderMetadata.gpsLocation}`
@@ -160,14 +163,12 @@ export const useCartActions = () => {
           return false;
         }
 
+        const headers = await getAuthenticatedJsonHeaders();
+
         const saveAddressResponse = await fetch('/api/customer/address', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({
-            phone: normalizedCustomerPhone,
-            fullName: String(orderMetadata.customerName || '').trim(),
             urlAddress,
             buildingType: 'Other',
             unitDetails: null,
@@ -200,22 +201,62 @@ export const useCartActions = () => {
 
       const orderResult = await submitOrderToMCP(effectiveCart, finalMetadata, branchId, fromNumber);
       const orderId = orderResult?.order_id || orderResult?.orderId || orderResult?.data?.order_id || orderResult?.data?.orderId;
+      const nestedOrder = orderResult?.data?.order || orderResult?.order || null;
+      const resolvedOrderId = orderId || nestedOrder?.id || null;
+      const resolvedCustomerId =
+        orderResult?.customer_id ||
+        orderResult?.customerId ||
+        orderResult?.customer?.id ||
+        orderResult?.data?.customer_id ||
+        orderResult?.data?.customerId ||
+        orderResult?.data?.customer?.id ||
+        orderResult?.data?.order?.customer_id ||
+        orderResult?.data?.order?.customerId ||
+        nestedOrder?.customer_id ||
+        nestedOrder?.customerId;
       const orderNumber =
         orderResult?.order_number ||
         orderResult?.orderNumber ||
         orderResult?.data?.order_number ||
         orderResult?.data?.orderNumber ||
+        nestedOrder?.order_number ||
+        nestedOrder?.orderNumber ||
         `ORD-${Date.now().toString().slice(-4)}`;
+      const resolvedCustomerTotal =
+        orderResult?.customer_total ||
+        orderResult?.customerTotal ||
+        orderResult?.financials?.customer_total ||
+        orderResult?.financials?.customerTotal ||
+        orderResult?.data?.customer_total ||
+        orderResult?.data?.customerTotal ||
+        orderResult?.data?.financials?.customer_total ||
+        orderResult?.data?.financials?.customerTotal;
+      const normalizedCustomerTotal =
+        Number.isFinite(Number(resolvedCustomerTotal))
+          ? Number(resolvedCustomerTotal)
+          : cartTotal;
 
-      if (orderId) {
+      if (resolvedOrderId) {
+        if (typeof resolvedCustomerId === 'string' && resolvedCustomerId.trim()) {
+          setCustomerId(resolvedCustomerId.trim());
+        }
+
+        if (isAuthenticated && orderMetadata.splitDraft) {
+          try {
+            await saveOrderSplitDraft(resolvedOrderId, orderMetadata.splitDraft);
+          } catch (splitError) {
+            console.warn('Could not persist split draft after order creation', splitError);
+          }
+        }
+
         addActiveOrder({
-          orderId,
+          orderId: resolvedOrderId,
           orderNumber,
           previousStatus: { code: 'PENDING', label: 'Procesando' },
           newStatus: { code: 'PENDING', label: 'Enviado a Cocina' },
           updatedAt: new Date().toISOString(),
           items: [...effectiveCart],
-          total: cartTotal
+          total: normalizedCustomerTotal
         });
 
         setChefNotification({ content: "¡Tu pedido ha sido creado con éxito! 🍣✨" });

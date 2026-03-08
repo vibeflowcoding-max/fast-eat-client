@@ -1,37 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { constructSecureUrl } from '@/lib/url-utils';
+import { z } from 'zod';
+import { resolveAuthenticatedUser } from '@/app/api/_lib/auth';
+import { bootstrapAuthenticatedClient } from '@/server/auth/client-bootstrap';
+
+const bootstrapSchema = z.object({
+  fullName: z.string().trim().optional(),
+  phone: z.string().trim().optional(),
+  urlGoogleMaps: z.string().trim().optional(),
+  address: z.object({
+    urlAddress: z.string().trim().optional(),
+    buildingType: z.string().trim().optional(),
+    unitDetails: z.string().trim().optional(),
+    deliveryNotes: z.string().trim().optional(),
+  }).optional(),
+}).partial();
 
 export async function POST(req: NextRequest) {
   try {
-    const apiUrl = process.env.FAST_EAT_API_URL;
-
-    if (!apiUrl) {
-      return NextResponse.json({ error: 'FAST_EAT_API_URL is not configured' }, { status: 500 });
+    const resolvedUser = await resolveAuthenticatedUser(req);
+    if (resolvedUser instanceof NextResponse) {
+      return resolvedUser;
     }
 
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
+    const rawBody = await req.json().catch(() => ({}));
+    const parsed = bootstrapSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid bootstrap payload' }, { status: 400 });
     }
 
-    const body = await req.json().catch(() => ({}));
-
-    const response = await fetch(constructSecureUrl(apiUrl, '/api/auth/client/bootstrap'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: authHeader,
+    const payload = await bootstrapAuthenticatedClient({
+      user: {
+        id: resolvedUser.userId,
+        email: resolvedUser.email,
+        fullName: resolvedUser.fullName,
       },
-      body: JSON.stringify(body),
-      cache: 'no-store'
+      input: parsed.data,
     });
 
-    const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(payload, { status: 200 });
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Client bootstrap failed';
+    const status = message.includes('Unauthorized')
+      ? 401
+      : message.includes('Ya existe una cuenta asociada')
+        ? 409
+        : message.includes('Debes completar tu numero de telefono')
+          ? 400
+          : 500;
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Client bootstrap proxy failed' },
-      { status: 500 }
+      { error: message },
+      { status }
     );
   }
 }

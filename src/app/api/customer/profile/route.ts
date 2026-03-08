@@ -1,53 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureCustomerByPhone, findCustomerByPhone } from '@/app/api/customer/_lib';
+import { resolveAuthenticatedCustomer } from '@/app/api/_lib/auth';
 import { getSupabaseServer } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const phone = request.nextUrl.searchParams.get('phone')?.trim() ?? '';
-
-    if (!phone) {
-      return NextResponse.json({ error: 'phone is required' }, { status: 400 });
+    const resolved = await resolveAuthenticatedCustomer(request);
+    if (resolved instanceof NextResponse) {
+      return resolved;
     }
 
     const supabaseServer = getSupabaseServer();
-    const customer = await findCustomerByPhone(phone);
-
-    if (!customer || !customer.id) {
-      return NextResponse.json({
-        profile: null,
-        favoriteRestaurants: []
-      });
-    }
-
-    const customerId = String(customer.id);
 
     const [{ data: addressData }, { data: dietaryData }, { data: persistedFavorites }, { data: favoriteData }] = await Promise.all([
       (supabaseServer as any)
         .from('customer_address')
         .select('url_address,building_type,unit_details,delivery_notes,updated_at')
-        .eq('customer_id', customerId)
+        .eq('customer_id', resolved.customerId)
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
       (supabaseServer as any)
         .from('user_dietary_profiles')
         .select('allergies,preferences,strictness')
-        .eq('user_id', customerId)
+        .eq('user_id', resolved.customerId)
         .limit(1)
         .maybeSingle(),
       (supabaseServer as any)
         .from('customer_favorite_restaurants')
         .select('restaurant_id,created_at')
-        .eq('customer_id', customerId)
+        .eq('customer_id', resolved.customerId)
         .order('created_at', { ascending: false })
         .limit(20),
       (supabaseServer as any)
         .from('orders_with_details')
         .select('restaurant_id')
-        .eq('customer_id', customerId)
+        .eq('customer_id', resolved.customerId)
         .order('created_at', { ascending: false })
         .limit(50)
     ]);
@@ -92,16 +81,10 @@ export async function GET(request: NextRequest) {
         .filter(Boolean) as Array<{ id: string; name: string; logo_url: string | null }>;
     }
 
-    const fallbackName =
-      (typeof customer.full_name === 'string' && customer.full_name.trim()) ||
-      (typeof customer.name === 'string' && customer.name.trim()) ||
-      (typeof customer.customer_name === 'string' && customer.customer_name.trim()) ||
-      null;
-
     const profile = {
-      customerId,
-      fullName: fallbackName,
-      phone,
+      customerId: resolved.customerId,
+      fullName: resolved.fullName,
+      phone: null,
       address: addressData?.url_address ?? null,
       buildingType: addressData?.building_type ?? null,
       unitDetails: addressData?.unit_details ?? null,
@@ -124,21 +107,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const phone = typeof body?.phone === 'string' ? body.phone : '';
-    const fullName = typeof body?.name === 'string' ? body.name : '';
-
-    if (!phone.trim()) {
-      return NextResponse.json({ error: 'phone is required' }, { status: 400 });
+    const resolved = await resolveAuthenticatedCustomer(request);
+    if (resolved instanceof NextResponse) {
+      return resolved;
     }
 
-    if (!fullName.trim()) {
-      return NextResponse.json({ error: 'name is required' }, { status: 400 });
-    }
-
-    const { customerId } = await ensureCustomerByPhone({ phone, fullName });
-
-    return NextResponse.json({ customerId });
+    return NextResponse.json({ customerId: resolved.customerId });
   } catch (error) {
     return NextResponse.json(
       {

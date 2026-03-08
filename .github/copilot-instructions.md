@@ -9,11 +9,12 @@
 - **No execution before approval:** Until the user explicitly approves the plan, do not run tools, execute commands, edit/create/delete files, or apply patches.
 - **Approval format:** Proceed only after a clear approval message from the user (for example: "approved", "go ahead", "implement", or equivalent explicit confirmation).
 - **Plan-file addendum:** If the user already provides plan files, or files that already contain an execution plan in the request context, treat that as explicit implementation authorization. In that case, still present the implementation plan, but do not ask for an additional approval message before implementing.
-- **Agent & Workflow Usage:** Any time you analyze something, do any code changes, or create a plan, make sure to go to the `.agents` folder and use the most relevant agent for the given task. Also make sure to look into the `skills` and `workflows` folders inside the `.agent` folder to look for the relevant skills and workflows for the given task by the user.
+- **Agent & Workflow Usage:** Any time you analyze something, do any code changes, or create a plan, make sure to go to the `.agent/agents` folder and use the most relevant agent for the given task. Also make sure to look into the `.agent/skills` and `.agent/workflows` folders to look for the relevant skills and workflows for the given task by the user.
 - During active product building, **do not hide newly implemented user-facing features behind feature flags**.
 - New UI/UX features must be **visible by default** so they can be reviewed immediately.
 - If a feature flag already exists, keep compatibility in code only when needed, but the feature should still be enabled/rendered in development flows.
 - Prefer always-on behavior for new features unless the user explicitly asks for gated rollout.
+- Whenever you propose a plan or a major new feature, or a big refactor, ask the user if he wants to save this as a documented plan file inside /docs/plans.
 
 ## Implementation Preference
 

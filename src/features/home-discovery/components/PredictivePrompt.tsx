@@ -26,6 +26,10 @@ const PREDICTIVE_DISMISS_SESSION_KEY = 'home_banner_predictive_dismissed_v1';
 
 type PredictiveFallbackType = 'offline' | 'api_error' | 'provider_unavailable' | 'incomplete_data' | null;
 
+function isAbortError(error: unknown): boolean {
+    return error instanceof DOMException && error.name === 'AbortError';
+}
+
 function toTrackedFallbackType(type: Exclude<PredictiveFallbackType, null> | 'missing_target'): HomeBannerFallbackType {
     if (type === 'provider_unavailable' || type === 'incomplete_data') {
         return 'api_error';
@@ -44,6 +48,31 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
     const [isActing, setIsActing] = useState(false);
     const [fallbackType, setFallbackType] = useState<PredictiveFallbackType>(null);
     const [hasTrackedImpression, setHasTrackedImpression] = useState(false);
+    const restoreDismissedState = React.useEffectEvent(() => {
+        setIsDismissed(true);
+        setIsVisible(false);
+        setIsLoading(false);
+    });
+    const showFallbackState = React.useEffectEvent((nextFallback: Exclude<PredictiveFallbackType, null>) => {
+        setFallbackType(nextFallback);
+        setPrediction(null);
+        setIsVisible(true);
+        setIsLoading(false);
+    });
+    const showPredictionState = React.useEffectEvent((nextPrediction: PredictiveReorderResponse) => {
+        setPrediction(nextPrediction);
+        setIsVisible(true);
+        setFallbackType(null);
+        setIsLoading(false);
+    });
+    const hidePredictionState = React.useEffectEvent(() => {
+        setPrediction(null);
+        setIsVisible(false);
+        setIsLoading(false);
+    });
+    const trackImpression = React.useEffectEvent(() => {
+        setHasTrackedImpression(true);
+    });
 
     useEffect(() => {
         if (typeof window === 'undefined') {
@@ -51,9 +80,7 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
         }
 
         if (window.sessionStorage.getItem(PREDICTIVE_DISMISS_SESSION_KEY) === '1') {
-            setIsDismissed(true);
-            setIsVisible(false);
-            setIsLoading(false);
+            restoreDismissedState();
             emitHomeEvent({
                 name: 'home_banner_dismiss',
                 banner_id: 'predictive',
@@ -68,9 +95,7 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
         }
 
         if (typeof navigator !== 'undefined' && !navigator.onLine) {
-            setFallbackType('offline');
-            setIsVisible(true);
-            setIsLoading(false);
+            showFallbackState('offline');
             emitHomeEvent({
                 name: 'home_banner_fallback_shown',
                 banner_id: 'predictive',
@@ -78,6 +103,8 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
             });
             return;
         }
+
+        const controller = new AbortController();
 
         const checkPrediction = async () => {
             try {
@@ -87,6 +114,7 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
                         'Content-Type': 'application/json',
                         'x-locale': locale,
                     },
+                    signal: controller.signal,
                     body: JSON.stringify({
                         current_time: new Date().toISOString()
                     })
@@ -101,10 +129,7 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
                             ? 'incomplete_data'
                             : 'api_error';
 
-                    setFallbackType(resolvedFallback);
-                    setPrediction(null);
-                    setIsVisible(true);
-                    setIsLoading(false);
+                    showFallbackState(resolvedFallback);
                     emitHomeEvent({
                         name: 'home_banner_fallback_shown',
                         banner_id: 'predictive',
@@ -114,19 +139,13 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
                 }
 
                 if (data.status === 'actionable' && data.should_prompt && data.confidence > 0.7) {
-                    setPrediction(data);
-                    setIsVisible(true);
-                    setFallbackType(null);
-                    setIsLoading(false);
+                    showPredictionState(data);
                     return;
                 }
 
                 if (data.status === 'provider_unavailable' || data.status === 'incomplete_data') {
                     const resolvedFallback = data.status;
-                    setFallbackType(resolvedFallback);
-                    setPrediction(null);
-                    setIsVisible(true);
-                    setIsLoading(false);
+                    showFallbackState(resolvedFallback);
                     emitHomeEvent({
                         name: 'home_banner_fallback_shown',
                         banner_id: 'predictive',
@@ -135,14 +154,14 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
                     return;
                 }
 
-                setPrediction(null);
-                setIsVisible(false);
-                setIsLoading(false);
+                hidePredictionState();
             } catch (error) {
+                if (controller.signal.aborted || isAbortError(error)) {
+                    return;
+                }
+
                 console.error('[PredictivePrompt] Failed to fetch prediction:', error);
-                setFallbackType('api_error');
-                setIsVisible(true);
-                setIsLoading(false);
+                showFallbackState('api_error');
                 emitHomeEvent({
                     name: 'home_banner_fallback_shown',
                     banner_id: 'predictive',
@@ -152,6 +171,10 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
         };
 
         checkPrediction();
+
+        return () => {
+            controller.abort();
+        };
     }, [isDismissed, locale]);
 
     useEffect(() => {
@@ -164,7 +187,7 @@ export default function PredictivePrompt({ onReorderClick, onFallbackClick }: Pr
             banner_id: 'predictive',
             prediction_confidence: prediction?.confidence
         });
-        setHasTrackedImpression(true);
+        trackImpression();
     }, [hasTrackedImpression, isLoading, isVisible, prediction?.confidence]);
 
     const handleDismiss = (event: React.MouseEvent<HTMLButtonElement>) => {

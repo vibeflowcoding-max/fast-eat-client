@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dietary Vault Preferences</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden pb-[80px]">
+<!-- Header -->
+<div class="sticky top-0 z-10 flex items-center bg-background-light dark:bg-background-dark p-4 justify-between shadow-sm">
+<button class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary/20">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Dietary Vault</h1>
+<div class="size-10"></div> <!-- Spacer -->
+</div>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto px-4 py-6 space-y-8">
+<!-- Strict Mode Toggle -->
+<div class="flex items-center gap-4 bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm">
+<div class="flex items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0 size-12">
+<span class="material-symbols-outlined">shield</span>
+</div>
+<div class="flex flex-col justify-center flex-1">
+<p class="text-base font-semibold leading-normal">Strict Mode</p>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">Hide all non-compliant food items</p>
+</div>
+<div class="shrink-0">
+<label class="relative flex h-[31px] w-[51px] cursor-pointer items-center rounded-full border-none bg-slate-200 dark:bg-slate-700 p-0.5 has-[:checked]:justify-end has-[:checked]:bg-primary transition-colors">
+<div class="h-[27px] w-[27px] rounded-full bg-white shadow-sm transition-transform"></div>
+<input checked="" class="invisible absolute" type="checkbox"/>
+</label>
+</div>
+</div>
+<!-- Allergens -->
+<section>
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-primary">warning</span>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">Allergens</h2>
+</div>
+<div class="flex gap-2 flex-wrap">
+<button class="flex h-10 shrink-0 items-center justify-center rounded-full bg-primary text-white px-5 transition-colors shadow-sm">
+<span class="text-sm font-medium">Peanuts</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700">
+<span class="text-sm font-medium">Shellfish</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center rounded-full bg-primary text-white px-5 transition-colors shadow-sm">
+<span class="text-sm font-medium">Gluten</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700">
+<span class="text-sm font-medium">Dairy</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700">
+<span class="text-sm font-medium">Soy</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700">
+<span class="text-sm font-medium">Tree Nuts</span>
+</button>
+</div>
+</section>
+<!-- Dietary Lifestyle -->
+<section>
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-primary">restaurant</span>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">Dietary Lifestyle</h2>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<label class="flex items-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+<input class="w-5 h-5 text-primary border-slate-300 focus:ring-primary dark:border-slate-600 dark:bg-slate-700" name="diet" type="radio"/>
+<span class="ml-3 text-sm font-medium">Vegan</span>
+</label>
+<label class="flex items-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-primary bg-primary/5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<input checked="" class="w-5 h-5 text-primary border-slate-300 focus:ring-primary dark:border-slate-600 dark:bg-slate-700" name="diet" type="radio"/>
+<span class="ml-3 text-sm font-medium">Keto</span>
+</label>
+<label class="flex items-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+<input class="w-5 h-5 text-primary border-slate-300 focus:ring-primary dark:border-slate-600 dark:bg-slate-700" name="diet" type="radio"/>
+<span class="ml-3 text-sm font-medium">Paleo</span>
+</label>
+<label class="flex items-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+<input class="w-5 h-5 text-primary border-slate-300 focus:ring-primary dark:border-slate-600 dark:bg-slate-700" name="diet" type="radio"/>
+<span class="ml-3 text-sm font-medium">Halal</span>
+</label>
+</div>
+</section>
+<!-- Disliked Ingredients -->
+<section>
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-primary">block</span>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">Disliked Ingredients</h2>
+</div>
+<div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+<div class="flex flex-wrap gap-2 mb-3">
+<span class="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-full text-sm">
+                            Cilantro
+                            <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</span>
+<span class="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-full text-sm">
+                            Onions
+                            <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</span>
+</div>
+<div class="flex items-center border-b border-slate-200 dark:border-slate-700 pb-2">
+<span class="material-symbols-outlined text-slate-400 mr-2">search</span>
+<input class="w-full bg-transparent border-none p-0 focus:ring-0 text-sm placeholder:text-slate-400" placeholder="Type an ingredient..." type="text"/>
+</div>
+</div>
+</section>
+<!-- Health Goals -->
+<section>
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-primary">favorite</span>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">Health Goals</h2>
+</div>
+<div class="flex gap-2 flex-wrap">
+<button class="flex h-10 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700">
+<span class="text-sm font-medium">Low Sodium</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center rounded-full bg-primary text-white px-5 transition-colors shadow-sm">
+<span class="text-sm font-medium">High Protein</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700">
+<span class="text-sm font-medium">Low Sugar</span>
+</button>
+</div>
+</section>
+<div class="h-6"></div> <!-- Extra spacing before save button -->
+<!-- Save Button -->
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-4 rounded-xl shadow-md transition-colors">
+                Save Preferences
+            </button>
+<div class="h-10"></div> <!-- Bottom padding for navbar -->
+</main>
+<!-- Bottom Navigation Bar -->
+<div class="fixed bottom-0 left-0 right-0 z-50 flex gap-2 border-t border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-4 pb-6 pt-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-3xl">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Home</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">search</span>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Search</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">receipt_long</span>
+<p class="text-xs font-medium leading-normal tracking-[0.015em]">Orders</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary" href="#">
+<div class="flex flex-col items-center justify-center relative">
+<div class="absolute -top-10 bg-primary text-white p-3 rounded-full shadow-lg">
+<span class="material-symbols-outlined text-[24px]">account_balance_wallet</span>
+</div>
+<span class="material-symbols-outlined text-[24px] opacity-0">account_balance_wallet</span> <!-- Spacer for alignment -->
+</div>
+<p class="text-xs font-bold leading-normal tracking-[0.015em]">Vault</p>
+</a>
+</div>
+</div>
+</body></html>

@@ -4,6 +4,7 @@ import HomePage from './HomePage';
 import { emitHomeEvent } from '@/features/home-discovery/analytics';
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
     push: vi.fn()
   })
@@ -34,6 +35,13 @@ vi.mock('@/store', () => ({
   })
 }));
 
+vi.mock('@/lib/client-auth', () => ({
+  getAccessToken: vi.fn(async () => null),
+  getAuthenticatedJsonHeaders: vi.fn(async () => ({
+    'Content-Type': 'application/json',
+  })),
+}));
+
 const mockCategories = [
   { id: 'c-1', name: 'Sushi' },
   { id: 'c-2', name: 'Pizza' }
@@ -61,6 +69,27 @@ vi.mock('@/hooks/useRestaurants', () => ({
 
 vi.mock('@/features/home-discovery/hooks/useHomeRails', () => ({
   useHomeRails: () => []
+}));
+
+vi.mock('@/features/home-discovery/hooks/useHomeAddressRecovery', () => ({
+  useHomeAddressRecovery: () => ({
+    addressInitialPosition: null,
+    handleDismissProfilePrompt: vi.fn(),
+    handleOpenProfileCompletion: vi.fn(),
+    handleRequestLocationFromProfile: vi.fn(),
+    handleSaveAddress: vi.fn(),
+    isAddressModalOpen: false,
+    locationRequestLoading: false,
+    setIsAddressModalOpen: vi.fn(),
+  }),
+}));
+
+vi.mock('@/components/ProfileCompletionPrompt', () => ({
+  default: () => null,
+}));
+
+vi.mock('@/components/BottomNav', () => ({
+  default: () => null,
 }));
 
 vi.mock('@/components/UserOnboardingModal', () => ({
@@ -167,11 +196,20 @@ describe('HomePage search suggestions and recovery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.sessionStorage.clear();
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ address: null }),
+    })) as any);
     mockFetchSuggestions.mockReset();
     mockRestaurantsState.restaurants = [restaurantA, restaurantB];
     mockRestaurantsState.loading = false;
     mockRestaurantsState.error = null;
     mockFetchSuggestions.mockResolvedValue([restaurantA]);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   const waitForDebounce = async (ms = 320) => {
