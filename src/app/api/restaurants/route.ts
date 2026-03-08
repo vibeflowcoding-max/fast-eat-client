@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/supabase-server';
+import { calculateDistance } from '@/utils/geoUtils';
 
 // Force dynamic to avoid build-time Supabase calls
 export const dynamic = 'force-dynamic';
@@ -295,26 +296,57 @@ export async function GET(request: NextRequest) {
                 };
             });
 
-            const branchRatings = branchesWithDerivedMetrics
-                .map((branch) => toNumber(branch.rating))
-                .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-            const branchReviewCounts = branchesWithDerivedMetrics
-                .map((branch) => toNumber(branch.review_count))
-                .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-            const branchEta = branchesWithDerivedMetrics.map((branch) => toNumber(branch.eta_min));
-            const branchAvgPrice = branchesWithDerivedMetrics.map((branch) => toNumber(branch.avg_price_estimate));
-            const branchFees = branchesWithDerivedMetrics.map((branch) => toNumber(branch.estimated_delivery_fee));
+            // ⚡ Bolt: Single-pass metric accumulation to replace 5+ sequential O(N) .map()/.filter() chains
+            // Calculates averages and sums in one O(N) iteration, reducing memory allocations and CPU cycles.
+            let sumRating = 0, countRating = 0;
+            let sumReviewCount = 0;
+            let sumEta = 0, countEta = 0;
+            let sumAvgPrice = 0, countAvgPrice = 0;
+            let sumFee = 0, countFee = 0;
+            let derivedPromo: string | null = null;
 
-            const derivedRating = branchRatings.length > 0 ? Number(average(branchRatings)?.toFixed(2)) : null;
-            const derivedReviewCount = branchReviewCounts.reduce((sum, value) => sum + value, 0);
+            for (const branch of branchesWithDerivedMetrics) {
+                const rating = toNumber(branch.rating);
+                if (rating !== null && Number.isFinite(rating)) {
+                    sumRating += rating;
+                    countRating++;
+                }
+
+                const reviewCount = toNumber(branch.review_count);
+                if (reviewCount !== null && Number.isFinite(reviewCount)) sumReviewCount += reviewCount;
+
+                const eta = toNumber(branch.eta_min);
+                if (eta !== null && Number.isFinite(eta)) {
+                    sumEta += eta;
+                    countEta++;
+                }
+
+                const avgPrice = toNumber(branch.avg_price_estimate);
+                if (avgPrice !== null && Number.isFinite(avgPrice)) {
+                    sumAvgPrice += avgPrice;
+                    countAvgPrice++;
+                }
+
+                const fee = toNumber(branch.estimated_delivery_fee);
+                if (fee !== null && Number.isFinite(fee)) {
+                    sumFee += fee;
+                    countFee++;
+                }
+
+                if (derivedPromo === null && branch.promo_text) {
+                    derivedPromo = branch.promo_text;
+                }
+            }
+
+            const derivedRating = countRating > 0 ? Number((sumRating / countRating).toFixed(2)) : null;
+            const derivedReviewCount = sumReviewCount;
             const restaurantRating = toNumber(restaurant.rating);
             const restaurantReviewCount = toNumber(restaurant.review_count);
             const resolvedRating = derivedRating ?? restaurantRating;
             const resolvedReviewCount = derivedReviewCount > 0 ? derivedReviewCount : (restaurantReviewCount ?? 0);
-            const derivedEta = average(branchEta);
-            const derivedAvgPrice = average(branchAvgPrice);
-            const derivedFee = average(branchFees);
-            const derivedPromo = branchesWithDerivedMetrics.find((branch) => branch.promo_text)?.promo_text ?? null;
+            const derivedEta = countEta > 0 ? sumEta / countEta : null;
+            const derivedAvgPrice = countAvgPrice > 0 ? sumAvgPrice / countAvgPrice : null;
+            const derivedFee = countFee > 0 ? sumFee / countFee : null;
 
             return {
                 id: restaurant.id,
@@ -387,28 +419,4 @@ export async function GET(request: NextRequest) {
         console.error('Error fetching restaurants:', err);
         return NextResponse.json({ error: 'Failed to fetch restaurants' }, { status: 500 });
     }
-}
-
-// Haversine formula for distance calculation
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371; // Earth's radius in km
-    const toRad = Math.PI / 180;
-
-    // Convert to radians once
-    const radLat1 = lat1 * toRad;
-    const radLat2 = lat2 * toRad;
-    const dLat = radLat2 - radLat1;
-    const dLon = (lon2 - lon1) * toRad;
-
-    const sinDLat2 = Math.sin(dLat / 2);
-    const sinDLon2 = Math.sin(dLon / 2);
-
-    const a =
-        sinDLat2 * sinDLat2 +
-        Math.cos(radLat1) * Math.cos(radLat2) *
-        sinDLon2 * sinDLon2;
-
-    // Math.asin is mathematically equivalent to Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    // but noticeably faster in V8/JavaScript engines.
-    return R * 2 * Math.asin(Math.sqrt(a));
 }
