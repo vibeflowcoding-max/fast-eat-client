@@ -12,6 +12,7 @@ describe('useCartStore auth cleanup', () => {
         price: 5000,
         category: 'Soups',
         quantity: 2,
+        notes: '',
       }],
       branchId: 'branch-1',
       fromNumber: '50688888888',
@@ -26,7 +27,7 @@ describe('useCartStore auth cleanup', () => {
           updatedAt: new Date().toISOString(),
         },
       },
-      bidNotifications: [{ id: 'bid-1', orderId: 'order-1', bidId: 'bid-1', message: 'Bid', createdAt: new Date().toISOString(), read: false }],
+      bidNotifications: [{ id: 'bid-1', orderId: 'order-1', bid: { id: 'bid-1', bidAmount: 1200, driverRating: 4.7, estimatedTimeMinutes: 20, driverNotes: null, basePrice: 1000, status: 'ACTIVE', expiresAt: new Date().toISOString(), createdAt: new Date().toISOString() }, receivedAt: new Date().toISOString(), read: false }],
       customerAddress: {
         customerId: 'cust-1',
         urlAddress: 'https://maps.example/address',

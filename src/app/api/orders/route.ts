@@ -70,6 +70,12 @@ function getUnknownNumberValue(record: Record<string, unknown>, key: string): un
   return getRecordValue(record, key);
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
 export async function POST(req: NextRequest) {
   try {
     const payload = await req.json().catch(() => null);
@@ -242,10 +248,10 @@ export async function POST(req: NextRequest) {
       branchId,
       restaurantId: String(branchRecord.restaurant_id),
       customer: {
-        name: getStringValue(finalBody.arguments.customer ?? {}, 'name') || getStringValue(finalBody.arguments, 'customerName') || 'Cliente',
-        phone: getStringValue(finalBody.arguments.customer ?? {}, 'phone') || getStringValue(finalBody.arguments, 'customerPhone') || getStringValue(finalBody.arguments, 'phone'),
-        email: getNullableStringValue(finalBody.arguments.customer ?? {}, 'email') || getNullableStringValue(finalBody.arguments, 'customerEmail'),
-        address: getNullableStringValue(finalBody.arguments.customer ?? {}, 'address') || getNullableStringValue(finalBody.arguments, 'delivery_address') || getNullableStringValue(finalBody.arguments, 'address'),
+        name: getStringValue(asRecord(finalBody.arguments.customer), 'name') || getStringValue(finalBody.arguments, 'customerName') || 'Cliente',
+        phone: getStringValue(asRecord(finalBody.arguments.customer), 'phone') || getStringValue(finalBody.arguments, 'customerPhone') || getStringValue(finalBody.arguments, 'phone'),
+        email: getNullableStringValue(asRecord(finalBody.arguments.customer), 'email') || getNullableStringValue(finalBody.arguments, 'customerEmail'),
+        address: getNullableStringValue(asRecord(finalBody.arguments.customer), 'address') || getNullableStringValue(finalBody.arguments, 'delivery_address') || getNullableStringValue(finalBody.arguments, 'address'),
       },
       items: Array.isArray(finalBody.arguments.items)
         ? finalBody.arguments.items.map((item: any) => ({

@@ -9,8 +9,8 @@ const participants: GroupCartParticipant[] = [
     isHost: true,
     joinedAt: 1,
     items: [
-      { id: 'a', name: 'Burger', price: 3200, quantity: 2, category: 'combo', image: '' },
-      { id: 'b', name: 'Drink', price: 1200, quantity: 1, category: 'drink', image: '' },
+      { id: 'a', name: 'Burger', description: '', notes: '', price: 3200, quantity: 2, category: 'combo', image: '' },
+      { id: 'b', name: 'Drink', description: '', notes: '', price: 1200, quantity: 1, category: 'drink', image: '' },
     ],
   },
   {

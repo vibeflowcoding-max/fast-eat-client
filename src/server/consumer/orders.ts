@@ -501,6 +501,7 @@ export async function loadTrackedOrdersLocal(params: {
 
   return orderRows.map((order: any) => {
     const status = statusById.get(order.status_id) || null;
+    const statusRecord = status && typeof status === 'object' ? status as Record<string, unknown> : null;
     const orderBids = bidsByOrder.get(order.id) || [];
     const subtotal = toNumber(order.total);
     const customerTotal = toNumber(order.customer_total ?? order.total);
@@ -511,10 +512,10 @@ export async function loadTrackedOrdersLocal(params: {
       orderId: String(order.id),
       orderNumber: typeof order.order_number === 'string' ? order.order_number : 'PENDING',
       updatedAt: order.updated_at || order.created_at || new Date().toISOString(),
-      status: status
+      status: statusRecord
         ? {
-            code: String(status.code || 'UNKNOWN'),
-            label: String(status.label || status.code || 'Estado actualizado'),
+            code: String(statusRecord.code || 'UNKNOWN'),
+            label: String(statusRecord.label || statusRecord.code || 'Estado actualizado'),
           }
         : { code: 'UNKNOWN', label: 'Estado actualizado' },
       total: customerTotal,

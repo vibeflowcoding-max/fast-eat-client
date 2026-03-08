@@ -45,7 +45,7 @@ vi.mock('@/lib/public-routes', () => ({
 }));
 
 vi.mock('@/services/api', () => ({
-  fetchClientBootstrap: (...args: unknown[]) => fetchClientBootstrap(...args),
+  fetchClientBootstrap: (...args: Parameters<typeof fetchClientBootstrap>) => fetchClientBootstrap(...args),
 }));
 
 vi.mock('@/store', () => ({

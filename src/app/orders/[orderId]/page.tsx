@@ -530,7 +530,8 @@ export default function OrderDetailPage() {
             </Surface>
 
             {reviewsEnabled && (
-              <Surface id="reviews" ref={reviewsRef as never} className="space-y-4 rounded-[1.9rem]" variant="base">
+              <section id="reviews" ref={reviewsRef}>
+              <Surface className="space-y-4 rounded-[1.9rem]" variant="base">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600 dark:text-orange-300">{t('reviews.title')}</p>
                   <h3 className="text-lg font-black tracking-[-0.02em]">{t('reviews.title')}</h3>
@@ -579,6 +580,7 @@ export default function OrderDetailPage() {
                   </div>
                 )}
               </Surface>
+              </section>
             )}
           </>
         )}

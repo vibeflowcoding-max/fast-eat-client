@@ -1,6 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import OrdersPageContent from './OrdersPageContent';
 
+function createFetchResponse(payload: unknown, ok = true) {
+  return {
+    ok,
+    json: async () => payload,
+  } as unknown as Response;
+}
+
 const push = vi.fn();
 const replaceActiveOrders = vi.fn();
 const setCustomerId = vi.fn();
@@ -46,7 +53,7 @@ describe('OrdersPageContent', () => {
     setCustomerId.mockReset();
     clearCart.mockReset();
     push.mockReset();
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ activeOrders: [], pastOrders: [] }) })) as typeof fetch);
+    vi.stubGlobal('fetch', vi.fn(async () => createFetchResponse({ activeOrders: [], pastOrders: [] })) as unknown as typeof fetch);
   });
 
   it('renders the empty active orders state and start ordering CTA', async () => {
@@ -57,9 +64,7 @@ describe('OrdersPageContent', () => {
   });
 
   it('renders active and past orders from the API', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({
-      ok: true,
-      json: async () => ({
+    vi.stubGlobal('fetch', vi.fn(async () => createFetchResponse({
         customerId: 'customer-1',
         activeOrders: [
           {
@@ -95,8 +100,7 @@ describe('OrdersPageContent', () => {
             restaurant: { id: 'branch-1', name: 'Sumo Sushi', logo_url: null },
           },
         ],
-      }),
-    })) as typeof fetch);
+      })) as unknown as typeof fetch);
 
     render(<OrdersPageContent />);
 
@@ -108,9 +112,7 @@ describe('OrdersPageContent', () => {
   });
 
   it('routes past order actions without triggering the card navigation handler twice', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({
-      ok: true,
-      json: async () => ({
+    vi.stubGlobal('fetch', vi.fn(async () => createFetchResponse({
         customerId: 'customer-1',
         activeOrders: [],
         pastOrders: [
@@ -130,8 +132,7 @@ describe('OrdersPageContent', () => {
             restaurant: { id: 'branch-1', name: 'Sumo Sushi', logo_url: null },
           },
         ],
-      }),
-    })) as typeof fetch);
+      })) as unknown as typeof fetch);
 
     render(<OrdersPageContent />);
 
