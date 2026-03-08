@@ -48,7 +48,9 @@ export default function RootLayout({
                     <Suspense fallback={null}>
                         <RouteTransitionIndicator />
                     </Suspense>
-                    <AuthBootstrap />
+                    <Suspense fallback={null}>
+                        <AuthBootstrap />
+                    </Suspense>
                     {children}
                     <ServiceWorkerRegistration />
                 </I18nProvider>

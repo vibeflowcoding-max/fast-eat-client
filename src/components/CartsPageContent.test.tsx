@@ -2,6 +2,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import CartsPageContent from './CartsPageContent';
 import type { PersistedCartRecord } from '@/types';
 
+function createFetchResponse(payload: unknown, ok = true) {
+  return {
+    ok,
+    json: async () => payload,
+  } as unknown as Response;
+}
+
 const push = vi.fn();
 const replaceActiveOrders = vi.fn();
 const setCustomerId = vi.fn();
@@ -142,7 +149,7 @@ describe('CartsPageContent', () => {
     setSavedCartsError.mockImplementation((value: string | null) => {
       mockState.savedCartsError = value;
     });
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ activeOrders: [], pastOrders: [] }) })) as typeof fetch);
+    vi.stubGlobal('fetch', vi.fn(async () => createFetchResponse({ activeOrders: [], pastOrders: [] })) as unknown as typeof fetch);
   });
 
   it('renders the empty state when there is no cart and no active orders', async () => {
@@ -246,9 +253,7 @@ describe('CartsPageContent', () => {
 
   it('renders active tracked orders returned by the API', async () => {
     mockState.customerId = 'customer-1';
-    vi.stubGlobal('fetch', vi.fn(async () => ({
-      ok: true,
-      json: async () => ({
+    vi.stubGlobal('fetch', vi.fn(async () => createFetchResponse({
         customerId: 'customer-1',
         activeOrders: [
           {
@@ -267,8 +272,7 @@ describe('CartsPageContent', () => {
           },
         ],
         pastOrders: [],
-      }),
-    })) as typeof fetch);
+      })) as unknown as typeof fetch);
 
     render(<CartsPageContent />);
 

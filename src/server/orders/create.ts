@@ -114,24 +114,24 @@ async function loadModifierCatalogForItems(menuItemIds: string[]) {
       : Promise.resolve({ data: [] }),
   ]);
 
-  const modifierGroupsById = new Map((modifierGroups || []).map((group: any) => [group.id, group]));
-  const modifierOptionsById = new Map((modifierItems || []).map((item: any) => [item.id, item]));
+  const modifierGroupsById = new Map<string, any>((modifierGroups || []).map((group: any) => [String(group.id), group]));
+  const modifierOptionsById = new Map<string, any>((modifierItems || []).map((item: any) => [String(item.id), item]));
   const modifierCatalogByItem = new Map<string, any[]>();
 
   for (const link of modifierLinks || []) {
-    const group = modifierGroupsById.get(link.modifier_group_id);
+    const group = modifierGroupsById.get(String(link.modifier_group_id));
     if (!group) {
       continue;
     }
 
     const options = (modifierItems || []).filter((item: any) => item.group_id === group.id);
-    const bucket = modifierCatalogByItem.get(link.menu_item_id) || [];
+    const bucket = modifierCatalogByItem.get(String(link.menu_item_id)) || [];
     bucket.push({
       ...group,
       display_order: link.display_order,
       options,
     });
-    modifierCatalogByItem.set(link.menu_item_id, bucket);
+    modifierCatalogByItem.set(String(link.menu_item_id), bucket);
   }
 
   return {
@@ -321,7 +321,7 @@ export async function createConsumerOrderLocal(orderData: {
     throw new Error(menuItemsError.message || 'Could not load menu items');
   }
 
-  const menuItemMap = new Map((menuItems || []).map((item: any) => [item.id, item]));
+  const menuItemMap = new Map<string, any>((menuItems || []).map((item: any) => [String(item.id), item]));
   const prepTimeEstimate = resolvedItems.reduce((acc, item) => {
     const menuItem = menuItemMap.get(item.item_id);
     const prep = menuItem ? Number(menuItem.prep_time || 0) : 0;

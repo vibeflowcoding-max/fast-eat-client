@@ -1,6 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import OrderDetailPage from './page';
 
+function createFetchResponse(payload: unknown, ok = true) {
+  return {
+    ok,
+    json: async () => payload,
+  } as unknown as Response;
+}
+
 const push = vi.fn();
 const submitRestaurantReview = vi.fn();
 const submitDeliveryReview = vi.fn();
@@ -122,7 +129,7 @@ describe('OrderDetailPage', () => {
       destination: { coordinates: { latitude: 9.93, longitude: -84.08 } },
       serviceMode: 'delivery',
     });
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => orderPayload })) as typeof fetch);
+    vi.stubGlobal('fetch', vi.fn(async () => createFetchResponse(orderPayload)) as unknown as typeof fetch);
   });
 
   it('renders the order summary, tracking, products, bids, and reviews', async () => {

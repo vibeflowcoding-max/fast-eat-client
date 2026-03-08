@@ -20,6 +20,30 @@ const makeRestaurant = (id: string, categories: string[]): RestaurantWithBranche
   categories: categories.map((name, index) => ({ id: `${id}-${index}`, name, description: null, icon: '' }))
 });
 
+const railLabels = {
+  promosTitle: 'Promos',
+  promosSubtitleWithPromos: 'Con promos',
+  promosSubtitleWithoutPromos: 'Sin promos',
+  bestQualityTitle: 'Mejor calidad',
+  bestQualitySubtitle: 'Top rating',
+  nearestTitle: 'Cerca',
+  nearestSubtitle: 'Cerca de ti',
+  bestValueNearYouTitle: 'Valor',
+  bestValueNearYouSubtitle: 'Buen precio',
+  popularNowTitle: 'Popular',
+  popularNowSubtitle: 'Ahora',
+  combosUnderBudgetTitle: 'Combos',
+  combosUnderBudgetSubtitle: 'Bajo presupuesto',
+  lowDeliveryFeeTitle: 'Envio barato',
+  lowDeliveryFeeSubtitle: 'Tarifa baja',
+  continueExploringTitle: 'Explorar',
+  continueExploringSubtitle: 'Sigue',
+  recentlyViewedTitle: 'Recientes',
+  recentlyViewedSubtitle: 'Lo que viste',
+  forYouTitle: 'Para ti',
+  forYouSubtitle: 'Personalizado',
+};
+
 describe('personalized rails builders', () => {
   it('returns no personalized rails when history is insufficient', () => {
     const restaurants = [makeRestaurant('r1', ['Sushi']), makeRestaurant('r2', ['Pizza'])];
@@ -27,7 +51,7 @@ describe('personalized rails builders', () => {
       { restaurantId: 'r1', viewedAt: Date.now(), categories: ['Sushi'], etaMinutes: 25, finalPriceEstimate: 8000 }
     ];
 
-    const rails = buildPersonalizedRails(restaurants, history, { categoryWeights: { sushi: 2 } });
+    const rails = buildPersonalizedRails(restaurants, history, { categoryWeights: { sushi: 2 } }, railLabels);
     expect(rails).toEqual([]);
   });
 

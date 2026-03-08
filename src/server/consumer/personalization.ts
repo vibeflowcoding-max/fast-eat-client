@@ -239,10 +239,11 @@ async function loadCatalogCandidates(args: { limit: number; serviceMode: string;
     variantsByItem.set(variant.menu_item_id, bucket);
   }
 
-  const restaurantMap = new Map((restaurants || []).map((restaurant: any) => [restaurant.id, restaurant]));
+  const restaurantMap = new Map<string, any>((restaurants || []).map((restaurant: any) => [String(restaurant.id), restaurant]));
   const catalog = (menuItems || [])
     .map((item: any) => {
       const itemVariants = variantsByItem.get(item.id) || [];
+      const restaurant = restaurantMap.get(item.restaurant_id) as { id: string; name: string; rating: number } | undefined;
       const resolvedVariant = itemVariants.find((variant: any) => variant.is_default) || itemVariants[0] || null;
       const price = resolvedVariant
         ? getBestVariantPrice(prices || [], resolvedVariant.id, 'client', args.serviceMode)
@@ -257,8 +258,8 @@ async function loadCatalogCandidates(args: { limit: number; serviceMode: string;
         prepTime: Number(item.prep_time || 0),
         variantId: resolvedVariant?.id || null,
         branchId: item.branch_id,
-        restaurant: restaurantMap.get(item.restaurant_id) || { id: item.restaurant_id, name: 'Restaurant', rating: 0 },
-        searchText: buildSearchText([item.name, item.description, restaurantMap.get(item.restaurant_id)?.name]),
+        restaurant: restaurant || { id: item.restaurant_id, name: 'Restaurant', rating: 0 },
+        searchText: buildSearchText([item.name, item.description, restaurant?.name]),
       };
     })
     .filter((candidate: any) => candidate.variantId);

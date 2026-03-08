@@ -3,6 +3,7 @@
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Copy, QrCode, Share2, ShoppingBag, Users } from 'lucide-react';
+import { Badge, Button, SectionHeader, Surface } from '@/../resources/components';
 import { useTranslations } from 'next-intl';
 import LoadingScreen from '@/components/LoadingScreen';
 import { useCartStore } from '@/store';
@@ -108,101 +109,94 @@ export default function GroupCartJoinPage() {
     }
 
     return (
-        <main className="ui-page min-h-screen pb-12">
+        <main className="min-h-screen bg-[#f8f6f2] pb-12 text-slate-900 dark:bg-[#221610] dark:text-slate-100">
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-8 pt-6">
                 <header className="flex items-start justify-between gap-3">
                     <div className="space-y-2">
-                        <button
-                            type="button"
+                        <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => router.push(continueHref)}
-                            className="ui-btn-secondary inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
+                            leadingIcon={<ArrowLeft className="h-4 w-4" />}
                         >
-                            <ArrowLeft className="h-4 w-4" />
                             {t('backToMenu')}
-                        </button>
+                        </Button>
                         <div>
-                            <p className="ui-section-title">{t('eyebrow')}</p>
+                            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600 dark:text-orange-300">{t('eyebrow')}</p>
                             <h1 className="text-2xl font-black tracking-[-0.03em]">{t('title')}</h1>
-                            <p className="ui-text-muted text-sm">{t('subtitle')}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">{t('subtitle')}</p>
                         </div>
                     </div>
 
-                    <div className="ui-panel-soft min-w-[108px] rounded-[1.6rem] px-4 py-3 text-right">
-                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+                    <Surface className="min-w-[108px] rounded-[1.6rem] px-4 py-3 text-right" padding="none" variant="muted">
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
                             {t('sessionCode')}
                         </p>
-                        <p className="mt-1 text-sm font-black tracking-[0.14em] text-[var(--color-text)]">{sessionCode}</p>
-                    </div>
+                        <p className="mt-1 text-sm font-black tracking-[0.14em] text-slate-900 dark:text-slate-100">{sessionCode}</p>
+                    </Surface>
                 </header>
 
-                <section className="ui-panel rounded-[2rem] p-5">
+                <Surface className="rounded-[2rem]" padding="lg" variant="base">
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div className="space-y-2">
-                            <p className="text-lg font-black tracking-[-0.02em] text-[var(--color-text)]">
+                            <p className="text-lg font-black tracking-[-0.02em] text-slate-900 dark:text-slate-100">
                                 {restaurantInfo?.name || t('restaurantFallback')}
                             </p>
-                            <p className="ui-text-muted text-sm">
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
                                 {restaurantInfo?.category || t('waitingSubtitle')}
                             </p>
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                            <span className="ui-chip-brand rounded-full px-4 py-2 text-xs font-black">
+                            <Badge className="px-4 py-2 text-xs font-black" variant="brand">
                                 {t('joinedCount', { count: summary.participantCount })}
-                            </span>
-                            <span className="ui-btn-secondary rounded-full px-4 py-2 text-xs font-black">
+                            </Badge>
+                            <Badge className="px-4 py-2 text-xs font-black" variant="neutral">
                                 {t('readyCount', { count: summary.readyCount })}
-                            </span>
+                            </Badge>
                         </div>
                     </div>
 
-                    <div className="mt-4 flex h-2 overflow-hidden rounded-full bg-[var(--color-brand-soft)]/60">
+                    <div className="mt-4 flex h-2 overflow-hidden rounded-full bg-orange-100/80 dark:bg-orange-950/40">
                         <div
-                            className="rounded-full bg-[var(--color-brand)] transition-all"
+                            className="rounded-full bg-orange-600 transition-all dark:bg-orange-400"
                             style={{ width: `${Math.max(18, Math.min(100, summary.participantCount * 20))}%` }}
                         />
                     </div>
 
                     <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                        <button
-                            type="button"
+                        <Button
                             onClick={() => void handleShareInvite()}
-                            className="ui-btn-primary inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-black"
+                            leadingIcon={<Share2 className="h-4 w-4" />}
                         >
-                            <Share2 className="h-4 w-4" />
                             {sharing ? t('sharing') : t('shareInvite')}
-                        </button>
-                        <button
-                            type="button"
+                        </Button>
+                        <Button
+                            variant="outline"
                             onClick={() => void handleCopyInvite()}
-                            className="ui-btn-secondary inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-black"
+                            leadingIcon={<Copy className="h-4 w-4" />}
                         >
-                            <Copy className="h-4 w-4" />
                             {copied ? t('copied') : t('copyLink')}
-                        </button>
-                        <div className="ui-panel-soft inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-black text-[var(--color-text)]">
-                            <QrCode className="h-4 w-4 text-[var(--color-brand)]" />
+                        </Button>
+                        <Surface className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-black text-slate-900 dark:text-slate-100" padding="none" variant="muted">
+                            <QrCode className="h-4 w-4 text-orange-600 dark:text-orange-300" />
                             {t('shareCodeHint')}
-                        </div>
+                        </Surface>
                     </div>
-                </section>
+                </Surface>
 
-                <section className="ui-panel rounded-[2rem] p-5 space-y-4">
+                <Surface className="space-y-4 rounded-[2rem]" padding="lg" variant="base">
                     <div className="flex items-center justify-between gap-3">
-                        <div>
-                            <p className="ui-section-title">{t('participantsEyebrow')}</p>
-                            <h2 className="text-lg font-black tracking-[-0.02em]">{t('participantsTitle')}</h2>
-                        </div>
-                        <span className="ui-btn-secondary inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black">
-                            <Users className="h-4 w-4" />
+                        <SectionHeader eyebrow={t('participantsEyebrow')} title={t('participantsTitle')} />
+                        <Badge className="px-4 py-2 text-xs font-black" leading={<Users className="h-4 w-4" />} variant="neutral">
                             {summary.participantCount}
-                        </span>
+                        </Badge>
                     </div>
 
                     {groupParticipants.length === 0 ? (
-                        <div className="ui-panel-soft rounded-[1.6rem] p-4 text-sm text-[var(--color-text-muted)]">
+                        <Surface className="rounded-[1.6rem] text-sm text-slate-500 dark:text-slate-400" variant="muted">
                             {t('emptyParticipants')}
-                        </div>
+                        </Surface>
                     ) : (
                         <div className="space-y-3">
                             {groupParticipants.map((participant) => {
@@ -214,112 +208,110 @@ export default function GroupCartJoinPage() {
                                 const isCurrentParticipant = participant.id === participantId;
 
                                 return (
-                                    <article
+                                    <Surface
                                         key={participant.id}
-                                        className="ui-list-card rounded-[1.5rem] p-4"
+                                        className="rounded-[1.5rem]"
+                                        variant="muted"
                                     >
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="space-y-1">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <p className="text-sm font-black text-[var(--color-text)]">
+                                                    <p className="text-sm font-black text-slate-900 dark:text-slate-100">
                                                         {isCurrentParticipant ? t('youLabel') : participant.name}
                                                     </p>
                                                     {participant.isHost ? (
-                                                        <span className="ui-chip-brand rounded-full px-2 py-1 text-[10px] font-black">
+                                                        <Badge className="px-2 py-1 text-[10px] font-black" variant="brand">
                                                             {t('hostLabel')}
-                                                        </span>
+                                                        </Badge>
                                                     ) : null}
                                                 </div>
-                                                <p className="ui-text-muted text-xs">
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">
                                                     {participantState === 'ready' ? t('participantReady') : t('participantBrowsing')}
                                                 </p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-sm font-black text-[var(--color-text)]">
+                                                <p className="text-sm font-black text-slate-900 dark:text-slate-100">
                                                     ₡{Math.round(participantTotal).toLocaleString('es-CR')}
                                                 </p>
-                                                <p className="ui-text-muted text-[11px]">
+                                                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                                                     {t('itemsCount', { count: participant.items.reduce((sum, item) => sum + item.quantity, 0) })}
                                                 </p>
                                             </div>
                                         </div>
 
                                         {participant.items.length === 0 ? (
-                                            <p className="ui-text-muted mt-3 text-xs italic">{t('participantNoItems')}</p>
+                                            <p className="mt-3 text-xs italic text-slate-500 dark:text-slate-400">{t('participantNoItems')}</p>
                                         ) : (
                                             <div className="mt-3 space-y-2">
                                                 {participant.items.map((item, index) => (
-                                                    <div
+                                                    <Surface
                                                         key={`${participant.id}-${item.id}-${index}`}
-                                                        className="ui-panel-soft flex items-center justify-between rounded-[1rem] px-3 py-2 text-xs"
+                                                        className="flex items-center justify-between rounded-[1rem] px-3 py-2 text-xs"
+                                                        padding="none"
+                                                        variant="base"
                                                     >
-                                                        <span className="text-[var(--color-text)]">
+                                                        <span className="text-slate-900 dark:text-slate-100">
                                                             {item.quantity}x {item.name}
                                                         </span>
-                                                        <span className="font-bold text-[var(--color-text)]">
+                                                        <span className="font-bold text-slate-900 dark:text-slate-100">
                                                             ₡{Math.round(item.quantity * item.price).toLocaleString('es-CR')}
                                                         </span>
-                                                    </div>
+                                                    </Surface>
                                                 ))}
                                             </div>
                                         )}
-                                    </article>
+                                    </Surface>
                                 );
                             })}
                         </div>
                     )}
-                </section>
+                </Surface>
 
-                <section className="ui-panel rounded-[2rem] p-5 space-y-3">
-                    <div>
-                        <p className="ui-section-title">{t('settlementEyebrow')}</p>
-                        <h2 className="text-lg font-black tracking-[-0.02em]">{t('settlementTitle')}</h2>
-                    </div>
+                <Surface className="space-y-3 rounded-[2rem]" padding="lg" variant="base">
+                    <SectionHeader eyebrow={t('settlementEyebrow')} title={t('settlementTitle')} />
                     <div className="flex flex-wrap gap-2">
-                        <span className="ui-btn-primary rounded-full px-4 py-2 text-xs font-black">{t('splitBill')}</span>
-                        <span className="ui-btn-secondary rounded-full px-4 py-2 text-xs font-black">{t('hostPays')}</span>
+                        <Badge className="px-4 py-2 text-xs font-black" variant="brand">{t('splitBill')}</Badge>
+                        <Badge className="px-4 py-2 text-xs font-black" variant="neutral">{t('hostPays')}</Badge>
                     </div>
-                    <p className="ui-text-muted text-sm">{t('settlementHint')}</p>
-                </section>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('settlementHint')}</p>
+                </Surface>
 
-                <footer className="ui-panel rounded-[2rem] p-5">
+                <Surface asChild={false} className="rounded-[2rem]" padding="lg" variant="base">
+                <footer>
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <p className="ui-section-title">{t('groupTotal')}</p>
-                            <p className="text-2xl font-black tracking-[-0.03em] text-[var(--color-text)]">
+                            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600 dark:text-orange-300">{t('groupTotal')}</p>
+                            <p className="text-2xl font-black tracking-[-0.03em] text-slate-900 dark:text-slate-100">
                                 ₡{Math.round(summary.totalAmount).toLocaleString('es-CR')}
                             </p>
-                            <p className="ui-text-muted text-sm">{t('groupItems', { count: summary.totalItems })}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">{t('groupItems', { count: summary.totalItems })}</p>
                         </div>
 
                         <div className="flex flex-wrap gap-2 md:justify-end">
                             {summary.totalItems > 0 ? (
-                                <button
-                                    type="button"
+                                <Button
+                                    variant="outline"
                                     onClick={() => router.push('/checkout')}
-                                    className="ui-btn-secondary inline-flex min-h-[48px] items-center justify-center rounded-full px-5 py-3 text-sm font-black"
                                 >
                                     {t('goToCheckout')}
-                                </button>
+                                </Button>
                             ) : null}
-                            <button
-                                type="button"
+                            <Button
                                 onClick={() => router.push(continueHref)}
-                                className="ui-btn-primary inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-black"
+                                leadingIcon={<ShoppingBag className="h-4 w-4" />}
                             >
-                                <ShoppingBag className="h-4 w-4" />
                                 {t('continueToMenu')}
-                            </button>
-                            <button
-                                type="button"
+                            </Button>
+                            <Button
+                                variant="outline"
                                 onClick={handleLeave}
-                                className="ui-btn-secondary inline-flex min-h-[48px] items-center justify-center rounded-full px-5 py-3 text-sm font-black"
                             >
                                 {isHost ? t('closeLobby') : t('leaveGroup')}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </footer>
+                </Surface>
             </div>
         </main>
     );

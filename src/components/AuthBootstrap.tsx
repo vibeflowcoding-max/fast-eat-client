@@ -8,6 +8,7 @@ import { fetchClientBootstrap } from '@/services/api';
 import { useCartStore } from '@/store';
 import { normalizePhoneWithSinglePlus } from '@/lib/phone';
 import { extractGoogleMapsUrl, parseCoordsFromGoogleMapsUrl } from '@/lib/location';
+import type { ReadonlyURLSearchParams } from 'next/navigation';
 
 const AUTH_ROUTES = new Set(['/auth/sign-in', '/auth/sign-up', '/auth/callback']);
 
