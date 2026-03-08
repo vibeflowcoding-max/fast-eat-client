@@ -41,7 +41,7 @@ export function getHomeDiscoverySessionId() {
         return existing;
     }
 
-    const sessionId = `home-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const sessionId = `home-${Date.now()}-${crypto.randomUUID().split('-')[0]}`;
     writeStorage(key, sessionId);
     return sessionId;
 }

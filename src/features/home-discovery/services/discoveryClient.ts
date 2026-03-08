@@ -12,7 +12,7 @@ const DEFAULT_TIMEOUT_MS = 8000;
 const MAX_RETRIES = 1;
 
 function createTraceId() {
-    return `home-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    return `home-${Date.now()}-${crypto.randomUUID().split('-')[0]}`;
 }
 
 async function fetchWithTimeout<T>(
