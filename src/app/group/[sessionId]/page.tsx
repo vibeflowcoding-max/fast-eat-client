@@ -112,7 +112,7 @@ export default function GroupCartJoinPage() {
         <main className="min-h-screen bg-[#f8f6f2] pb-12 text-slate-900 dark:bg-[#221610] dark:text-slate-100">
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-8 pt-6">
                 <header className="flex items-start justify-between gap-3">
-                    <div className="space-y-2">
+                    <div className="min-w-0 space-y-2">
                         <Button
                             variant="outline"
                             size="sm"
@@ -123,26 +123,26 @@ export default function GroupCartJoinPage() {
                         </Button>
                         <div>
                             <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-600 dark:text-orange-300">{t('eyebrow')}</p>
-                            <h1 className="text-2xl font-black tracking-[-0.03em]">{t('title')}</h1>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">{t('subtitle')}</p>
+                            <h1 className="break-words text-2xl font-black tracking-[-0.03em]">{t('title')}</h1>
+                            <p className="break-words text-sm text-slate-500 dark:text-slate-400">{t('subtitle')}</p>
                         </div>
                     </div>
 
-                    <Surface className="min-w-[108px] rounded-[1.6rem] px-4 py-3 text-right" padding="none" variant="muted">
+                    <Surface className="min-w-0 shrink-0 rounded-[1.6rem] px-4 py-3 text-right" padding="none" variant="muted">
                         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
                             {t('sessionCode')}
                         </p>
-                        <p className="mt-1 text-sm font-black tracking-[0.14em] text-slate-900 dark:text-slate-100">{sessionCode}</p>
+                        <p className="mt-1 break-all text-sm font-black tracking-[0.14em] text-slate-900 dark:text-slate-100">{sessionCode}</p>
                     </Surface>
                 </header>
 
                 <Surface className="rounded-[2rem]" padding="lg" variant="base">
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div className="space-y-2">
-                            <p className="text-lg font-black tracking-[-0.02em] text-slate-900 dark:text-slate-100">
+                        <div className="min-w-0 space-y-2">
+                            <p className="break-words text-lg font-black tracking-[-0.02em] text-slate-900 dark:text-slate-100">
                                 {restaurantInfo?.name || t('restaurantFallback')}
                             </p>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <p className="break-words text-sm text-slate-500 dark:text-slate-400">
                                 {restaurantInfo?.category || t('waitingSubtitle')}
                             </p>
                         </div>

@@ -20,18 +20,19 @@ export type FieldLabelProps = {
   label: string;
   description?: string;
   required?: boolean;
+  requiredLabel?: string;
   action?: ReactNode;
 };
 
-export function FieldLabel({ label, description, required = false, action }: FieldLabelProps) {
+export function FieldLabel({ label, description, required = false, requiredLabel, action }: FieldLabelProps) {
   return (
     <div className="flex items-start justify-between gap-3 px-1">
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{label}</span>
-          {required ? (
+          {required && requiredLabel ? (
             <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-orange-700 dark:bg-orange-500/15 dark:text-orange-200">
-              Required
+              {requiredLabel}
             </span>
           ) : null}
         </div>
@@ -50,6 +51,7 @@ export type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size">
   helperText?: string;
   errorText?: string;
   required?: boolean;
+  requiredLabel?: string;
   leadingIcon?: ReactNode;
   trailingAction?: ReactNode;
 };
@@ -61,6 +63,7 @@ export function TextField({
   helperText,
   errorText,
   required = false,
+  requiredLabel,
   leadingIcon,
   trailingAction,
   disabled,
@@ -71,7 +74,7 @@ export function TextField({
   return (
     <label className="flex w-full flex-col gap-2">
       {label ? (
-        <FieldLabel label={label} description={description} required={required} />
+        <FieldLabel label={label} description={description} required={required} requiredLabel={requiredLabel} />
       ) : null}
       <span
         className={cn(
@@ -106,6 +109,7 @@ export type TextAreaFieldProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   helperText?: string;
   errorText?: string;
   required?: boolean;
+  requiredLabel?: string;
 };
 
 export function TextAreaField({
@@ -115,6 +119,7 @@ export function TextAreaField({
   helperText,
   errorText,
   required = false,
+  requiredLabel,
   disabled,
   ...props
 }: TextAreaFieldProps) {
@@ -122,7 +127,7 @@ export function TextAreaField({
 
   return (
     <label className="flex w-full flex-col gap-2">
-      {label ? <FieldLabel label={label} description={description} required={required} /> : null}
+      {label ? <FieldLabel label={label} description={description} required={required} requiredLabel={requiredLabel} /> : null}
       <span
         className={cn(
           "flex rounded-3xl border px-4 py-3 ring-1 ring-transparent transition-colors",

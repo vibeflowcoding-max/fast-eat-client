@@ -129,6 +129,8 @@ describe('ProfilePage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'logoutButton' }));
 
-    expect(await screen.findByText('logout_failed')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/logout_failed|logoutError/i)).toBeInTheDocument();
+    });
   });
 });

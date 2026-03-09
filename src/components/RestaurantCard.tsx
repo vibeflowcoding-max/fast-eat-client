@@ -113,7 +113,7 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
         <div className="relative aspect-[16/9] overflow-hidden bg-[var(--color-surface-muted)]">
             <img
                 src={imageUrl}
-                alt={`Imagen de ${restaurant.name}`}
+                alt={t('imageAlt', { name: restaurant.name })}
                 loading="lazy"
                 className="h-full w-full object-cover transition-transform duration-200 ease-out motion-reduce:transition-none motion-reduce:transform-none group-hover:scale-[1.02]"
                 onError={(e) => {
@@ -149,11 +149,11 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
 
     const renderMeta = () => (
         <div className="space-y-2 p-4">
-            <div className="flex items-start justify-between gap-2">
-                <h3 className="truncate text-lg font-black tracking-[-0.02em] text-[var(--color-text)]">{restaurant.name}</h3>
+            <div className="flex min-w-0 items-start justify-between gap-2">
+                <h3 className="min-w-0 break-words text-lg font-black leading-tight tracking-[-0.02em] text-[var(--color-text)]">{restaurant.name}</h3>
             </div>
 
-            <p className="truncate text-sm text-slate-500 dark:text-slate-400">{categoryNames}</p>
+            <p className="break-words text-sm leading-snug text-slate-500 dark:text-slate-400">{categoryNames}</p>
 
             <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-500 md:text-xs dark:text-slate-400">
                 <Badge leading={<Clock size={10} className="text-[var(--color-brand)]" />} variant="neutral">

@@ -74,14 +74,14 @@ export default function HomeDiscoveryWidget({
         <>
             {isOpen && (
                 <div
-                    className="fixed bottom-20 right-4 left-4 sm:left-auto sm:w-[380px] z-50 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden"
+                    className="fixed bottom-20 left-4 right-4 z-50 max-h-[70vh] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl sm:left-auto sm:w-[380px]"
                     role="dialog"
                     aria-label={t('dialogAria')}
                 >
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                        <div>
-                            <p className="text-sm font-semibold text-gray-900">{t('title')}</p>
-                            <p className="text-xs text-gray-500">{t('subtitle')}</p>
+                        <div className="min-w-0 pr-3">
+                            <p className="break-words text-sm font-semibold text-gray-900">{t('title')}</p>
+                            <p className="break-words text-xs text-gray-500">{t('subtitle')}</p>
                         </div>
                         <button type="button" onClick={closeChat} className="p-1 text-gray-500 hover:text-gray-700" aria-label={t('closeAria')}>
                             <X size={18} />
@@ -95,7 +95,7 @@ export default function HomeDiscoveryWidget({
                                     <button
                                         key={prompt}
                                         type="button"
-                                        className="text-xs px-2.5 py-1.5 rounded-full bg-white border border-gray-200"
+                                        className="break-words text-left text-xs px-2.5 py-1.5 rounded-full bg-white border border-gray-200"
                                         onClick={() => {
                                             emitHomeEvent({ name: 'home_chat_quick_prompt_click', label: prompt });
                                             sendMessage(prompt);
@@ -110,7 +110,7 @@ export default function HomeDiscoveryWidget({
                         {history.map((message, index) => (
                             <div
                                 key={`${message.role}-${index}`}
-                                className={`max-w-[90%] rounded-xl px-3 py-2 text-sm ${
+                                className={`max-w-[90%] break-words rounded-xl px-3 py-2 text-sm ${
                                     message.role === 'user'
                                         ? 'ml-auto bg-orange-500 text-white'
                                         : 'mr-auto bg-white border border-gray-200 text-gray-800'
@@ -124,8 +124,8 @@ export default function HomeDiscoveryWidget({
                             <div className="space-y-2">
                                 {recommendations.slice(0, 3).map((recommendation) => (
                                     <div key={recommendation.id} className="bg-white border border-gray-200 rounded-xl p-3">
-                                        <p className="text-sm font-medium text-gray-900">{recommendation.title}</p>
-                                        {recommendation.subtitle && <p className="text-xs text-gray-500">{recommendation.subtitle}</p>}
+                                        <p className="break-words text-sm font-medium text-gray-900">{recommendation.title}</p>
+                                        {recommendation.subtitle && <p className="break-words text-xs text-gray-500">{recommendation.subtitle}</p>}
                                         <div className="flex items-center gap-2 mt-2">
                                             <button
                                                 type="button"
@@ -153,7 +153,7 @@ export default function HomeDiscoveryWidget({
                                             emitHomeEvent({ name: 'home_chat_followup_click', label: followUp });
                                             sendMessage(followUp);
                                         }}
-                                        className="text-xs px-2 py-1 rounded-lg bg-white border border-gray-200"
+                                        className="break-words text-left text-xs px-2 py-1 rounded-lg bg-white border border-gray-200"
                                     >
                                         {followUp}
                                     </button>
@@ -171,8 +171,8 @@ export default function HomeDiscoveryWidget({
                         inputAriaLabel={t('inputAria')}
                         placeholder={t('inputPlaceholder')}
                         containerClassName="p-3 border-t border-gray-100 bg-white"
-                        inputClassName="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 text-gray-900"
-                        buttonClassName="px-3 py-2 rounded-xl bg-orange-500 text-white disabled:opacity-60 min-w-[78px] text-sm"
+                        inputClassName="min-w-0 flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 text-gray-900"
+                        buttonClassName="px-3 py-2 rounded-xl bg-orange-500 text-white disabled:opacity-60 min-w-[78px] text-sm shrink-0"
                     />
                 </div>
             )}

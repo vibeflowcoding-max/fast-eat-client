@@ -5,6 +5,7 @@ import { Loader2, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { Badge, Button, ChoiceCard, FieldMessage, Icon, QuantitySelector, Surface, TextAreaField } from '@/../resources/components';
 import { MenuItem, SelectedModifier } from '../types';
 import { useDietaryGuardian } from '@/features/home-discovery/hooks/useDietaryGuardian';
+import { useTranslations } from 'next-intl';
 
 interface ItemDetailModalProps {
     item: MenuItem;
@@ -41,6 +42,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     onScroll,
     errorMessage,
 }) => {
+    const t = useTranslations('itemDetailModal');
     const { isActive, checkItem, loadingMap, resultsMap } = useDietaryGuardian();
     const isDietaryGuardianEnabled = process.env.NEXT_PUBLIC_HOME_DIETARY_GUARDIAN?.toLowerCase() !== 'false';
     const selectedVariant = (item.variants || []).find((variant) => variant.id === selectedVariantId)
@@ -99,7 +101,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 <div className="relative h-40 md:h-80 flex-shrink-0 overflow-hidden">
                     <img src={item.image} className="w-full h-full object-cover" alt={item.name} loading="lazy" decoding="async" fetchPriority="low" width={576} height={320} />
                     <Button
-                        aria-label="Cerrar"
+                        aria-label={t('closeAria')}
                         disabled={isSyncing}
                         onClick={onClose}
                         className="absolute right-6 top-6 z-30 shadow-2xl"
@@ -135,7 +137,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 {loadingMap[item.id] ? (
                                     <Surface className="inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-bold italic text-slate-500 dark:text-slate-400" padding="none" variant="muted">
                                         <Loader2 className="h-3 w-3 animate-spin" />
-                                        <span>Analizando ingredientes...</span>
+                                        <span>{t('dietaryAnalyzing')}</span>
                                     </Surface>
                                 ) : resultsMap[item.id] ? (
                                     <Surface className={`flex items-start gap-2 rounded-2xl px-3 py-3 text-[11px] font-bold shadow-sm ${resultsMap[item.id].is_safe ? 'text-emerald-700 dark:text-emerald-200' : 'text-red-700 dark:text-red-200'}`} padding="none" variant="raised">
@@ -152,7 +154,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     </div>
                     {Array.isArray(item.variants) && item.variants.length > 0 ? (
                         <section className="space-y-3">
-                            <p className="ml-2 text-[8px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Tamaño o variante</p>
+                            <p className="ml-2 text-[8px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('variantSection')}</p>
                             <div className="space-y-2">
                                 {item.variants.map((variant) => {
                                     const active = selectedVariantId === variant.id || (!selectedVariantId && variant.isDefault);
@@ -183,11 +185,11 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                             <div>
                                                 <p className="text-sm font-black text-[var(--color-text)]">{group.name}</p>
                                                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-                                                    {group.required ? 'Requerido' : 'Opcional'}
-                                                    {group.maxSelection ? ` • Máx ${group.maxSelection}` : ''}
+                                                    {group.required ? t('required') : t('optional')}
+                                                    {group.maxSelection ? ` • ${t('maxSelection', { count: group.maxSelection })}` : ''}
                                                 </p>
                                             </div>
-                                            <Badge variant="brand">{groupSelections.length} selección(es)</Badge>
+                                            <Badge variant="brand">{t('selectionCount', { count: groupSelections.length })}</Badge>
                                         </div>
 
                                         <div className="space-y-2">
@@ -199,9 +201,9 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                                         disabled={!option.available}
                                                         onClick={() => toggleModifier(group.id, group.name, option, allowMultiple)}
                                                         checked={active}
-                                                        description={allowMultiple ? 'Selección múltiple' : 'Selección única'}
+                                                        description={allowMultiple ? t('multipleChoice') : t('singleChoice')}
                                                         title={option.name}
-                                                        trailing={<span className="text-xs font-black text-orange-600 dark:text-orange-300">{option.priceDelta > 0 ? `+₡${option.priceDelta.toLocaleString()}` : 'Incluido'}</span>}
+                                                        trailing={<span className="text-xs font-black text-orange-600 dark:text-orange-300">{option.priceDelta > 0 ? `+₡${option.priceDelta.toLocaleString()}` : t('included')}</span>}
                                                         type={allowMultiple ? 'checkbox' : 'radio'}
                                                     />
                                                 );
@@ -215,9 +217,9 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
                     <div className="flex items-center justify-center border-y border-slate-200/80 py-4 dark:border-slate-800/80">
                         <QuantitySelector
-                            decrementLabel={`Reducir cantidad de ${item.name}`}
+                            decrementLabel={t('decrementQuantity', { itemName: item.name })}
                             disabled={isSyncing}
-                            incrementLabel={`Aumentar cantidad de ${item.name}`}
+                            incrementLabel={t('incrementQuantity', { itemName: item.name })}
                             onDecrement={() => setQuantity(Math.max(1, quantity - 1))}
                             onIncrement={() => setQuantity(quantity + 1)}
                             value={quantity}
@@ -226,9 +228,9 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     <div className="space-y-2">
                         <TextAreaField
                             disabled={isSyncing}
-                            label="Personalización"
+                            label={t('customizationLabel')}
                             onChange={(e) => setNotes(e.target.value)}
-                            placeholder="Ej: Sin cebolla..."
+                            placeholder={t('customizationPlaceholder')}
                             rows={4}
                             value={notes}
                         />
@@ -243,7 +245,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         size="lg"
                         className="text-[11px] font-black uppercase tracking-[0.3em]"
                     >
-                        Añadir por ₡{total.toLocaleString()} 🍱
+                        {t('addButton', { total: total.toLocaleString() })}
                     </Button>
                 </div>
             </Surface>

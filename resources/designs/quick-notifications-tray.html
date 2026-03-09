@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ec5b13",
+              "background-light": "#f8f6f6",
+              "background-dark": "#221610",
+            },
+            fontFamily: {
+              "display": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<title>Notification Overlay</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative min-h-screen w-full flex flex-col overflow-hidden">
+<!-- Header -->
+<header class="flex items-center bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md p-4 sticky top-0 z-10 justify-between border-b border-primary/10">
+<div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined">menu</span>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-tight flex-1 px-4">Home</h2>
+<div class="flex size-10 items-center justify-end relative">
+<button class="flex items-center justify-center rounded-full size-10 bg-primary text-white">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<!-- Badge -->
+<span class="absolute top-1 right-1 flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-primary border-2 border-background-light"></span>
+</span>
+</div>
+</header>
+<!-- Hero Content (Main Background Content) -->
+<main class="flex-1 p-4 @container">
+<div class="flex min-h-[400px] flex-col gap-6 bg-cover bg-center bg-no-repeat rounded-xl items-start justify-end px-6 pb-12 relative overflow-hidden" data-alt="Abstract warm terracotta and orange fluid patterns" style='background-image: linear-gradient(rgba(0, 0, 0, 0.2) 0%, rgba(34, 22, 16, 0.8) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuBK0cdqnPI0Qzcb5x_47QxtVogJyWh56iyVSYM9kEgn1yA7VvSN6jNOE8OpY9QcVqx5NgeZUTgMcTbEciCENCTqBf7hwM0WnQU2TyZe9ru7SRBTzV3g4xhR7kpcrwGILAbsbrdOWx4nRZr2B20lX5zkMlQ5Cv51PGHV8cgxx_tNVumEc8h-5kEMloCKbhZoS6rzcVq5jPlnF2ELI8_1bSkWbefXcTmKpyLhFdyEQrPJRX9f8mAZz_wLrSV5vLEiOYgNmn85kh-bJ52Q");'>
+<div class="flex flex-col gap-2 text-left relative z-0">
+<h1 class="text-white text-4xl font-black leading-tight tracking-tight">
+                        Welcome Back, Alex
+                    </h1>
+<p class="text-white/80 text-base font-normal leading-normal">
+                        Your personalized workspace is ready. You have 3 new updates to review.
+                    </p>
+</div>
+<button class="flex min-w-[120px] cursor-pointer items-center justify-center rounded-full h-12 px-6 bg-primary text-white text-base font-bold transition-transform hover:scale-105 active:scale-95">
+                    Explore Now
+                </button>
+</div>
+<!-- Dashboard Stats Grid (Placeholder context) -->
+<div class="grid grid-cols-2 gap-4 mt-6">
+<div class="bg-primary/5 p-4 rounded-lg border border-primary/10">
+<p class="text-primary/60 text-xs font-bold uppercase tracking-wider">Active Tasks</p>
+<p class="text-2xl font-black mt-1">12</p>
+</div>
+<div class="bg-primary/5 p-4 rounded-lg border border-primary/10">
+<p class="text-primary/60 text-xs font-bold uppercase tracking-wider">Completion</p>
+<p class="text-2xl font-black mt-1">84%</p>
+</div>
+</div>
+</main>
+<!-- Notification Overlay / Dimmer -->
+<div class="fixed inset-0 bg-background-dark/60 backdrop-blur-[2px] z-20 flex flex-col items-end p-4">
+<!-- Notification Tray Card -->
+<div class="w-full max-w-[360px] bg-[#fffcfb] dark:bg-[#2d1e16] rounded-lg shadow-2xl border border-primary/10 overflow-hidden mt-12 animate-in fade-in zoom-in-95 duration-200">
+<div class="flex items-center justify-between px-4 py-3 border-b border-primary/5">
+<h3 class="font-bold text-slate-900 dark:text-slate-100">Recent Notifications</h3>
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">New</span>
+</div>
+<div class="flex flex-col">
+<!-- Notification Item 1 -->
+<div class="flex gap-4 p-4 hover:bg-primary/5 transition-colors border-b border-primary/5 cursor-pointer">
+<div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined text-xl">shopping_bag</span>
+</div>
+<div class="flex flex-col gap-0.5">
+<p class="text-sm font-bold text-slate-800 dark:text-slate-200">Order Dispatched</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">Your latest package is on its way and should arrive by tomorrow evening.</p>
+<p class="text-[10px] text-primary font-medium mt-1">2 mins ago</p>
+</div>
+</div>
+<!-- Notification Item 2 -->
+<div class="flex gap-4 p-4 hover:bg-primary/5 transition-colors border-b border-primary/5 cursor-pointer">
+<div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined text-xl">payments</span>
+</div>
+<div class="flex flex-col gap-0.5">
+<p class="text-sm font-bold text-slate-800 dark:text-slate-200">Payment Received</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">Invoice #4412 has been successfully processed. Check your balance.</p>
+<p class="text-[10px] text-primary font-medium mt-1">45 mins ago</p>
+</div>
+</div>
+<!-- Notification Item 3 -->
+<div class="flex gap-4 p-4 hover:bg-primary/5 transition-colors cursor-pointer">
+<div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined text-xl">person_add</span>
+</div>
+<div class="flex flex-col gap-0.5">
+<p class="text-sm font-bold text-slate-800 dark:text-slate-200">New Connection</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">Sarah Miller wants to connect with you on the professional network.</p>
+<p class="text-[10px] text-primary font-medium mt-1">2 hours ago</p>
+</div>
+</div>
+</div>
+<div class="p-3 bg-primary/5">
+<button class="w-full py-2.5 flex items-center justify-center gap-2 rounded-lg bg-primary text-white text-sm font-bold shadow-md shadow-primary/20 hover:bg-primary/90 transition-all">
+<span>See All Notifications</span>
+<span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Close Area (Invisible tap target to close) -->
+<div class="flex-1 w-full mt-4" onclick="/* Action to close */"></div>
+</div>
+<!-- Bottom Navigation -->
+<nav class="flex border-t border-primary/10 bg-background-light dark:bg-background-dark px-4 pb-6 pt-2 z-10">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<p class="text-[10px] font-bold">Home</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">search</span>
+<p class="text-[10px] font-medium">Search</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">explore</span>
+<p class="text-[10px] font-medium">Explore</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">person</span>
+<p class="text-[10px] font-medium">Profile</p>
+</a>
+</nav>
+</div>
+</body></html>

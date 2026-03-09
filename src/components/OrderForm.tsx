@@ -181,7 +181,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
 
                     {isAutoSavingProfileLocation && (
                         <Surface className="inline-block text-[10px] font-bold" variant="raised">
-                            Saving current location to your profile...
+                            {t('savingProfileLocation')}
                         </Surface>
                     )}
 
@@ -212,16 +212,15 @@ const OrderForm: React.FC<OrderFormProps> = ({
 
                                 {orderMetadata.gpsLocation && (
                                     <div className="flex flex-col gap-1 animate-fadeIn mt-1">
-                                        <label className="ml-1 text-[7px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-300">Ubicación GPS Adjunta</label>
                                         <label className="ml-1 text-[7px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-300">{t('gpsAttached')}</label>
                                         <Surface className="flex items-center gap-2" variant="raised">
                                             <span className="text-sm">📍</span>
-                                            <input
-                                                type="text"
+                                            <textarea
                                                 readOnly
                                                 value={orderMetadata.gpsLocation}
-                                                className="w-full bg-transparent text-xs font-bold focus:outline-none truncate"
-                                                onClick={(e) => e.currentTarget.select()}
+                                                rows={2}
+                                                className="w-full resize-none bg-transparent text-xs font-bold leading-relaxed focus:outline-none"
+                                                onFocus={(e) => e.currentTarget.select()}
                                             />
                                             <Button
                                                 onClick={() => setOrderMetadata({

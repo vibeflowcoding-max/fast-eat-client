@@ -15,7 +15,7 @@ interface RestaurantCacheEntry {
 
 const MIN_SUGGESTION_QUERY_LENGTH = 2;
 const MAX_SUGGESTION_CACHE_ENTRIES = 25;
-const RESTAURANTS_CACHE_TTL_MS = 2 * 60 * 1000;
+const RESTAURANTS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const restaurantsCache = new Map<string, RestaurantCacheEntry>();
 const restaurantsInflight = new Map<string, Promise<RestaurantWithBranches[]>>();
@@ -102,11 +102,17 @@ export function useRestaurants({ categoryId, userLocation }: UseRestaurantsOptio
     const fetchRestaurants = useCallback(async (signal?: AbortSignal) => {
         const cacheKey = buildCacheKey();
         const cachedEntry = restaurantsCache.get(cacheKey);
+        let loader: Promise<RestaurantWithBranches[]> | undefined;
+
         if (cachedEntry && (Date.now() - cachedEntry.cachedAt) < RESTAURANTS_CACHE_TTL_MS) {
             setRestaurants(cachedEntry.data);
             setLoading(false);
             setError(null);
             return cachedEntry.data;
+        }
+
+        if (cachedEntry) {
+            setRestaurants(cachedEntry.data);
         }
 
         setLoading(true);
@@ -126,8 +132,8 @@ export function useRestaurants({ categoryId, userLocation }: UseRestaurantsOptio
 
             const url = `/api/restaurants${params.toString() ? `?${params.toString()}` : ''}`;
             const existingLoader = restaurantsInflight.get(cacheKey);
-            const loader = existingLoader || (async () => {
-                const response = await fetch(url, { signal });
+            loader = existingLoader || (async () => {
+                const response = await fetch(url);
 
                 if (!response.ok) {
                     throw new Error('Failed to fetch restaurants');
@@ -150,13 +156,16 @@ export function useRestaurants({ categoryId, userLocation }: UseRestaurantsOptio
             return data;
         } catch (err) {
             if (signal?.aborted || isAbortLikeError(err)) {
-                return [];
+                return cachedEntry?.data ?? [];
             }
 
             setError(err instanceof Error ? err.message : 'Unknown error');
-            return [];
+            return cachedEntry?.data ?? [];
         } finally {
-            restaurantsInflight.delete(cacheKey);
+            if (loader && restaurantsInflight.get(cacheKey) === loader) {
+                restaurantsInflight.delete(cacheKey);
+            }
+
             if (!signal?.aborted) {
                 setLoading(false);
             }

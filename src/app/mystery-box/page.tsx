@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ArrowRight, Gift, Loader2, ShieldAlert, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import BottomNav from '@/components/BottomNav';
 import { Badge, Button, ChoiceCard, FieldLabel, SectionHeader, Surface, TextField } from '@/../resources/components';
 import { acceptMysteryBoxOffer, fetchMysteryBoxOffers } from '@/services/api';
@@ -27,20 +28,8 @@ function resolveAcceptedOrderId(payload: unknown): string | null {
   return candidates.find((value) => typeof value === 'string' && value.trim().length > 0) || null;
 }
 
-const serviceModeOptions = [
-  {
-    value: 'delivery',
-    title: 'Delivery',
-    description: 'Ofertas listas para enviarse con la logística disponible.',
-  },
-  {
-    value: 'pickup',
-    title: 'Pickup',
-    description: 'Combos pensados para recoger rápido en el local.',
-  },
-] as const;
-
 export default function MysteryBoxPage() {
+  const t = useTranslations('mysteryBox');
   const router = useAppRouter();
   const { isAuthenticated } = useCartStore();
 
@@ -52,6 +41,18 @@ export default function MysteryBoxPage() {
   const [serviceMode, setServiceMode] = React.useState<'delivery' | 'pickup'>('delivery');
   const [acceptFeedback, setAcceptFeedback] = React.useState<string | null>(null);
   const [acceptedOrderId, setAcceptedOrderId] = React.useState<string | null>(null);
+  const serviceModeOptions = React.useMemo(() => ([
+    {
+      value: 'delivery',
+      title: t('serviceModes.delivery.title'),
+      description: t('serviceModes.delivery.description'),
+    },
+    {
+      value: 'pickup',
+      title: t('serviceModes.pickup.title'),
+      description: t('serviceModes.pickup.description'),
+    },
+  ] as const), [t]);
 
   const loadOffers = React.useCallback(async () => {
     setLoading(true);
@@ -65,11 +66,11 @@ export default function MysteryBoxPage() {
       });
       setOffersPayload(response);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudieron cargar las ofertas.');
+      setError(requestError instanceof Error ? requestError.message : t('loadError'));
     } finally {
       setLoading(false);
     }
-  }, [maxPrice, serviceMode]);
+  }, [maxPrice, serviceMode, t]);
 
   React.useEffect(() => {
     if (!isAuthenticated) {
@@ -81,7 +82,7 @@ export default function MysteryBoxPage() {
 
   const handleAccept = React.useCallback(async (offer: MysteryBoxOffer) => {
     if (!offer.id) {
-      setError('Esta oferta no se puede aceptar todavía.');
+      setError(t('cannotAcceptYet'));
       return;
     }
 
@@ -93,24 +94,24 @@ export default function MysteryBoxPage() {
     try {
       const response = await acceptMysteryBoxOffer(offer.id);
       const nextOrderId = resolveAcceptedOrderId(response);
-      setAcceptFeedback('Oferta aceptada correctamente.');
+      setAcceptFeedback(t('acceptSuccess'));
       setAcceptedOrderId(nextOrderId);
       await loadOffers();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo aceptar la oferta.');
+      setError(requestError instanceof Error ? requestError.message : t('acceptError'));
     } finally {
       setAcceptingOfferId(null);
     }
-  }, [loadOffers]);
+  }, [loadOffers, t]);
 
   return (
     <main className="min-h-screen bg-[#f8f6f2] pb-32 text-slate-900 dark:bg-[#221610] dark:text-slate-100">
       <div className="mx-auto w-full max-w-4xl px-4 pt-6 space-y-5">
         <Surface className="rounded-[2rem]" variant="raised" padding="lg">
           <SectionHeader
-            eyebrow="Mystery Box"
-            title="Ofertas sorpresa compatibles contigo"
-            description="Estas cajas usan disponibilidad dinámica y tu perfil alimenticio para armar combos con descuento y menor desperdicio."
+            eyebrow={t('eyebrow')}
+            title={t('title')}
+            description={t('description')}
           />
         </Surface>
 
@@ -119,8 +120,8 @@ export default function MysteryBoxPage() {
             <div className="flex items-start gap-3">
               <ShieldAlert className="mt-0.5 h-5 w-5 text-amber-600" />
               <div className="space-y-2">
-                <p className="font-black">Necesitas iniciar sesión para ver ofertas sorpresa personalizadas.</p>
-                <p className="text-slate-500 dark:text-slate-400">La disponibilidad y los filtros dietarios dependen de tu contexto autenticado.</p>
+                <p className="font-black">{t('authTitle')}</p>
+                <p className="text-slate-500 dark:text-slate-400">{t('authDescription')}</p>
               </div>
             </div>
           </Surface>
@@ -128,9 +129,9 @@ export default function MysteryBoxPage() {
           <>
             <Surface className="space-y-5 rounded-[2rem]" variant="base" padding="lg">
               <SectionHeader
-                eyebrow="Filtros"
-                title="Refina las cajas disponibles"
-                description="Cada búsqueda usa tu sesión actual y la disponibilidad dinámica para actualizar las ofertas."
+                eyebrow={t('filtersEyebrow')}
+                title={t('filtersTitle')}
+                description={t('filtersDescription')}
                 action={<Gift className="h-5 w-5 text-fuchsia-600 dark:text-fuchsia-300" />}
               />
 
@@ -140,16 +141,16 @@ export default function MysteryBoxPage() {
                   min="0"
                   step="500"
                   inputMode="numeric"
-                  label="Precio máximo"
-                  description="Controla el techo del combo antes de aplicar el descuento sorpresa."
+                  label={t('maxPriceLabel')}
+                  description={t('maxPriceDescription')}
                   value={maxPrice}
                   onChange={(event) => setMaxPrice(event.target.value)}
                 />
 
                 <div className="space-y-2">
                   <FieldLabel
-                    label="Modalidad"
-                    description="Ajusta la oferta según logística de delivery o retiro en tienda."
+                    label={t('serviceModeLabel')}
+                    description={t('serviceModeDescription')}
                   />
                   <div className="grid gap-2">
                     {serviceModeOptions.map((option) => (
@@ -172,7 +173,7 @@ export default function MysteryBoxPage() {
                 leadingIcon={loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 size="md"
               >
-                Buscar ofertas
+                {t('search')}
               </Button>
 
               {acceptFeedback ? (
@@ -187,7 +188,7 @@ export default function MysteryBoxPage() {
                   onClick={() => router.push(`/orders/${acceptedOrderId}`)}
                   leadingIcon={<ArrowRight className="h-4 w-4" />}
                 >
-                  Ver orden creada
+                  {t('viewCreatedOrder')}
                 </Button>
               ) : null}
             </Surface>
@@ -200,7 +201,7 @@ export default function MysteryBoxPage() {
 
             {offersPayload && offersPayload.offers.length === 0 ? (
               <Surface className="rounded-[2rem] text-sm" variant="base" padding="lg">
-                No hay mystery boxes disponibles con estos filtros por ahora.
+                {t('empty')}
               </Surface>
             ) : null}
 
@@ -209,17 +210,17 @@ export default function MysteryBoxPage() {
                 <Surface key={offer.id || offer.title} className="space-y-4 rounded-[2rem]" variant="base" padding="lg">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <Badge variant="brand">{offer.restaurant.name || 'Restaurante'}</Badge>
+                      <Badge variant="brand">{offer.restaurant.name || t('restaurantFallback')}</Badge>
                       <h2 className="inline-flex items-center gap-2 text-xl font-black tracking-[-0.02em] text-slate-900 dark:text-slate-100">
                         <Gift className="h-5 w-5 text-fuchsia-600" />
                         {offer.title}
                       </h2>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{offer.description || 'Oferta generada con inventario disponible y compatibilidad dietaria.'}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{offer.description || t('defaultOfferDescription')}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-black text-slate-900 dark:text-slate-100">₡{Math.round(offer.price).toLocaleString()}</p>
                       {offer.originalValue ? (
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Valor original ₡{Math.round(offer.originalValue).toLocaleString()}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('originalValue', { amount: Math.round(offer.originalValue).toLocaleString() })}</p>
                       ) : null}
                     </div>
                   </div>
@@ -232,7 +233,7 @@ export default function MysteryBoxPage() {
                     ))}
                     {offer.excludedAllergens.map((allergen) => (
                       <Badge key={allergen} variant="warning">
-                        Sin {allergen}
+                        {t('excludedAllergen', { allergen })}
                       </Badge>
                     ))}
                   </div>
@@ -254,7 +255,7 @@ export default function MysteryBoxPage() {
 
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {offer.availableUntil ? `Disponible hasta ${new Date(offer.availableUntil).toLocaleString('es-CR')}` : 'Disponibilidad limitada'}
+                      {offer.availableUntil ? t('availableUntil', { value: new Date(offer.availableUntil).toLocaleString('es-CR') }) : t('limitedAvailability')}
                     </p>
                     <Button
                       onClick={() => handleAccept(offer)}
@@ -262,7 +263,7 @@ export default function MysteryBoxPage() {
                       leadingIcon={acceptingOfferId === offer.id ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
                       size="sm"
                     >
-                      {offer.canAccept ? 'Aceptar oferta' : 'No disponible'}
+                      {offer.canAccept ? t('acceptButton') : t('unavailableButton')}
                     </Button>
                   </div>
                 </Surface>

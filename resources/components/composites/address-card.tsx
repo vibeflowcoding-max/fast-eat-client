@@ -47,8 +47,8 @@ export function AddressCard({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-bold text-slate-900 dark:text-slate-100">{title}</span>
-          <span className="mt-1 block text-sm text-slate-500 dark:text-slate-400">{address}</span>
-          {meta ? <span className="mt-1 block text-xs text-slate-400 dark:text-slate-500">{meta}</span> : null}
+          <span className="mt-1 block break-words text-sm text-slate-500 dark:text-slate-400">{address}</span>
+          {meta ? <span className="mt-1 block break-all text-xs text-slate-400 dark:text-slate-500">{meta}</span> : null}
         </span>
         <span className="shrink-0 text-slate-400">{trailing ?? <Icon symbol="chevron_right" tone="muted" />}</span>
       </button>

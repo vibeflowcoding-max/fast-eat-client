@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { Button, Surface } from '@/../resources/components';
 
 const starBaseClassName = 'flex h-10 w-10 items-center justify-center rounded-full border transition-colors';
@@ -25,12 +26,13 @@ export default function ReviewComposer({
   submitting = false,
   initialRating = 0,
   initialComment = '',
-  submitLabel = 'Submit review',
-  dismissLabel = 'Not now',
+  submitLabel,
+  dismissLabel,
   maxCommentLength = 500,
   onSubmit,
   onDismiss
 }: ReviewComposerProps) {
+  const t = useTranslations('reviews.composer');
   const [rating, setRating] = React.useState(initialRating);
   const [comment, setComment] = React.useState(initialComment);
   const [error, setError] = React.useState<string | null>(null);
@@ -47,7 +49,7 @@ export default function ReviewComposer({
       setError(null);
       await onSubmit({ rating, comment: trimmedComment });
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : 'Could not submit review');
+      setError(submissionError instanceof Error ? submissionError.message : t('submitError'));
     }
   };
 
@@ -58,7 +60,7 @@ export default function ReviewComposer({
           <button
             key={star}
             type="button"
-            aria-label={`Set rating ${star}`}
+            aria-label={`${t('ratingAriaPrefix')} ${star}`}
             disabled={disabled || submitting}
             onClick={() => setRating(star)}
             className={`${starBaseClassName} ${star <= rating ? starActiveClassName : starInactiveClassName}`}
@@ -74,7 +76,7 @@ export default function ReviewComposer({
         onChange={(event) => setComment(event.target.value)}
         maxLength={maxCommentLength}
         className={textAreaClassName}
-        placeholder="Optional comment"
+        placeholder={t('placeholder')}
       />
 
       <div className="text-right text-xs text-slate-500 dark:text-slate-400">{trimmedComment.length}/{maxCommentLength}</div>
@@ -88,7 +90,7 @@ export default function ReviewComposer({
           disabled={submitDisabled}
           size="sm"
         >
-          {submitting ? 'Sending...' : submitLabel}
+          {submitting ? t('submitting') : (submitLabel ?? t('submit'))}
         </Button>
 
         {onDismiss ? (
@@ -97,7 +99,7 @@ export default function ReviewComposer({
             size="sm"
             variant="outline"
           >
-            {dismissLabel}
+            {dismissLabel ?? t('dismiss')}
           </Button>
         ) : null}
       </div>

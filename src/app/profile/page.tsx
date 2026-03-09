@@ -220,6 +220,21 @@ export default function ProfilePage() {
   const dislikedIngredients = dietaryProfile?.dislikedIngredients ?? [];
   const healthGoals = dietaryProfile?.healthGoals ?? [];
   const dietLabel = dietaryProfile?.diet && dietaryProfile.diet !== 'none' ? dietaryProfile.diet : t('noAllergies');
+  const addressCardLabel = React.useMemo(() => {
+    if (!address) {
+      return t('noAddress');
+    }
+
+    const coords = parseCoordsFromGoogleMapsUrl(address);
+    if (typeof coords.lat === 'number' && typeof coords.lng === 'number') {
+      return t('savedCoordinates', {
+        lat: coords.lat.toFixed(5),
+        lng: coords.lng.toFixed(5),
+      });
+    }
+
+    return t('savedLocationValue');
+  }, [address, parseCoordsFromGoogleMapsUrl, t]);
 
   const handleProfileSave = async () => {
     setSaveFeedback(null);
@@ -227,7 +242,7 @@ export default function ProfilePage() {
 
     const normalizedPhone = normalizePhoneWithSinglePlus(editPhone);
     if (!editFullName.trim() || !normalizedPhone) {
-      setError('Name and phone are required.');
+      setError(t('validationNamePhone'));
       return;
     }
 
@@ -237,7 +252,7 @@ export default function ProfilePage() {
       const accessToken = sessionData.session?.access_token;
 
       if (!accessToken) {
-        throw new Error('You must sign in again to update your profile.');
+        throw new Error(t('authRequiredUpdateProfile'));
       }
 
       const response = await fetch('/api/profile/me', {
@@ -255,7 +270,7 @@ export default function ProfilePage() {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(typeof data?.error === 'string' ? data.error : 'Could not update profile.');
+        throw new Error(typeof data?.error === 'string' ? data.error : t('updateProfileError'));
       }
 
       setPayload((previous) => ({
@@ -268,9 +283,9 @@ export default function ProfilePage() {
         customerName: data.profile?.fullName ?? '',
         customerPhone: data.profile?.phone ?? '',
       });
-      setSaveFeedback('Profile updated successfully.');
+      setSaveFeedback(t('saveSuccess'));
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Could not update profile.');
+      setError(saveError instanceof Error ? saveError.message : t('updateProfileError'));
     } finally {
       setSaving(false);
     }
@@ -328,14 +343,14 @@ export default function ProfilePage() {
 
     const urlGoogleMaps = String(value.urlAddress || '').trim();
     if (!urlGoogleMaps) {
-      throw new Error('Location URL is required.');
+      throw new Error(t('locationUrlRequired'));
     }
 
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData.session?.access_token;
 
     if (!accessToken) {
-      throw new Error('You must sign in again to update your location.');
+      throw new Error(t('authRequiredUpdateLocation'));
     }
 
     const response = await fetch('/api/profile/me', {
@@ -351,7 +366,7 @@ export default function ProfilePage() {
 
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(typeof data?.error === 'string' ? data.error : 'Could not update location.');
+      throw new Error(typeof data?.error === 'string' ? data.error : t('updateLocationError'));
     }
 
     setPayload((previous) => ({
@@ -364,7 +379,7 @@ export default function ProfilePage() {
       customerAddress: {
         urlAddress: urlGoogleMaps,
         buildingType: 'Other',
-        deliveryNotes: 'Meet at door',
+        deliveryNotes: t('defaultDeliveryNote'),
         lat: coords.lat,
         lng: coords.lng,
         formattedAddress: urlGoogleMaps,
@@ -480,8 +495,8 @@ export default function ProfilePage() {
                 <div className="flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[linear-gradient(135deg,var(--color-brand)_0%,#fb923c_100%)] text-xl font-black text-white shadow-[0_16px_32px_-20px_rgba(236,91,19,0.75)]">
                   {initials(fullName)}
                 </div>
-                <div>
-                  <h2 className="text-xl font-black tracking-[-0.02em] text-[var(--color-text)]">{fullName}</h2>
+                <div className="min-w-0">
+                  <h2 className="break-words text-xl font-black tracking-[-0.02em] text-[var(--color-text)]">{fullName}</h2>
                   <p className="text-xs uppercase tracking-[0.12em] text-[var(--color-text-muted)]">{t('roleLabel')}</p>
                 </div>
               </div>
@@ -498,7 +513,7 @@ export default function ProfilePage() {
               </div>
 
               <Surface className="space-y-4" variant="muted">
-                <SectionHeader eyebrow="Profile" title="Edit profile" />
+                <SectionHeader eyebrow={t('editSectionEyebrow')} title={t('editSectionTitle')} />
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <TextField
                     label={t('name')}
@@ -516,16 +531,18 @@ export default function ProfilePage() {
                 </div>
                 <Button disabled={saving} onClick={handleProfileSave} size="md" type="button">
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  Save profile
+                  {t('saveButton')}
                 </Button>
                 {saveFeedback ? <p className="inline-flex rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">{saveFeedback}</p> : null}
               </Surface>
 
               <div className="space-y-3">
-                <SectionHeader eyebrow="Address" title={t('location')} description={address ?? t('noAddress')} />
+                <SectionHeader eyebrow={t('locationSectionEyebrow')} title={t('location')} description={t('locationSectionDescription')} />
                 <AddressCard
-                  address={address ?? t('noAddress')}
+                  address={addressCardLabel}
+                  className="items-start"
                   icon={<MapPin className="h-5 w-5" />}
+                  meta={address ?? undefined}
                   onClick={handleOpenLocationEditor}
                   title={address ? t('changeLocation') : t('setLocation')}
                   trailing={isResolvingProfileLocation ? <Loader2 className="h-4 w-4 animate-spin text-slate-400" /> : undefined}
@@ -564,11 +581,11 @@ export default function ProfilePage() {
               <Surface className="space-y-3 text-sm" variant="muted">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">Perfil alimenticio</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">{t('dietaryProfileLabel')}</p>
                     <p className="font-semibold text-slate-900 dark:text-slate-100">{dietLabel}</p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.08em] ${dietaryProfile?.syncStatus === 'synced' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {dietaryProfile?.syncStatus === 'synced' ? 'Synced' : 'Local'}
+                    {dietaryProfile?.syncStatus === 'synced' ? t('syncStatusSynced') : t('syncStatusLocal')}
                   </span>
                 </div>
 
@@ -580,7 +597,7 @@ export default function ProfilePage() {
                   ))}
                   {dislikedIngredients.slice(0, 3).map((ingredient) => (
                     <span key={ingredient} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
-                      Evitar: {ingredient}
+                      {t('avoidIngredientPrefix')}: {ingredient}
                     </span>
                   ))}
                   {healthGoals.slice(0, 2).map((goal) => (
@@ -598,7 +615,7 @@ export default function ProfilePage() {
                   onClick={() => setIsDietaryModalOpen(true)}
                   className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
                 >
-                  Ajustar perfil alimenticio
+                  {t('dietaryAdjustButton')}
                 </button>
               </Surface>
 
@@ -620,12 +637,12 @@ export default function ProfilePage() {
                 <div>
                   <h3 className="inline-flex items-center gap-2 text-sm font-black text-slate-900 dark:text-slate-100">
                     <Sparkles className="w-4 h-4 text-[var(--color-brand)]" />
-                    Planner IA
+                    {t('plannerTitle')}
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Recibe ideas de platos según tu dieta, gustos y momento del día.</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t('plannerDescription')}</p>
                 </div>
                 <Button onClick={() => router.push('/planner')} size="sm" type="button">
-                  Abrir
+                  {t('plannerAction')}
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -636,12 +653,12 @@ export default function ProfilePage() {
                 <div>
                   <h3 className="inline-flex items-center gap-2 text-sm font-black text-slate-900 dark:text-slate-100">
                     <Gift className="w-4 h-4 text-fuchsia-600" />
-                    Mystery Box
+                    {t('mysteryBoxTitle')}
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Descubre combos sorpresa compatibles con tu perfil y stock disponible.</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t('mysteryBoxDescription')}</p>
                 </div>
                 <Button onClick={() => router.push('/mystery-box')} size="sm" type="button">
-                  Ver ofertas
+                  {t('mysteryBoxAction')}
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -695,7 +712,7 @@ export default function ProfilePage() {
         initialValue={{
           urlAddress: profile?.urlGoogleMaps || '',
           buildingType: 'Other',
-          deliveryNotes: 'Meet at door',
+          deliveryNotes: t('defaultDeliveryNote'),
           formattedAddress: profile?.urlGoogleMaps || undefined,
           lat: locationInitialPosition?.lat,
           lng: locationInitialPosition?.lng,

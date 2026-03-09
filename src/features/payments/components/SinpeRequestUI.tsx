@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Copy, Check, MessageCircle, Smartphone, Info } from 'lucide-react';
 import { SplitResult } from '../utils/splitStrategies';
 
@@ -19,19 +20,27 @@ export default function SinpeRequestUI({
     onBack,
     onClose
 }: SinpeRequestUIProps) {
+    const t = useTranslations('payments.sinpe');
     const [copiedId, setCopiedId] = useState<string | null>(null);
 
     const formatCurrency = (val: number) => `₡${val.toLocaleString()}`;
 
+    const buildMessage = (result: SplitResult) => t('messageTemplate', {
+        participantName: result.participantName,
+        total: formatCurrency(result.finalTotal),
+        hostPhone,
+        hostName
+    });
+
     const handleCopyMessage = (result: SplitResult) => {
-        const message = `¡Hola ${result.participantName}! Tu parte de la cuenta en FastEat es de ${formatCurrency(result.finalTotal)}. Por favor, pasalo por SINPE al ${hostPhone} a nombre de ${hostName}. ¡Gracias! 🍣🍱`;
+        const message = buildMessage(result);
         navigator.clipboard.writeText(message);
         setCopiedId(result.participantId);
         setTimeout(() => setCopiedId(null), 2000);
     };
 
     const handleSendWhatsApp = (result: SplitResult) => {
-        const message = encodeURIComponent(`¡Hola ${result.participantName}! Tu parte de la cuenta en FastEat es de ${formatCurrency(result.finalTotal)}. Por favor, pasalo por SINPE al ${hostPhone} a nombre de ${hostName}. ¡Gracias! 🍣🍱`);
+        const message = encodeURIComponent(buildMessage(result));
         window.open(`https://wa.me/?text=${message}`, '_blank');
     };
 
@@ -42,21 +51,21 @@ export default function SinpeRequestUI({
                     <div>
                         <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
                             <Smartphone className="w-6 h-6 text-red-500" />
-                            Cobrar por SINPE
+                            {t('title')}
                         </h3>
-                        <p className="text-sm text-gray-500 font-medium">Comparte el resumen con tus amigos</p>
+                        <p className="text-sm text-gray-500 font-medium">{t('subtitle')}</p>
                     </div>
-                    <button onClick={onClose} className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-500 font-bold hover:bg-gray-100 transition-colors border border-gray-200">✕</button>
+                    <button aria-label={t('closeAria')} onClick={onClose} className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-500 font-bold hover:bg-gray-100 transition-colors border border-gray-200">✕</button>
                 </div>
 
                 <div className="flex-grow overflow-y-auto p-5 md:p-6 space-y-4 bg-gray-50">
                     <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm mb-2 shadow-sm border border-blue-100">
                         <p className="font-bold flex items-center gap-2">
                             <Info className="w-4 h-4" />
-                            Instrucciones para el organizador
+                            {t('organizerInstructionsTitle')}
                         </p>
                         <p className="mt-1 opacity-90">
-                            Usa los botones para copiar el mensaje o enviarlo directamente por WhatsApp a cada participante.
+                            {t('organizerInstructionsBody')}
                         </p>
                     </div>
 
@@ -84,7 +93,7 @@ export default function SinpeRequestUI({
                                         <button
                                             onClick={() => handleCopyMessage(result)}
                                             className="px-4 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors focus:ring-4 focus:ring-gray-100 active:scale-95"
-                                            title="Copiar texto"
+                                            title={t('copyTextTitle')}
                                         >
                                             {copiedId === result.participantId ? (
                                                 <Check className="w-5 h-5 text-green-600" />
@@ -104,13 +113,13 @@ export default function SinpeRequestUI({
                         onClick={onBack}
                         className="w-full py-4 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors uppercase tracking-widest text-xs active:scale-95"
                     >
-                        Atrás
+                        {t('back')}
                     </button>
                     <button
                         onClick={onClose}
                         className="w-full py-4 rounded-xl font-black text-white bg-black hover:bg-gray-800 transition-colors uppercase tracking-widest text-xs shadow-xl active:scale-95"
                     >
-                        Listo ⛩️
+                        {t('done')}
                     </button>
                 </div>
             </div>

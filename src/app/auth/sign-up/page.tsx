@@ -17,6 +17,7 @@ function normalizeCostaRicaLocalPhoneInput(rawValue: string): string {
 export default function SignUpPage() {
   const router = useRouter();
   const t = useTranslations('auth.signUp');
+  const tCommon = useTranslations('auth.common');
   const [fullName, setFullName] = useState('');
   const [localPhone, setLocalPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -114,8 +115,9 @@ export default function SignUpPage() {
           </Link>
         </>
       )}
-      heroDescription="Crea una cuenta de cliente para guardar favoritos, direcciones y pedidos sin volver a empezar en cada visita."
-      heroTitle="Tu próxima orden empieza con un perfil listo."
+      heroDescription={t('heroDescription')}
+      heroFooterText={tCommon('heroFooter')}
+      heroTitle={t('heroTitle')}
       title={t('title')}
     >
       <form className="space-y-4" onSubmit={handleSubmit}>
@@ -125,8 +127,9 @@ export default function SignUpPage() {
           label={t('fullName')}
           leadingIcon={<Icon symbol="person" tone="muted" />}
           onChange={(event) => setFullName(event.target.value)}
-          placeholder="Tu nombre"
+          placeholder={t('fullNamePlaceholder')}
           required
+          requiredLabel={tCommon('requiredBadge')}
           value={fullName}
         />
 
@@ -158,8 +161,9 @@ export default function SignUpPage() {
           label={t('email')}
           leadingIcon={<Icon symbol="mail" tone="muted" />}
           onChange={(event) => setEmail(event.target.value)}
-          placeholder="name@example.com"
+          placeholder={t('emailPlaceholder')}
           required
+          requiredLabel={tCommon('requiredBadge')}
           type="email"
           value={email}
         />
@@ -171,8 +175,9 @@ export default function SignUpPage() {
           leadingIcon={<Icon symbol="lock" tone="muted" />}
           minLength={6}
           onChange={(event) => setPassword(event.target.value)}
-          placeholder="Min. 6 caracteres"
+          placeholder={t('passwordPlaceholder')}
           required
+          requiredLabel={tCommon('requiredBadge')}
           trailingAction={(
             <button
               aria-label={showPassword ? t('hidePassword') : t('showPassword')}

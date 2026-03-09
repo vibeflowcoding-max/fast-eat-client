@@ -39,7 +39,7 @@ describe('OrderForm', () => {
 
     expect(screen.getByText('Test User')).toBeInTheDocument();
     expect(screen.getByText('+50688888888')).toBeInTheDocument();
-    expect(screen.getByText('https://www.google.com/maps?q=9.9,-84.1')).toBeInTheDocument();
+    expect(screen.getAllByText('https://www.google.com/maps?q=9.9,-84.1')).toHaveLength(2);
   });
 
   it('shows and toggles the different-location warning acknowledgement', () => {

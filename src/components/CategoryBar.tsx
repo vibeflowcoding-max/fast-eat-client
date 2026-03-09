@@ -83,12 +83,17 @@ export default function CategoryBar({ categories, selectedCategoryId, onSelectCa
     }, [isEnglish]);
 
     return (
-        <div className="w-full overflow-x-auto scrollbar-hide">
+        <div
+            className="w-full overflow-x-auto no-scrollbar"
+            aria-label={t('listAria')}
+            role="group"
+        >
             <div className="flex gap-4 px-4 pt-3 pb-4 min-w-max">
                 {/* All categories button */}
                 <button
+                    type="button"
                     onClick={() => onSelectCategory(null)}
-                    className="flex flex-col items-center gap-1 min-w-[64px]"
+                    className="flex min-w-[64px] shrink-0 flex-col items-center gap-1"
                 >
                     <div className={`flex h-14 w-14 items-center justify-center rounded-full text-2xl transition-all ${
                         selectedCategoryId === null
@@ -106,8 +111,9 @@ export default function CategoryBar({ categories, selectedCategoryId, onSelectCa
                 {categories.map((category) => (
                     <button
                         key={category.id}
+                        type="button"
                         onClick={() => onSelectCategory(category.id)}
-                        className="flex flex-col items-center gap-1 min-w-[64px]"
+                        className="flex min-w-[64px] shrink-0 flex-col items-center gap-1"
                     >
                         <div className={`flex h-14 w-14 items-center justify-center rounded-full text-2xl transition-all ${
                             selectedCategoryId === category.id
@@ -116,7 +122,7 @@ export default function CategoryBar({ categories, selectedCategoryId, onSelectCa
                         }`}>
                             {category.icon}
                         </div>
-                        <span className={`text-xs font-medium ${selectedCategoryId === category.id ? 'text-orange-600' : 'text-gray-600'}`}>
+                        <span className={`max-w-[72px] break-words text-center text-xs font-medium leading-tight ${selectedCategoryId === category.id ? 'text-orange-600' : 'text-gray-600'}`}>
                             {getCategoryLabel(category.name)}
                         </span>
                     </button>

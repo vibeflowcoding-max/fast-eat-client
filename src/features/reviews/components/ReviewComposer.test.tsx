@@ -14,9 +14,9 @@ describe('ReviewComposer', () => {
 
     render(<ReviewComposer onSubmit={onSubmit} />);
 
-    await user.click(screen.getByRole('button', { name: /set rating 4/i }));
+  await user.click(screen.getByRole('button', { name: /calificar con 4/i }));
     await user.type(screen.getByRole('textbox'), 'Great service');
-    await user.click(screen.getByRole('button', { name: /submit review/i }));
+  await user.click(screen.getByRole('button', { name: /enviar reseña/i }));
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith({
@@ -35,7 +35,7 @@ describe('ReviewComposer', () => {
       />
     );
 
-    const submitButton = screen.getByRole('button', { name: /submit review/i });
+    const submitButton = screen.getByRole('button', { name: /enviar reseña/i });
     expect(submitButton).toBeDisabled();
     expect(screen.getByText(/order_not_completed/i)).toBeInTheDocument();
   });
@@ -46,7 +46,7 @@ describe('ReviewComposer', () => {
 
     render(<ReviewComposer onDismiss={onDismiss} onSubmit={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /not now/i }));
+  await user.click(screen.getByRole('button', { name: /ahora no/i }));
 
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
@@ -57,11 +57,11 @@ describe('ReviewComposer', () => {
 
     render(<ReviewComposer onSubmit={onSubmit} />);
 
-    await user.click(screen.getByRole('button', { name: /set rating 5/i }));
+    await user.click(screen.getByRole('button', { name: /calificar con 5/i }));
     await user.type(screen.getByRole('textbox'), 'Excellent');
-    await user.click(screen.getByRole('button', { name: /submit review/i }));
+    await user.click(screen.getByRole('button', { name: /enviar reseña/i }));
 
     expect(await screen.findByText(/submit_failed/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /submit review/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /enviar reseña/i })).toBeEnabled();
   });
 });

@@ -19,7 +19,7 @@ describe('AddressDetailsModal', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Save address' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar dirección' }));
 
     await waitFor(() => {
       expect(onSave).toHaveBeenCalledTimes(1);
@@ -33,7 +33,7 @@ describe('AddressDetailsModal', () => {
       })
     );
 
-    expect(screen.queryByText('Please provide a Google Maps URL before saving.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agrega una URL de Google Maps antes de guardar.')).not.toBeInTheDocument();
   });
 
   it('keeps selected building type during parent re-renders while modal is open', async () => {
@@ -81,7 +81,7 @@ describe('AddressDetailsModal', () => {
       />
     );
 
-    expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
-    expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Cerrar' })).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
   });
 });

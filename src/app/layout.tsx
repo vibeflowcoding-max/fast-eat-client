@@ -15,10 +15,10 @@ export const metadata: Metadata = {
     manifest: "/manifest.json",
     icons: {
         icon: [
-            { url: "/icons/fasteat-192.png", sizes: "192x192", type: "image/png" },
-            { url: "/icons/fasteat-512.png", sizes: "512x512", type: "image/png" },
+            { url: "/icons/fasteat-mark-192.png", sizes: "192x192", type: "image/png" },
+            { url: "/icons/fasteat-mark-512.png", sizes: "512x512", type: "image/png" },
         ],
-        apple: [{ url: "/icons/fasteat-180.png", sizes: "180x180", type: "image/png" }],
+        apple: [{ url: "/icons/fasteat-mark-180.png", sizes: "180x180", type: "image/png" }],
     },
     appleWebApp: {
         capable: true,
@@ -41,7 +41,7 @@ export default function RootLayout({
     return (
         <html lang="en">
             <head>
-                <link rel="apple-touch-icon" sizes="180x180" href="/icons/fasteat-180.png" />
+                <link rel="apple-touch-icon" sizes="180x180" href="/icons/fasteat-mark-180.png" />
             </head>
             <body className={plusJakartaSans.className}>
                 <I18nProvider>

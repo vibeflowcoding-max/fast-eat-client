@@ -15,6 +15,7 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: { name?: string }) => {
     const dictionary: Record<string, string> = {
       promo: 'PROMO',
+      imageAlt: 'Imagen de {name}',
       etaPending: 'ETA pending',
       approx: 'approx',
       pricePending: 'Estimated total pending',
@@ -26,6 +27,10 @@ vi.mock('next-intl', () => ({
 
     if (key === 'viewMenuAria') {
       return `View menu ${values?.name ?? ''}`;
+    }
+
+    if (key === 'imageAlt') {
+      return `Imagen de ${values?.name ?? ''}`;
     }
 
     return dictionary[key] ?? key;

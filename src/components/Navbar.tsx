@@ -102,6 +102,7 @@ const Navbar: React.FC<NavbarProps> = ({
         [bidNotifications]
     );
     const unreadCount = unreadNotifications.length;
+    const trayContainerRef = useRef<HTMLDivElement | null>(null);
 
     const ratingLabel =
         typeof restaurantInfo?.rating === 'number' && restaurantInfo.rating > 0
@@ -191,6 +192,46 @@ const Navbar: React.FC<NavbarProps> = ({
             window.removeEventListener('touchstart', unlock);
         };
     }, []);
+
+    useEffect(() => {
+        if (!isTrayOpen) {
+            return;
+        }
+
+        const handlePointerDown = (event: PointerEvent) => {
+            if (!trayContainerRef.current) {
+                return;
+            }
+
+            if (!trayContainerRef.current.contains(event.target as Node)) {
+                setIsTrayOpen(false);
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('fast-eat:notifications_tray_dismissed', {
+                        detail: { source: 'outside_click' },
+                    }));
+                }
+            }
+        };
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsTrayOpen(false);
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('fast-eat:notifications_tray_dismissed', {
+                        detail: { source: 'escape_key' },
+                    }));
+                }
+            }
+        };
+
+        window.addEventListener('pointerdown', handlePointerDown);
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('pointerdown', handlePointerDown);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isTrayOpen]);
 
     useEffect(() => {
         const latestUnread = unreadNotifications[0] ?? null;
@@ -357,7 +398,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 });
 
                 if (!response.ok) {
-                    throw new Error('Could not favorite restaurant');
+                    throw new Error(t('favoriteError'));
                 }
             } else {
                 const response = await fetch(`/api/favorites?restaurantId=${encodeURIComponent(restaurantInfo.id)}`, {
@@ -368,7 +409,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 });
 
                 if (!response.ok) {
-                    throw new Error('Could not unfavorite restaurant');
+                    throw new Error(t('unfavoriteError'));
                 }
             }
         } catch {
@@ -406,13 +447,13 @@ const Navbar: React.FC<NavbarProps> = ({
                                 className="flex-1 text-left"
                                 aria-label={t('trackOrders')}
                             >
-                                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-300">Estado de orden actualizado</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-300">{tTracking('statusUpdated')}</p>
                                 <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{activeStatusCue.description}</p>
                             </button>
                             <Button
                                 onClick={dismissStatusCue}
                                 className="size-8 rounded-full"
-                                aria-label="Dismiss order status notification"
+                                aria-label={t('dismissOrderStatusNotification')}
                                 size="icon"
                                 variant="outline"
                             >
@@ -430,13 +471,13 @@ const Navbar: React.FC<NavbarProps> = ({
                                 className="flex-1 text-left"
                                 aria-label={t('openOfferNotifications')}
                             >
-                                <p className="text-[10px] font-black uppercase tracking-widest">Nueva oferta recibida</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest">{t('newOfferReceived')}</p>
                                 <p className="text-xs font-semibold">Orden #{activeCue.orderId.slice(0, 8)} · ₡{Math.round(activeCue.bid.bidAmount).toLocaleString()}</p>
                             </button>
                             <Button
                                 onClick={() => dismissCue(activeCue)}
                                 className="size-8 rounded-full"
-                                aria-label="Dismiss bid notification"
+                                aria-label={t('dismissBidNotification')}
                                 size="icon"
                                 variant="outline"
                             >
@@ -465,10 +506,22 @@ const Navbar: React.FC<NavbarProps> = ({
                         >
                             <Package className="w-5 h-5" strokeWidth={2.5} />
                         </Button>
-                        <div className="relative shrink-0">
+                        <div ref={trayContainerRef} className="relative shrink-0">
                             <Button
                                 className="relative h-10 w-10 rounded-full md:h-11 md:w-11"
-                                onClick={() => setIsTrayOpen((current) => !current)}
+                                onClick={() => {
+                                    setIsTrayOpen((current) => {
+                                        const next = !current;
+
+                                        if (typeof window !== 'undefined') {
+                                            window.dispatchEvent(new CustomEvent(next ? 'fast-eat:notifications_tray_impression' : 'fast-eat:notifications_tray_dismissed', {
+                                                detail: { source: 'navbar_button' },
+                                            }));
+                                        }
+
+                                        return next;
+                                    });
+                                }}
                                 aria-label={t('openOfferNotifications')}
                                 size="icon"
                                 variant="outline"
@@ -481,14 +534,18 @@ const Navbar: React.FC<NavbarProps> = ({
                                 )}
                             </Button>
                             {isTrayOpen && (
-                                <div className="absolute top-full mt-2 left-0 z-[120]">
+                                <>
+                                    <div className="fixed inset-0 z-[110] bg-[#221610]/40 backdrop-blur-[2px]" aria-hidden="true" />
+                                    <div className="absolute left-0 top-full z-[120] mt-3">
                                     <OrderNotificationsTray
                                         onOpenTracking={() => {
                                             onShowHistory();
                                             setIsTrayOpen(false);
                                         }}
+                                        onClose={() => setIsTrayOpen(false)}
                                     />
-                                </div>
+                                    </div>
+                                </>
                             )}
                         </div>
                         <div className="relative shrink-0">

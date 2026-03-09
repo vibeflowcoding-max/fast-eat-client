@@ -8,6 +8,7 @@ export type AuthShellProps = HTMLAttributes<HTMLDivElement> & {
   description: string;
   heroTitle?: string;
   heroDescription?: string;
+  heroFooterText?: string;
   heroVisual?: ReactNode;
   footer?: ReactNode;
 };
@@ -19,6 +20,7 @@ export function AuthShell({
   description,
   heroTitle,
   heroDescription,
+  heroFooterText,
   heroVisual,
   footer,
   children,
@@ -47,8 +49,7 @@ export function AuthShell({
             {heroTitle ? <h2 className="text-5xl font-bold leading-[1.05] tracking-tight">{heroTitle}</h2> : null}
             {heroDescription ? <p className="text-lg text-white/82">{heroDescription}</p> : null}
           </div>
-
-          <div className="relative z-10 text-sm text-white/72">Autenticación, onboarding y dirección en una misma experiencia base.</div>
+          {heroFooterText ? <div className="relative z-10 text-sm text-white/72">{heroFooterText}</div> : null}
         </section>
 
         <section className="flex min-h-full flex-col justify-center px-5 py-8 sm:px-8 sm:py-10 lg:px-12">

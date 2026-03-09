@@ -2,6 +2,23 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import ItemDetailModal from './ItemDetailModal';
 import type { MenuItem, SelectedModifier } from '@/types';
 
+vi.mock('next-intl', () => ({
+  useTranslations: (namespace: string) => (key: string, values?: Record<string, string | number>) => {
+    const dictionaries: Record<string, Record<string, string>> = {
+      itemDetailModal: {
+        closeAria: 'Cerrar',
+        addButton: `Añadir por ₡${values?.total ?? ''} 🍱`,
+        decrementQuantity: `Reducir cantidad de ${values?.itemName ?? ''}`,
+        incrementQuantity: `Aumentar cantidad de ${values?.itemName ?? ''}`,
+        multipleChoice: 'Selección múltiple',
+        singleChoice: 'Selección única',
+      },
+    };
+
+    return dictionaries[namespace]?.[key] ?? key;
+  },
+}));
+
 vi.mock('@/features/home-discovery/hooks/useDietaryGuardian', () => ({
   useDietaryGuardian: () => ({
     isActive: false,

@@ -6,6 +6,7 @@ import { MenuItem, CartItem } from '../types';
 import { useDietaryGuardian } from '../features/home-discovery/hooks/useDietaryGuardian';
 import { ShieldCheck, ShieldAlert, Loader2, Plus, Pencil } from 'lucide-react';
 import { Badge, Button, QuantitySelector, Surface } from '@/../resources/components';
+import { useTranslations } from 'next-intl';
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -16,6 +17,7 @@ interface MenuItemCardProps {
 }
 
 const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQuantity, isHighlighted, onOpenDetails }) => {
+  const t = useTranslations('menuItemCard');
   const [quantity, setQuantity] = useState(currentQuantity > 0 ? currentQuantity : 1);
   const [notes, setNotes] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -51,7 +53,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
     if (success) {
       setIsAdding(false);
     } else {
-      setSyncError("Error al sincronizar. Reintente por favor.");
+      setSyncError(t('syncError'));
     }
     setIsSyncing(false);
   };
@@ -66,7 +68,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
     setSyncError(null);
     const success = await onAddToCart({ ...item, quantity: 1, notes: '' });
     if (!success) {
-      setSyncError('Error al sincronizar. Reintente por favor.');
+      setSyncError(t('syncError'));
     }
     setIsSyncing(false);
   };
@@ -80,7 +82,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
       setQuantity(1);
       setNotes('');
     } else {
-      setSyncError("No se pudo quitar del pedido.");
+      setSyncError(t('removeError'));
     }
     setIsSyncing(false);
   };
@@ -108,7 +110,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
 
           {item.hasStructuredCustomization ? (
             <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.16em] text-orange-600 dark:text-orange-300">
-              Personalizable con extras y selecciones
+              {t('customizable')}
             </p>
           ) : null}
 
@@ -117,7 +119,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
             {loadingMap[item.id] ? (
               <Badge className="px-3 py-1.5 text-[10px] font-bold italic" leading={<Loader2 className="h-3 w-3 animate-spin" />} variant="neutral">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                <span>Analizando ingredientes...</span>
+                <span>{t('dietaryAnalyzing')}</span>
               </Badge>
             ) : resultsMap[item.id] ? (
               <Surface
@@ -144,7 +146,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
               <p className="text-base font-bold text-orange-600 dark:text-orange-300">₡{item.price.toLocaleString()}</p>
               {currentQuantity > 0 ? (
                 <p className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  {currentQuantity} en tu pedido
+                  {t('inOrder', { count: currentQuantity })}
                 </p>
               ) : null}
             </div>
@@ -163,7 +165,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center rounded-xl bg-[#eadfd4] text-slate-500 dark:bg-slate-700 dark:text-slate-400">
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em]">Sin foto</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em]">{t('noImage')}</span>
             </div>
           )}
 
@@ -176,7 +178,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
           <Button
             type="button"
             disabled={isSyncing}
-            aria-label={currentQuantity > 0 ? `Editar ${item.name}` : `Añadir ${item.name}`}
+            aria-label={currentQuantity > 0 ? t('editItem', { itemName: item.name }) : t('addItem', { itemName: item.name })}
             onClick={() => {
               if (item.hasStructuredCustomization && onOpenDetails) {
                 onOpenDetails(item.id);
@@ -212,11 +214,11 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
             )}
 
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Cantidad</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('quantity')}</span>
               <QuantitySelector
-                decrementLabel={`Reducir cantidad de ${item.name}`}
+                decrementLabel={t('decrementQuantity', { itemName: item.name })}
                 disabled={isSyncing}
-                incrementLabel={`Aumentar cantidad de ${item.name}`}
+                incrementLabel={t('incrementQuantity', { itemName: item.name })}
                 onDecrement={() => setQuantity(Math.max(1, quantity - 1))}
                 onIncrement={() => setQuantity(quantity + 1)}
                 value={quantity}
@@ -226,7 +228,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
             <div>
               <textarea
                 disabled={isSyncing}
-                placeholder="Notas (ej. sin cebolla)..."
+                placeholder={t('notesPlaceholder')}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
@@ -236,14 +238,14 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
 
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button disabled={isSyncing} onClick={() => { setIsAdding(false); setSyncError(null); }} type="button" variant="outline">
-                Cerrar
+                {t('close')}
               </Button>
               <Button disabled={isSyncing} fullWidth onClick={handleUpdate} type="button">
-                  {isSyncing ? 'Guardando...' : 'Confirmar'}
+                  {isSyncing ? t('saving') : t('confirm')}
                 </Button>
               {currentQuantity > 0 && (
                 <Button disabled={isSyncing} onClick={handleRemove} type="button" variant="ghost">
-                  Quitar del pedido
+                  {t('removeFromOrder')}
                 </Button>
               )}
             </div>

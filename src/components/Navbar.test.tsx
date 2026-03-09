@@ -132,7 +132,7 @@ describe('Navbar banner cues', () => {
       { orderId: 'order-123', statusCode: 'READY', source: 'navbar_status_cue' },
     ]);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss order status notification' }));
+    fireEvent.click(screen.getByRole('button', { name: 'dismissOrderStatusNotification' }));
 
     await waitFor(() => {
       expect(screen.queryByText('statusCueDescriptions.ready')).not.toBeInTheDocument();
@@ -188,7 +188,7 @@ describe('Navbar banner cues', () => {
 
     expect(await screen.findByText(/Orden #order-2/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss bid notification' }));
+    fireEvent.click(screen.getByRole('button', { name: 'dismissBidNotification' }));
 
     await waitFor(() => {
       expect(screen.queryByText(/Orden #order-2/i)).not.toBeInTheDocument();

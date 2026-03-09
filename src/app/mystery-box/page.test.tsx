@@ -71,14 +71,7 @@ describe('MysteryBoxPage', () => {
       ],
     };
 
-    fetchMysteryBoxOffers
-      .mockResolvedValueOnce(offersPayload)
-      .mockResolvedValueOnce(offersPayload)
-      .mockResolvedValueOnce({
-        customerId: 'customer-1',
-        generatedAt: '2026-03-08T10:05:00.000Z',
-        offers: [],
-      });
+    fetchMysteryBoxOffers.mockResolvedValue(offersPayload);
 
     acceptMysteryBoxOffer.mockResolvedValue({ acceptedOrder: { id: 'order-77' } });
 
@@ -107,7 +100,7 @@ describe('MysteryBoxPage', () => {
       });
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Aceptar oferta' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Aceptar oferta' }));
 
     await waitFor(() => {
       expect(acceptMysteryBoxOffer).toHaveBeenCalledWith('offer-1');

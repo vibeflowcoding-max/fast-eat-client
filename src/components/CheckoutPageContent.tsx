@@ -26,20 +26,20 @@ import { useCartActions } from '@/hooks/useCartActions';
 import { fetchCheckoutContext } from '@/services/api';
 import { useCartStore } from '@/store';
 
-function mapPaymentOptions(methods: string[]) {
+function mapPaymentOptions(methods: string[], tOrderForm: ReturnType<typeof useTranslations>) {
   return methods.map((method) => {
-    if (method === 'cash') return { id: 'cash', label: '💴 Efectivo' };
-    if (method === 'card') return { id: 'card', label: '💳 Tarjeta (Datáfono)' };
-    if (method === 'sinpe') return { id: 'sinpe', label: '📱 SINPE Móvil' };
+    if (method === 'cash') return { id: 'cash', label: tOrderForm('paymentCash') };
+    if (method === 'card') return { id: 'card', label: tOrderForm('paymentCard') };
+    if (method === 'sinpe') return { id: 'sinpe', label: tOrderForm('paymentSinpe') };
     return { id: method, label: method.charAt(0).toUpperCase() + method.slice(1) };
   });
 }
 
-function mapServiceOptions(modes: string[]) {
+function mapServiceOptions(modes: string[], tOrderForm: ReturnType<typeof useTranslations>) {
   return modes.map((mode) => {
-    if (mode === 'pickup') return { id: 'pickup', label: '🥡 Para recoger' };
-    if (mode === 'delivery') return { id: 'delivery', label: '🛵 Envío a casa' };
-    if (mode === 'dine_in') return { id: 'dine_in', label: '🍱 Comer en el restaurante' };
+    if (mode === 'pickup') return { id: 'pickup', label: tOrderForm('servicePickup') };
+    if (mode === 'delivery') return { id: 'delivery', label: tOrderForm('serviceDelivery') };
+    if (mode === 'dine_in') return { id: 'dine_in', label: tOrderForm('serviceDineIn') };
     return { id: mode, label: mode.charAt(0).toUpperCase() + mode.slice(1).replace('_', ' ') };
   });
 }
@@ -47,6 +47,7 @@ function mapServiceOptions(modes: string[]) {
 export default function CheckoutPageContent() {
   const tPage = useTranslations('checkout.page');
   const tCart = useTranslations('checkout.cart');
+  const tOrderForm = useTranslations('checkout.orderForm');
   const router = useRouter();
   const {
     items: cart,
@@ -153,8 +154,8 @@ export default function CheckoutPageContent() {
 
       if (context?.restaurant) {
         setRestaurantInfo(context.restaurant);
-        setPaymentOptions(mapPaymentOptions(context.restaurant.payment_methods || []));
-        setServiceOptions(mapServiceOptions(context.restaurant.service_modes || []));
+        setPaymentOptions(mapPaymentOptions(context.restaurant.payment_methods || [], tOrderForm));
+        setServiceOptions(mapServiceOptions(context.restaurant.service_modes || [], tOrderForm));
       }
 
       const nextFeeRates = context?.feeRates || { serviceFeeRate: 0, platformFeeRate: 0 };
@@ -169,7 +170,7 @@ export default function CheckoutPageContent() {
     return () => {
       active = false;
     };
-  }, [branchId, restaurantInfo, setRestaurantInfo]);
+  }, [branchId, restaurantInfo, setRestaurantInfo, tOrderForm]);
 
   React.useEffect(() => {
     if (!profileLocation) {
@@ -283,7 +284,7 @@ export default function CheckoutPageContent() {
       setCustomerAddress({
         urlAddress: persistedUrl,
         buildingType: 'Other',
-        deliveryNotes: 'Meet at door',
+        deliveryNotes: tPage('defaultDeliveryNote'),
         lat: persistedCoords.lat ?? input.position.lat,
         lng: persistedCoords.lng ?? input.position.lng,
         formattedAddress: input.formattedAddress || persistedUrl,
@@ -291,7 +292,7 @@ export default function CheckoutPageContent() {
     } finally {
       setIsAutoSavingProfileLocation(false);
     }
-  }, [setCustomerAddress]);
+  }, [setCustomerAddress, tPage]);
 
   const applyProfileLocationToOrder = React.useCallback(() => {
     if (!profileLocation) {
@@ -342,12 +343,12 @@ export default function CheckoutPageContent() {
     }
 
     if (!navigator.geolocation) {
-      setLocationServicePrompt('Location services are disabled. Opening map with default location.');
+      setLocationServicePrompt(tPage('locationServicesDisabled'));
       openModalWithPosition(openContext.initialPosition || DEFAULT_ORDER_MAP_CENTER);
       return;
     }
 
-    setLocationServicePrompt('Please allow location access to center the map on your current location.');
+    setLocationServicePrompt(tPage('locationPermissionPrompt'));
     setIsResolvingOrderLocation(true);
 
     navigator.geolocation.getCurrentPosition(
@@ -358,14 +359,14 @@ export default function CheckoutPageContent() {
         setIsOrderLocationModalOpen(true);
       },
       () => {
-        setLocationServicePrompt('Location permission denied or unavailable. Opening map with default location.');
+        setLocationServicePrompt(tPage('locationPermissionDenied'));
         setOrderAddressInitialPosition(openContext.initialPosition || DEFAULT_ORDER_MAP_CENTER);
         setIsResolvingOrderLocation(false);
         setIsOrderLocationModalOpen(true);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
-  }, [orderMetadata.customerLatitude, orderMetadata.customerLongitude, profileLocation, setCheckoutDraft]);
+  }, [orderMetadata.customerLatitude, orderMetadata.customerLongitude, profileLocation, setCheckoutDraft, tPage]);
 
   const handleSaveOrderLocation = React.useCallback(async (value: {
     urlAddress: string;
@@ -415,7 +416,7 @@ export default function CheckoutPageContent() {
       return;
     }
 
-    const shouldPersistAsProfile = window.confirm('Do you want to save this location as your new profile location?');
+    const shouldPersistAsProfile = window.confirm(tPage('saveProfileLocationConfirm'));
     if (!shouldPersistAsProfile) {
       return;
     }
@@ -426,15 +427,15 @@ export default function CheckoutPageContent() {
         mapsUrl: nextGps || nextAddress,
         formattedAddress: nextAddress,
       });
-      setChefNotification({ content: '✅ Location saved to your profile.' });
+      setChefNotification({ content: tPage('profileLocationSaved') });
     } catch {
-      setChefNotification({ content: '⚠️ Could not save location to profile. We kept it for this order.' });
+      setChefNotification({ content: tPage('profileLocationSaveFailed') });
     }
-  }, [persistProfileLocation, profileLocation, setCheckoutDraft, setChefNotification]);
+  }, [persistProfileLocation, profileLocation, setCheckoutDraft, setChefNotification, tPage]);
 
   const handleGetLocation = React.useCallback(() => {
     if (!navigator.geolocation) {
-      setChefNotification({ content: 'Tu navegador no soporta geolocalización. 🏮' });
+      setChefNotification({ content: tPage('browserGeolocationUnsupported') });
       return;
     }
 
@@ -454,11 +455,11 @@ export default function CheckoutPageContent() {
         setIsLocating(false);
       },
       () => {
-        setChefNotification({ content: 'No pudimos obtener tu ubicación. 🏮' });
+        setChefNotification({ content: tPage('geolocationFailed') });
         setIsLocating(false);
       },
     );
-  }, [profileLocation, setCheckoutDraft, setChefNotification]);
+  }, [profileLocation, setCheckoutDraft, setChefNotification, tPage]);
 
   const handlePlaceOrderFromPage = React.useCallback(async () => {
     if (effectiveCart.length === 0 || !isOrderFormValid) {

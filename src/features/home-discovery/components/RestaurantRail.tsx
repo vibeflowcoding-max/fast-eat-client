@@ -189,7 +189,7 @@ export default function RestaurantRail({
 
     const renderState = () => {
         if (railState === 'loading') {
-            return <HomeRailSkeleton />;
+            return <HomeRailSkeleton ariaLabel={t('loadingAria')} />;
         }
 
         if (railState === 'error') {
@@ -223,7 +223,7 @@ export default function RestaurantRail({
                 {restaurants.map((restaurant, index) => (
                     <div
                         key={`${railId}-${restaurant.id}`}
-                        className="w-[280px] shrink-0 snap-start sm:w-auto sm:shrink sm:snap-none"
+                        className="w-[min(280px,calc(100vw-2.5rem))] shrink-0 snap-start sm:w-auto sm:shrink sm:snap-none"
                     >
                         <RestaurantCard
                             restaurant={restaurant}
@@ -241,15 +241,15 @@ export default function RestaurantRail({
             aria-labelledby={`${railId}-title`}
         >
             <div className="flex items-center justify-between mb-3">
-                <div>
+                <div className="min-w-0">
                     <h2
                         id={`${railId}-title`}
-                        className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.titleStyle : 'text-lg font-semibold text-gray-900'}
+                        className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.titleStyle : 'text-lg font-semibold text-gray-900 break-words'}
                     >
                         {title}
                     </h2>
                     {subtitle && (
-                        <p className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.subtitleStyle : 'text-sm text-gray-500'}>
+                        <p className={visualHierarchyV2 ? `${HOME_VISUAL_TOKENS.subtitleStyle} break-words` : 'break-words text-sm text-gray-500'}>
                             {subtitle}
                         </p>
                     )}

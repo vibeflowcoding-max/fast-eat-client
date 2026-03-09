@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, MapPin, User, Phone, Loader2 } from 'lucide-react';
 import { useCartStore } from '@/store';
+import { useTranslations } from 'next-intl';
 
 interface UserOnboardingModalProps {
     isOpen: boolean;
@@ -10,6 +11,7 @@ interface UserOnboardingModalProps {
 }
 
 export default function UserOnboardingModal({ isOpen, onComplete }: UserOnboardingModalProps) {
+    const t = useTranslations('userOnboardingModal');
     const { customerName, fromNumber, setCustomerName, setFromNumber, setUserLocation, setOnboarded } = useCartStore();
 
     const [name, setName] = useState(customerName || '');
@@ -49,17 +51,17 @@ export default function UserOnboardingModal({ isOpen, onComplete }: UserOnboardi
             if (err instanceof GeolocationPositionError) {
                 switch (err.code) {
                     case err.PERMISSION_DENIED:
-                        setLocationError('Permiso de ubicación denegado. Puedes continuar sin él.');
+                        setLocationError(t('locationErrors.permissionDenied'));
                         break;
                     case err.POSITION_UNAVAILABLE:
-                        setLocationError('Ubicación no disponible. Intenta de nuevo.');
+                        setLocationError(t('locationErrors.positionUnavailable'));
                         break;
                     case err.TIMEOUT:
-                        setLocationError('Tiempo de espera agotado. Intenta de nuevo.');
+                        setLocationError(t('locationErrors.timeout'));
                         break;
                 }
             } else {
-                setLocationError('Error al obtener ubicación.');
+                setLocationError(t('locationErrors.generic'));
             }
         } finally {
             setLocationLoading(false);
@@ -72,13 +74,13 @@ export default function UserOnboardingModal({ isOpen, onComplete }: UserOnboardi
         const newErrors: { name?: string; phone?: string } = {};
 
         if (!name.trim()) {
-            newErrors.name = 'Por favor ingresa tu nombre';
+            newErrors.name = t('errors.nameRequired');
         }
 
         if (!phone.trim()) {
-            newErrors.phone = 'Por favor ingresa tu WhatsApp';
+            newErrors.phone = t('errors.phoneRequired');
         } else if (!validatePhone(phone)) {
-            newErrors.phone = 'Formato de número inválido';
+            newErrors.phone = t('errors.phoneInvalid');
         }
 
         if (Object.keys(newErrors).length > 0) {
@@ -106,13 +108,15 @@ export default function UserOnboardingModal({ isOpen, onComplete }: UserOnboardi
                 {/* Header */}
                 <div className="relative p-6 pb-4 border-b">
                     <button
+                        type="button"
                         onClick={handleSkip}
+                        aria-label={t('skip')}
                         className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 transition-colors"
                     >
                         <X size={20} />
                     </button>
-                    <h2 className="text-2xl font-bold text-gray-900">¡Bienvenido! 👋</h2>
-                    <p className="text-gray-500 mt-1">Completa tus datos para ordenar más rápido</p>
+                    <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
+                    <p className="text-gray-500 mt-1">{t('subtitle')}</p>
                 </div>
 
                 {/* Form */}
@@ -120,7 +124,7 @@ export default function UserOnboardingModal({ isOpen, onComplete }: UserOnboardi
                     {/* Name */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Nombre completo
+                            {t('nameLabel')}
                         </label>
                         <div className="relative">
                             <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -131,7 +135,7 @@ export default function UserOnboardingModal({ isOpen, onComplete }: UserOnboardi
                                     setName(e.target.value);
                                     if (errors.name) setErrors(prev => ({ ...prev, name: undefined }));
                                 }}
-                                placeholder="Ej: Juan Pérez"
+                                placeholder={t('namePlaceholder')}
                                 className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${errors.name ? 'border-red-500' : 'border-gray-300'
                                     }`}
                             />
@@ -142,7 +146,7 @@ export default function UserOnboardingModal({ isOpen, onComplete }: UserOnboardi
                     {/* WhatsApp */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            WhatsApp
+                            {t('phoneLabel')}
                         </label>
                         <div className="relative">
                             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -153,7 +157,7 @@ export default function UserOnboardingModal({ isOpen, onComplete }: UserOnboardi
                                     setPhone(e.target.value);
                                     if (errors.phone) setErrors(prev => ({ ...prev, phone: undefined }));
                                 }}
-                                placeholder="Ej: 88881234"
+                                placeholder={t('phonePlaceholder')}
                                 className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${errors.phone ? 'border-red-500' : 'border-gray-300'
                                     }`}
                             />
@@ -164,7 +168,7 @@ export default function UserOnboardingModal({ isOpen, onComplete }: UserOnboardi
                     {/* Location */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Ubicación
+                            {t('locationLabel')}
                         </label>
                         <button
                             type="button"
@@ -178,17 +182,17 @@ export default function UserOnboardingModal({ isOpen, onComplete }: UserOnboardi
                             {locationLoading ? (
                                 <>
                                     <Loader2 className="animate-spin" size={20} />
-                                    <span>Obteniendo ubicación...</span>
+                                    <span>{t('locationLoading')}</span>
                                 </>
                             ) : locationGranted ? (
                                 <>
                                     <MapPin size={20} />
-                                    <span>Ubicación obtenida ✓</span>
+                                    <span>{t('locationGranted')}</span>
                                 </>
                             ) : (
                                 <>
                                     <MapPin size={20} />
-                                    <span>Permitir ubicación</span>
+                                    <span>{t('allowLocation')}</span>
                                 </>
                             )}
                         </button>
@@ -196,7 +200,7 @@ export default function UserOnboardingModal({ isOpen, onComplete }: UserOnboardi
                             <p className="text-amber-600 text-xs mt-1">{locationError}</p>
                         )}
                         <p className="text-gray-400 text-xs mt-1">
-                            Esto nos ayuda a mostrarte restaurantes cercanos
+                            {t('locationHelper')}
                         </p>
                     </div>
 
@@ -205,7 +209,7 @@ export default function UserOnboardingModal({ isOpen, onComplete }: UserOnboardi
                         type="submit"
                         className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-4 rounded-xl transition-colors shadow-lg shadow-orange-500/20"
                     >
-                        Continuar
+                        {t('continue')}
                     </button>
 
                     {/* Skip */}
@@ -214,7 +218,7 @@ export default function UserOnboardingModal({ isOpen, onComplete }: UserOnboardi
                         onClick={handleSkip}
                         className="w-full text-gray-500 text-sm hover:text-gray-700 transition-colors"
                     >
-                        Omitir por ahora
+                        {t('skip')}
                     </button>
                 </form>
             </div>
