@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/supabase-server';
+import { calculateDistance } from '@/utils/geoUtils';
 
 // Force dynamic to avoid build-time Supabase calls
 export const dynamic = 'force-dynamic';
@@ -354,6 +355,9 @@ export async function GET(request: NextRequest) {
 
                 branches.forEach((branch) => {
                     if (branch.latitude && branch.longitude) {
+                        // ⚡ Bolt: Removed redundant local calculateDistance implementation.
+                        // Relying on the shared `@/utils/geoUtils` version standardizes Haversine computations,
+                        // eliminating duplicate JS functions and math allocations in the app payload.
                         const distance = calculateDistance(
                             userLat,
                             userLng,
@@ -388,26 +392,3 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// Haversine formula for distance calculation
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371; // Earth's radius in km
-    const toRad = Math.PI / 180;
-
-    // Convert to radians once
-    const radLat1 = lat1 * toRad;
-    const radLat2 = lat2 * toRad;
-    const dLat = radLat2 - radLat1;
-    const dLon = (lon2 - lon1) * toRad;
-
-    const sinDLat2 = Math.sin(dLat / 2);
-    const sinDLon2 = Math.sin(dLon / 2);
-
-    const a =
-        sinDLat2 * sinDLat2 +
-        Math.cos(radLat1) * Math.cos(radLat2) *
-        sinDLon2 * sinDLon2;
-
-    // Math.asin is mathematically equivalent to Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    // but noticeably faster in V8/JavaScript engines.
-    return R * 2 * Math.asin(Math.sqrt(a));
-}
