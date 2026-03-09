@@ -6,6 +6,7 @@ vi.mock('../_lib', () => ({
 
 describe('predictive reorder route', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     vi.resetModules();
   });
 

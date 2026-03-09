@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { MapPin, Phone, UserRound, Heart, ClipboardList, Loader2, ShieldAlert, Sparkles, Gift, ChevronRight } from 'lucide-react';
+import { MapPin, Phone, UserRound, Heart, ClipboardList, Loader2, ShieldAlert, Sparkles, Gift, ChevronRight, LogOut } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
@@ -61,6 +61,7 @@ export default function ProfilePage() {
   const [editPhone, setEditPhone] = React.useState('');
   const [saveFeedback, setSaveFeedback] = React.useState<string | null>(null);
   const [languageFeedback, setLanguageFeedback] = React.useState<string | null>(null);
+  const [isSigningOut, setIsSigningOut] = React.useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = React.useState(false);
   const [isDietaryModalOpen, setIsDietaryModalOpen] = React.useState(false);
   const [isResolvingProfileLocation, setIsResolvingProfileLocation] = React.useState(false);
@@ -196,6 +197,18 @@ export default function ProfilePage() {
       }),
     );
   }, [locale]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !isAuthenticated) {
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent('fast-eat:profile_logout_impression', {
+        detail: { source: 'profile_settings' },
+      }),
+    );
+  }, [isAuthenticated]);
 
   const profile = payload?.profile;
   const favoriteRestaurants = payload?.favoriteRestaurants ?? [];
@@ -397,6 +410,53 @@ export default function ProfilePage() {
     }
   };
 
+  const handleLogout = async () => {
+    setError(null);
+    setSaveFeedback(null);
+    setLanguageFeedback(null);
+    setIsSigningOut(true);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('fast-eat:profile_logout_clicked', {
+          detail: { source: 'profile_settings' },
+        }),
+      );
+    }
+
+    try {
+      const { error: signOutError } = await supabase.auth.signOut();
+
+      if (signOutError) {
+        throw signOutError;
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('fast-eat:profile_logout_succeeded', {
+            detail: { source: 'profile_settings' },
+          }),
+        );
+      }
+    } catch (logoutError) {
+      const nextError = logoutError instanceof Error ? logoutError.message : t('logoutError');
+      setError(nextError);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('fast-eat:profile_logout_failed', {
+            detail: {
+              source: 'profile_settings',
+              message: nextError,
+            },
+          }),
+        );
+      }
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
   return (
     <AppShell chromeInset="bottom-nav">
       <div className="space-y-5 pt-6">
@@ -529,7 +589,7 @@ export default function ProfilePage() {
                     </span>
                   ))}
                   {allergies.length === 0 && dislikedIngredients.length === 0 && healthGoals.length === 0 ? (
-                    <p className="ui-text-muted text-sm">{t('noAllergies')}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('noAllergies')}</p>
                   ) : null}
                 </div>
 
@@ -606,6 +666,24 @@ export default function ProfilePage() {
               </select>
               {languageFeedback ? <p className="text-xs text-emerald-700 dark:text-emerald-300">{languageFeedback}</p> : null}
             </Surface>
+
+            {isAuthenticated ? (
+              <Surface className="space-y-3" variant="base">
+                <SectionHeader title={t('logoutSection')} description={t('logoutDescription')} />
+                <Button
+                  aria-label={t('logoutButton')}
+                  className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
+                  disabled={isSigningOut}
+                  onClick={handleLogout}
+                  size="md"
+                  type="button"
+                  variant="outline"
+                >
+                  {isSigningOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                  {isSigningOut ? t('logoutPending') : t('logoutButton')}
+                </Button>
+              </Surface>
+            ) : null}
           </>
         )}
       </div>

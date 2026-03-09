@@ -6,6 +6,7 @@ import HomeRailSkeleton from './HomeRailSkeleton';
 import { emitHomeEvent } from '../analytics';
 import { HOME_VISUAL_TOKENS } from './homeVisualTokens';
 import { useTranslations } from 'next-intl';
+import { Button, Surface } from '@/../resources/components';
 
 type RailEmptyVariant = 'default' | 'query' | 'intent_or_filter' | 'nearby';
 
@@ -163,25 +164,26 @@ export default function RestaurantRail({
     const renderEmptyState = () => {
         if (!statePolishV1) {
             return (
-                <div className="ui-panel text-center rounded-[1.75rem] border-dashed py-8">
-                    <p className="text-sm text-[var(--color-text-muted)]">{t('empty.default')}</p>
-                </div>
+                <Surface className="rounded-[1.75rem] border border-dashed border-slate-200 py-8 text-center dark:border-slate-700" variant="base">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('empty.default')}</p>
+                </Surface>
             );
         }
 
         return (
-            <div className="ui-panel rounded-[1.75rem] border-dashed px-4 py-6 text-center">
-                <p className="text-sm text-[var(--color-text-muted)]">{emptyStateConfig.message}</p>
+            <Surface className="rounded-[1.75rem] border border-dashed border-slate-200 px-4 py-6 text-center dark:border-slate-700" variant="base">
+                <p className="text-sm text-slate-500 dark:text-slate-400">{emptyStateConfig.message}</p>
                 {emptyStateConfig.action && onEmptyAction && (
-                    <button
-                        type="button"
+                    <Button
                         onClick={handleEmptyAction}
-                        className="ui-btn-secondary mt-3 rounded-full px-4 py-2 text-sm font-semibold"
+                        className="mt-3 min-h-[44px] rounded-full px-4"
+                        size="sm"
+                        variant="outline"
                     >
                         {emptyStateConfig.action.label}
-                    </button>
+                    </Button>
                 )}
-            </div>
+            </Surface>
         );
     };
 

@@ -107,7 +107,11 @@ describe('RestaurantRail keyboard navigation', () => {
 
     expect(screen.getByText('No encontramos resultados para tu búsqueda actual.')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Limpiar búsqueda' }));
+  const actionButton = screen.getByRole('button', { name: 'Limpiar búsqueda' });
+  expect(actionButton.className).toContain('min-h-[44px]');
+  expect(actionButton.className).toContain('border-slate-200');
+
+  await user.click(actionButton);
 
     expect(onEmptyAction).toHaveBeenCalledTimes(1);
     expect(emitHomeEvent).toHaveBeenCalledWith(
@@ -172,5 +176,21 @@ describe('RestaurantRail keyboard navigation', () => {
 
     expect(screen.getByText('No pudimos actualizar esta sección')).toBeInTheDocument();
     expect(screen.queryByText('signal is aborted without reason')).not.toBeInTheDocument();
+  });
+
+  it('renders the fallback empty state with dashed surface styling when polish is disabled', () => {
+    render(
+      <RestaurantRail
+        railId="basic-empty-rail"
+        title="Vacío"
+        restaurants={[] as any}
+      />,
+    );
+
+    const message = screen.getByText('No hay resultados para esta sección.');
+    const emptyState = message.parentElement;
+
+    expect(emptyState?.className).toContain('border-dashed');
+    expect(emptyState?.className).toContain('border-slate-200');
   });
 });

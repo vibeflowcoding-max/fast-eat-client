@@ -8,6 +8,7 @@ import { RestaurantWithBranches } from '@/types';
 import { formatDistance } from '@/utils/geoUtils';
 import { MapPin, Star, Clock, Truck, ShieldCheck } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { Badge } from '@/../resources/components';
 
 interface RestaurantCardProps {
     restaurant: RestaurantWithBranches;
@@ -128,19 +129,20 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
 
             <div className="absolute left-3 right-3 top-3 flex items-center justify-between gap-2">
                 {hasPromo && (
-                    <span className="inline-flex min-h-6 items-center rounded-full border border-white/40 bg-[linear-gradient(135deg,var(--color-brand)_0%,#fb923c_100%)] px-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-white shadow-sm">
+                    <Badge className="border-white/40 bg-[linear-gradient(135deg,var(--color-brand)_0%,#fb923c_100%)] text-[10px] font-black uppercase tracking-[0.12em] text-white ring-white/30 shadow-sm" variant="inverse">
                         {t('promo')}
-                    </span>
+                    </Badge>
                 )}
             </div>
 
             {restaurant.distance !== undefined && restaurant.distance !== null && (
-                <div className="absolute bottom-3 right-3 rounded-full border border-white/70 bg-white/92 px-2.5 py-1 text-xs font-semibold text-[var(--color-text)] shadow-sm backdrop-blur-sm">
-                    <span className="inline-flex items-center gap-1">
-                        <MapPin size={12} className="text-[var(--color-brand)]" aria-hidden="true" />
-                        {formatDistance(restaurant.distance)}
-                    </span>
-                </div>
+                <Badge
+                    className="absolute bottom-3 right-3 border-white/70 bg-white/92 text-xs font-semibold text-slate-900 shadow-sm backdrop-blur-sm dark:bg-slate-900/92 dark:text-slate-100"
+                    leading={<MapPin size={12} className="text-[var(--color-brand)]" aria-hidden="true" />}
+                    variant="neutral"
+                >
+                    {formatDistance(restaurant.distance)}
+                </Badge>
             )}
         </div>
     );
@@ -151,41 +153,39 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
                 <h3 className="truncate text-lg font-black tracking-[-0.02em] text-[var(--color-text)]">{restaurant.name}</h3>
             </div>
 
-            <p className="truncate text-sm text-[var(--color-text-muted)]">{categoryNames}</p>
+            <p className="truncate text-sm text-slate-500 dark:text-slate-400">{categoryNames}</p>
 
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-[var(--color-text-muted)] md:text-xs">
-                <div className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2.5 py-1">
-                    <Clock size={10} className="text-[var(--color-brand)]" />
-                    <span className="text-[var(--color-text)] font-bold">
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-slate-500 md:text-xs dark:text-slate-400">
+                <Badge leading={<Clock size={10} className="text-[var(--color-brand)]" />} variant="neutral">
+                    <span className="font-bold text-slate-900 dark:text-slate-100">
                         {typeof etaMinutes === 'number' && etaMinutes > 0
                             ? `${etaMinutes}-${etaMinutes + 10} min`
                             : t('etaPending')}
                     </span>
-                </div>
-                <div className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2.5 py-1">
-                    <span className="text-[var(--color-brand)] font-bold">₡</span>
+                </Badge>
+                <Badge leading={<span className="font-bold text-[var(--color-brand)]">₡</span>} variant="neutral">
                     <span>
                         {typeof finalPriceEstimate === 'number' && finalPriceEstimate > 0
                             ? `${finalPriceEstimate.toLocaleString()} ${t('approx')}`
                             : t('pricePending')}
                     </span>
-                </div>
-                <div className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-2.5 py-1">
-                    <Truck size={10} className="text-[var(--color-brand)]" />
+                </Badge>
+                <Badge leading={<Truck size={10} className="text-[var(--color-brand)]" />} variant="neutral">
                     <span>
                         {typeof deliveryFeeHint === 'number' && deliveryFeeHint > 0
                             ? `₡${deliveryFeeHint.toLocaleString()}`
                             : t('free')}
                     </span>
-                </div>
-                <div className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-amber-700">
-                    {hasRating && <Star size={10} className="text-amber-400 fill-amber-400" aria-hidden="true" />}
+                </Badge>
+                <Badge
+                    leading={hasRating ? <Star size={10} className="fill-amber-400 text-amber-400" aria-hidden="true" /> : undefined}
+                    variant="warning"
+                >
                     <span>{ratingLabel}</span>
-                </div>
-                <div className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">
-                    <ShieldCheck size={10} className="text-emerald-500" />
+                </Badge>
+                <Badge leading={<ShieldCheck size={10} className="text-emerald-500" />} variant="success">
                     <span className="font-bold uppercase tracking-tighter text-[8px]">{t('trusted')}</span>
-                </div>
+                </Badge>
             </div>
         </div>
     );
@@ -194,7 +194,7 @@ export default function RestaurantCard({ restaurant, onOpen }: RestaurantCardPro
         <button
             type="button"
             onClick={handleClick}
-            className="group ui-list-card w-full overflow-hidden rounded-[1.75rem] text-left transition-[box-shadow,transform,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[var(--color-border-strong)] hover:shadow-[0_20px_40px_-24px_rgba(98,60,29,0.34)] active:scale-[0.995] motion-reduce:transform-none motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] focus-visible:ring-offset-2"
+            className="group w-full overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white text-left shadow-sm ring-1 ring-slate-100 transition-[box-shadow,transform,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-[0_20px_40px_-24px_rgba(98,60,29,0.34)] active:scale-[0.995] motion-reduce:transform-none motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-900 dark:ring-slate-800"
             aria-label={t('viewMenuAria', { name: restaurant.name })}
         >
             {renderMedia()}

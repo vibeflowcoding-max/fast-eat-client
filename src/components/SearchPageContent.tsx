@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Sparkles, Search, Loader2 } from 'lucide-react';
-import { Badge, Button, EmptyState, SectionHeader, Surface, TextField } from '@/../resources/components';
+import { Button, EmptyState, SectionHeader, Surface, TextField } from '@/../resources/components';
 import BottomNav from '@/components/BottomNav';
 import RestaurantCard from '@/components/RestaurantCard';
 import { useCategories } from '@/hooks/useCategories';

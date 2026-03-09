@@ -1,21 +1,6 @@
 import { randomUUID } from 'crypto';
 import { getSupabaseServer } from '@/lib/supabase-server';
 
-function toNumber(value: unknown, fallback = 0): number {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-
-  return fallback;
-}
-
 function isPricePeriodActive(periodRaw: unknown, referenceDate: Date = new Date()): boolean {
   if (typeof periodRaw !== 'string' || periodRaw.length < 2) {
     return true;

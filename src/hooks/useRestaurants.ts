@@ -127,7 +127,7 @@ export function useRestaurants({ categoryId, userLocation }: UseRestaurantsOptio
             const url = `/api/restaurants${params.toString() ? `?${params.toString()}` : ''}`;
             const existingLoader = restaurantsInflight.get(cacheKey);
             const loader = existingLoader || (async () => {
-                const response = await fetch(url);
+                const response = await fetch(url, { signal });
 
                 if (!response.ok) {
                     throw new Error('Failed to fetch restaurants');

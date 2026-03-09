@@ -114,4 +114,15 @@ describe('RestaurantCard', () => {
 
     expect(screen.getByText('No reviews yet')).toBeInTheDocument();
   });
+
+  it('calls onOpen and routes to the restaurant slug on click', () => {
+    const onOpen = vi.fn();
+
+    render(<RestaurantCard restaurant={baseRestaurant} onOpen={onOpen} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'View menu Pizza House' }));
+
+    expect(onOpen).toHaveBeenCalledWith(baseRestaurant);
+    expect(pushMock).toHaveBeenCalledWith('/pizza-house');
+  });
 });

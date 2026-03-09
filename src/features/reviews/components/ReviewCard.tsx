@@ -2,6 +2,7 @@ import React from 'react';
 import ReviewComposer from '@/features/reviews/components/ReviewComposer';
 import ReviewSummaryInline from '@/features/reviews/components/ReviewSummaryInline';
 import type { ExistingReview } from '@/features/reviews/types';
+import { Surface } from '@/../resources/components';
 
 type ReviewCardProps = {
   title: string;
@@ -49,10 +50,11 @@ export default function ReviewCard({
   }
 
   return (
-    <article className="ui-panel rounded-[1.5rem] p-4 space-y-3">
+    <Surface asChild className="space-y-3 rounded-[1.5rem]" variant="base">
+      <article>
       <header className="space-y-1">
         <h4 className="text-sm font-black">{title}</h4>
-        <p className="ui-text-muted text-xs">{subtitle}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
       </header>
 
       {existingReview ? (
@@ -66,6 +68,7 @@ export default function ReviewCard({
           onDismiss={canReview ? handleDismiss : undefined}
         />
       )}
-    </article>
+      </article>
+    </Surface>
   );
 }

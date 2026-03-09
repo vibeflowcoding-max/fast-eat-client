@@ -13,8 +13,6 @@ export async function GET(
     const categoryId = request.nextUrl.searchParams.get('categoryId')?.trim() ?? '';
     const cursor = request.nextUrl.searchParams.get('cursor')?.trim() ?? '0';
     const limit = request.nextUrl.searchParams.get('limit')?.trim() ?? '12';
-    const channel = request.nextUrl.searchParams.get('channel')?.trim() ?? 'delivery';
-
     if (!normalizedBranchId) {
       return NextResponse.json({ error: 'branchId is required' }, { status: 400 });
     }

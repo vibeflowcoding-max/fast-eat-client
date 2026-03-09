@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
+import { EmptyState, RatingDisplay, SectionHeader, Surface } from '@/../resources/components';
 
 type RestaurantReviewsSectionProps = {
   branchId: string;
@@ -75,48 +76,51 @@ export default function RestaurantReviewsSection({ branchId, limit = 6 }: Restau
   }, [branchId, limit, t]);
 
   if (loading) {
-    return <div className="ui-panel rounded-2xl p-4 text-sm ui-text-muted">{t('loading')}</div>;
+    return <Surface className="rounded-2xl text-sm text-slate-500 dark:text-slate-400" variant="muted">{t('loading')}</Surface>;
   }
 
   if (error) {
-    return <div className="ui-state-danger rounded-2xl p-4 text-sm">{error}</div>;
+    return <Surface className="rounded-2xl text-sm text-red-700 dark:text-red-200" variant="raised">{error}</Surface>;
   }
 
   return (
-    <section className="ui-panel rounded-2xl p-4 space-y-4">
-      <header>
-        <h2 className="text-lg font-black">{t('title')}</h2>
-        <p className="ui-text-muted text-sm">{t('subtitle')}</p>
-      </header>
+    <Surface className="space-y-4 rounded-2xl" variant="base">
+      <SectionHeader title={t('title')} description={t('subtitle')} />
 
-      <div className="ui-panel-soft rounded-xl p-3 flex items-center justify-between gap-3">
+      <Surface className="flex items-center justify-between gap-3 rounded-xl" variant="muted">
         <div>
           <p className="text-sm font-bold">{summary?.restaurantName || t('branchFallback')}</p>
-          <p className="ui-text-muted text-xs">{t('reviewCount', { count: summary?.reviewCount ?? 0 })}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t('reviewCount', { count: summary?.reviewCount ?? 0 })}</p>
         </div>
-        <div className="text-lg font-black">
-          ★ {summary?.avgRating != null ? summary.avgRating.toFixed(1) : t('noRating')}
-        </div>
-      </div>
+        {summary?.avgRating != null ? (
+          <RatingDisplay rating={summary.avgRating.toFixed(1)} reviewCount={summary?.reviewCount ?? 0} />
+        ) : (
+          <p className="text-lg font-black">{t('noRating')}</p>
+        )}
+      </Surface>
 
       {reviews.length === 0 ? (
-        <p className="ui-text-muted text-sm">{t('empty')}</p>
+        <EmptyState
+          title={t('title')}
+          description={t('empty')}
+          action={null}
+        />
       ) : (
         <div className="space-y-2">
           {reviews.map((review) => (
-            <article key={review.id} className="ui-panel-soft rounded-xl p-3 space-y-1">
+            <Surface key={review.id} className="space-y-1 rounded-xl" variant="muted">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-black">{review.branchName || t('branchFallback')}</p>
-                <span className="ui-text-muted text-[11px]">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
                   {review.createdAt ? new Date(review.createdAt).toLocaleDateString('es-CR') : ''}
                 </span>
               </div>
               <p className="text-sm">{review.rating != null ? `★ ${review.rating.toFixed(1)}` : t('noRating')}</p>
-              <p className="ui-text-muted text-sm">{review.comment}</p>
-            </article>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{review.comment}</p>
+            </Surface>
           ))}
         </div>
       )}
-    </section>
+    </Surface>
   );
 }

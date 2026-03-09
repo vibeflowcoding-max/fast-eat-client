@@ -480,7 +480,7 @@ export default function CheckoutPageContent() {
 
   if (!branchId) {
     return (
-      <main className="ui-page min-h-screen pb-14">
+      <main className="min-h-screen bg-[#f8f6f2] pb-14 text-slate-900 dark:bg-[#221610] dark:text-slate-100">
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pb-8 pt-6">
           <EmptyState
             action={(
@@ -503,9 +503,9 @@ export default function CheckoutPageContent() {
   }
 
   return (
-    <main className="ui-page min-h-screen pb-14">
+    <main className="min-h-screen bg-[#f8f6f2] pb-14 text-slate-900 dark:bg-[#221610] dark:text-slate-100">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pb-8 pt-6">
-        <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <Surface className="space-y-4" padding="lg" variant="raised">
           <div className="space-y-2">
             <Button
               leadingIcon={<ArrowLeft className="h-4 w-4" />}
@@ -516,22 +516,23 @@ export default function CheckoutPageContent() {
             >
               {tPage('backToMenu')}
             </Button>
-            <div>
-              <p className="ui-section-title">{tPage('eyebrow')}</p>
-              <h1 className="text-3xl font-black tracking-[-0.03em] text-[var(--color-text)]">{tPage('title')}</h1>
-              <p className="ui-text-muted max-w-2xl text-sm">{tPage('subtitle')}</p>
-            </div>
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Badge className="px-4 py-2 text-xs font-black" variant="brand">
-              {isGroupCheckout ? tPage('groupMode') : tPage('soloMode')}
-            </Badge>
-            <Badge className="px-4 py-2 text-xs font-black" variant="neutral">
-              {formatPhoneForDisplay(fromNumber) || tPage('phoneFallback')}
-            </Badge>
-          </div>
-        </header>
+          <SectionHeader
+            eyebrow={tPage('eyebrow')}
+            title={tPage('title')}
+            description={tPage('subtitle')}
+            action={(
+              <div className="flex flex-wrap justify-end gap-2">
+                <Badge className="px-4 py-2 text-xs font-black" variant="brand">
+                  {isGroupCheckout ? tPage('groupMode') : tPage('soloMode')}
+                </Badge>
+                <Badge className="px-4 py-2 text-xs font-black" variant="neutral">
+                  {formatPhoneForDisplay(fromNumber) || tPage('phoneFallback')}
+                </Badge>
+              </div>
+            )}
+          />
+        </Surface>
 
         {chefNotification?.content ? (
           <Surface className="text-sm font-semibold" variant="raised">
@@ -563,16 +564,16 @@ export default function CheckoutPageContent() {
                 <div className="space-y-4">
                   {groupParticipants.map((participant) => (
                     <div key={participant.id} className="space-y-2">
-                      <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-2">
-                        <p className="text-sm font-black text-[var(--color-text)]">
+                      <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2 dark:border-slate-700">
+                        <p className="text-sm font-black text-slate-900 dark:text-slate-100">
                           {participant.name}{participant.isHost ? ` (${tCart('host')})` : ''}
                         </p>
-                        <p className="ui-text-muted text-xs">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           {participant.items.reduce((sum, item) => sum + item.quantity, 0)} {tPage('itemsLabel')}
                         </p>
                       </div>
                       {participant.items.length === 0 ? (
-                        <p className="ui-text-muted text-xs italic">{tCart('participantNoItems')}</p>
+                        <p className="text-xs italic text-slate-500 dark:text-slate-400">{tCart('participantNoItems')}</p>
                       ) : (
                         participant.items.map((item, index) => (
                           <CartItemRow
@@ -636,24 +637,24 @@ export default function CheckoutPageContent() {
               <SectionHeader eyebrow={tPage('summaryEyebrow')} title={tPage('summaryTitle')} />
               <Surface className="space-y-2" variant="muted">
                 <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest">
-                  <span className="ui-text-muted">{tCart('subtotal')}</span>
+                  <span className="text-slate-500 dark:text-slate-400">{tCart('subtotal')}</span>
                   <span>{formatCurrency(pricing.subtotal)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest">
-                  <span className="ui-text-muted">{tCart('serviceFee', { rate: formatRate(pricing.serviceFeeRate) })}</span>
+                  <span className="text-slate-500 dark:text-slate-400">{tCart('serviceFee', { rate: formatRate(pricing.serviceFeeRate) })}</span>
                   <span>{formatCurrency(pricing.serviceFeeAmount)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest">
-                  <span className="ui-text-muted">{tCart('platformFee', { rate: formatRate(pricing.platformFeeRate) })}</span>
+                  <span className="text-slate-500 dark:text-slate-400">{tCart('platformFee', { rate: formatRate(pricing.platformFeeRate) })}</span>
                   <span>{formatCurrency(pricing.platformFeeAmount)}</span>
                 </div>
-                <div className="mt-2 flex items-center justify-between border-t border-[var(--color-border)] pt-3 text-sm font-black uppercase tracking-widest">
+                <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-3 text-sm font-black uppercase tracking-widest dark:border-slate-700">
                   <span>{tCart('total')}</span>
                   <span>{formatCurrency(pricing.totalBeforeDelivery)}</span>
                 </div>
                 <Surface className="text-[10px] font-bold" variant="raised">{tCart('deliveryDisclaimer')}</Surface>
                 {isPricingUnavailable ? (
-                  <p className="ui-text-muted text-[10px] font-bold">{tCart('feesUnavailable')}</p>
+                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{tCart('feesUnavailable')}</p>
                 ) : null}
               </Surface>
 

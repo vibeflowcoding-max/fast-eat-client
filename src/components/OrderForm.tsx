@@ -4,6 +4,11 @@ import { useTranslations } from 'next-intl';
 import { formatPhoneForDisplay } from '@/lib/phone';
 import { Button, ChoiceCard, Surface } from '@/../resources/components';
 
+const fieldLabelClassName = 'ml-1 text-[8px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400';
+const selectClassName = 'w-full cursor-pointer appearance-none rounded-xl border-2 border-slate-200 bg-white px-5 py-4 text-sm font-black text-slate-900 transition-colors focus:border-orange-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800';
+const toggleTrackClassName = 'h-6 w-12 rounded-full bg-gray-200 transition-colors peer-checked:bg-orange-600';
+const toggleThumbClassName = "after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white";
+
 interface OrderFormProps {
     orderMetadata: OrderMetadata;
     setOrderMetadata: (metadata: OrderMetadata) => void;
@@ -62,14 +67,14 @@ const OrderForm: React.FC<OrderFormProps> = ({
                 {/* Customer Info */}
                 <div className="space-y-4">
                     <div className="space-y-1">
-                        <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('fullName')}</label>
+                        <label className={fieldLabelClassName}>{t('fullName')}</label>
                         <Surface className="w-full text-sm font-black text-gray-900 dark:text-slate-100" variant="muted">
                             {orderMetadata.customerName || t('fullNamePlaceholder')}
                         </Surface>
                     </div>
                     <div className="space-y-1 opacity-60">
-                        <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('phone')}</label>
-                        <Surface className="text-sm font-black ui-text-muted" variant="muted">
+                        <label className={fieldLabelClassName}>{t('phone')}</label>
+                        <Surface className="text-sm font-black text-slate-500 dark:text-slate-400" variant="muted">
                             {formatPhoneForDisplay(fromNumber) || t('phoneUnavailable')}
                         </Surface>
                     </div>
@@ -78,9 +83,9 @@ const OrderForm: React.FC<OrderFormProps> = ({
                 {/* Order Options */}
                 <div className="space-y-4">
                     <div className="space-y-1">
-                        <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('paymentMethod')}</label>
+                        <label className={fieldLabelClassName}>{t('paymentMethod')}</label>
                         <select
-                            className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black focus:outline-none focus:border-[var(--color-brand)] appearance-none cursor-pointer disabled:bg-gray-100 disabled:text-gray-400"
+                            className={selectClassName}
                             value={orderMetadata.paymentMethod}
                             onChange={e => setOrderMetadata({ ...orderMetadata, paymentMethod: e.target.value as any })}
                             disabled={paymentOptions.length === 0}
@@ -92,9 +97,9 @@ const OrderForm: React.FC<OrderFormProps> = ({
                         </select>
                     </div>
                     <div className="space-y-1">
-                        <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('serviceType')}</label>
+                        <label className={fieldLabelClassName}>{t('serviceType')}</label>
                         <select
-                            className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black focus:outline-none focus:border-[var(--color-brand)] appearance-none cursor-pointer disabled:bg-gray-100 disabled:text-gray-400"
+                            className={selectClassName}
                             value={orderMetadata.orderType}
                             onChange={e => setOrderMetadata({
                                 ...orderMetadata,
@@ -128,9 +133,9 @@ const OrderForm: React.FC<OrderFormProps> = ({
             {/* Table Selection (only for dine-in) */}
             {(orderMetadata.orderType === 'comer_aca' || orderMetadata.orderType === 'comer_aqui' || orderMetadata.orderType === 'dine_in') && tableQuantity > 0 && (
                 <div className="space-y-1 animate-fadeIn">
-                    <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('tableNumber')}</label>
+                    <label className={fieldLabelClassName}>{t('tableNumber')}</label>
                     <select
-                        className="w-full px-5 py-4 ui-panel-soft border-2 rounded-xl text-sm font-black focus:outline-none focus:border-[var(--color-brand)] appearance-none cursor-pointer"
+                        className={selectClassName}
                         value={orderMetadata.tableNumber || ''}
                         onChange={e => setOrderMetadata({ ...orderMetadata, tableNumber: e.target.value })}
                     >
@@ -145,11 +150,11 @@ const OrderForm: React.FC<OrderFormProps> = ({
             {/* Delivery Address (only if applicable) */}
             {orderMetadata.orderType === 'delivery' && (
                 <div className="space-y-1 animate-fadeIn">
-                    <label className="ui-text-muted text-[8px] font-black uppercase tracking-widest ml-1">{t('deliveryAddress')}</label>
+                    <label className={fieldLabelClassName}>{t('deliveryAddress')}</label>
 
                     {hasProfileLocation && (
                         <Surface className="space-y-2" variant="muted">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t('deliveryLocationSource')}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('deliveryLocationSource')}</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <ChoiceCard
                                     checked={!isUsingDifferentDeliveryLocation}
@@ -184,15 +189,15 @@ const OrderForm: React.FC<OrderFormProps> = ({
                         <Surface className="flex items-start gap-2" variant="raised">
                             <span className="text-sm">📍</span>
                             <div className="flex-1 min-w-0">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-green-700">{t('profileLocationTag')}</p>
-                                <p className="text-xs font-bold text-green-800 break-words mt-1">{profileLocationLabel || orderMetadata.gpsLocation || orderMetadata.address}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-200">{t('profileLocationTag')}</p>
+                                <p className="mt-1 break-words text-xs font-bold text-emerald-800 dark:text-emerald-100">{profileLocationLabel || orderMetadata.gpsLocation || orderMetadata.address}</p>
                             </div>
                         </Surface>
                     ) : (
                         <>
                             <Surface className="space-y-2" variant="muted">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t('currentOrderLocation')}</p>
-                                <p className="text-xs font-bold text-gray-800 break-words">{orderMetadata.gpsLocation || orderMetadata.address || t('locationNotSelected')}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('currentOrderLocation')}</p>
+                                <p className="break-words text-xs font-bold text-slate-800 dark:text-slate-100">{orderMetadata.gpsLocation || orderMetadata.address || t('locationNotSelected')}</p>
                             </Surface>
                             <div className="flex flex-col gap-2 mt-2">
                                 <Button
@@ -207,8 +212,8 @@ const OrderForm: React.FC<OrderFormProps> = ({
 
                                 {orderMetadata.gpsLocation && (
                                     <div className="flex flex-col gap-1 animate-fadeIn mt-1">
-                                        <label className="text-[7px] font-black uppercase tracking-widest text-green-600 ml-1">Ubicación GPS Adjunta</label>
-                                        <label className="text-[7px] font-black uppercase tracking-widest text-green-600 ml-1">{t('gpsAttached')}</label>
+                                        <label className="ml-1 text-[7px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-300">Ubicación GPS Adjunta</label>
+                                        <label className="ml-1 text-[7px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-300">{t('gpsAttached')}</label>
                                         <Surface className="flex items-center gap-2" variant="raised">
                                             <span className="text-sm">📍</span>
                                             <input
@@ -241,7 +246,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                                 )}
 
                                 {locationDifferenceWarningVisible && (
-                                    <label className="ui-state-warning flex items-start gap-2 rounded-xl px-3 py-3 text-xs font-bold">
+                                    <label className="flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-3 text-xs font-bold text-amber-800 dark:bg-amber-500/15 dark:text-amber-100">
                                         <input
                                             type="checkbox"
                                             checked={locationDifferenceAcknowledged}
@@ -258,7 +263,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
             )}
 
             {/* Phase 4: Convenience & Utility Options */}
-            <div className="pt-4 border-t-2 border-gray-100 space-y-5">
+            <div className="space-y-5 border-t-2 border-slate-100 pt-4 dark:border-slate-800">
                 {/* Eco-Friendly Toggle */}
                 <label className="flex items-center gap-3 cursor-pointer group">
                     <div className="relative flex items-center justify-center">
@@ -268,13 +273,13 @@ const OrderForm: React.FC<OrderFormProps> = ({
                             checked={!!orderMetadata.optOutCutlery}
                             onChange={(e) => setOrderMetadata({ ...orderMetadata, optOutCutlery: e.target.checked })}
                         />
-                        <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-brand)]"></div>
+                        <div className={`${toggleTrackClassName} ${toggleThumbClassName}`}></div>
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-sm font-bold group-hover:text-[var(--color-brand)] transition-colors flex items-center gap-1.5">
+                        <span className="flex items-center gap-1.5 text-sm font-bold transition-colors group-hover:text-orange-600 dark:group-hover:text-orange-300">
                             🌱 {t('ecoTitle')}
                         </span>
-                        <span className="ui-text-muted text-[10px] font-medium">{t('ecoSubtitle')}</span>
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{t('ecoSubtitle')}</span>
                     </div>
                 </label>
 
@@ -291,13 +296,13 @@ const OrderForm: React.FC<OrderFormProps> = ({
                                     scheduledFor: e.target.checked ? toLocalDateTimeValue(new Date(Date.now() + 3600000)) : null
                                 })}
                             />
-                            <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-brand)]"></div>
+                            <div className={`${toggleTrackClassName} ${toggleThumbClassName}`}></div>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-sm font-bold group-hover:text-[var(--color-brand)] transition-colors flex items-center gap-1.5">
+                            <span className="flex items-center gap-1.5 text-sm font-bold transition-colors group-hover:text-orange-600 dark:group-hover:text-orange-300">
                                 🕒 {t('scheduleTitle')}
                             </span>
-                            <span className="ui-text-muted text-[10px] font-medium">{t('scheduleSubtitle')}</span>
+                            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{t('scheduleSubtitle')}</span>
                         </div>
                     </label>
 
@@ -305,7 +310,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
                         <div className="pl-15 pt-2 animate-fadeIn">
                             <input
                                 type="datetime-local"
-                                className="w-full px-4 py-3 ui-panel-soft border-2 rounded-xl text-sm font-black focus:outline-none focus:border-[var(--color-brand)] transition-all"
+                                className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 transition-all focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                                 value={orderMetadata.scheduledFor}
                                 min={minimumScheduledDateTime}
                                 onChange={(e) => setOrderMetadata({ ...orderMetadata, scheduledFor: e.target.value })}

@@ -282,7 +282,7 @@ export default function CartsPageContent() {
     } finally {
       setActiveCartActionId(null);
     }
-  }, [customerName, fromNumber, restorePersistedCart, router, t]);
+  }, [customerName, fromNumber, restorePersistedCart, router, setSavedCartsError, t]);
 
   const handleArchiveSavedCart = React.useCallback(async (cartId: string) => {
     setActiveCartActionId(cartId);

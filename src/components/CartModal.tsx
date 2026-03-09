@@ -153,8 +153,8 @@ const CartModal: React.FC<CartModalProps> = ({
         <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
             <Surface className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] p-0 shadow-2xl" padding="none" variant="base">
                 {(isSyncing || isOrdering) && (
-                    <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-[110] flex items-center justify-center rounded-[2rem]">
-                        <div className="w-12 h-12 border-4 border-black border-t-[var(--color-brand)] rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 z-[110] flex items-center justify-center rounded-[2rem] bg-white/40 backdrop-blur-[2px] dark:bg-slate-900/50">
+                        <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-900 border-t-orange-600 dark:border-slate-100 dark:border-t-orange-300"></div>
                     </div>
                 )}
                 <div className="flex items-center justify-between gap-4 border-b border-slate-200/80 px-5 py-5 md:px-8 md:py-6 dark:border-slate-800/80">
@@ -168,13 +168,13 @@ const CartModal: React.FC<CartModalProps> = ({
                     {cart.length === 0 && (!groupSessionId || groupParticipants.length === 0) ? (
                         <div className="flex flex-col items-center py-20">
                             <span className="text-6xl mb-4">🍱</span>
-                            <p className="ui-text-muted font-black uppercase tracking-widest text-xs">{t('empty')}</p>
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('empty')}</p>
                         </div>
                     ) : groupSessionId && groupParticipants.length > 0 ? (
                         <div className="space-y-6">
                             {groupParticipants.map(participant => (
                                 <div key={participant.id} className="space-y-2">
-                                    <h4 className="ui-text-muted font-bold text-sm uppercase tracking-wider border-b pb-1">
+                                    <h4 className="border-b border-slate-200 pb-1 text-sm font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:text-slate-400">
                                         {participant.name} {participant.isHost ? `(${t('host')})` : ''}
                                     </h4>
                                     {participant.items.map((item, idx) => (
@@ -191,7 +191,7 @@ const CartModal: React.FC<CartModalProps> = ({
                                             }}
                                         />
                                     ))}
-                                    {participant.items.length === 0 && <p className="ui-text-muted text-xs italic">{t('participantNoItems')}</p>}
+                                    {participant.items.length === 0 && <p className="text-xs italic text-slate-500 dark:text-slate-400">{t('participantNoItems')}</p>}
                                 </div>
                             ))}
                         </div>
@@ -239,26 +239,26 @@ const CartModal: React.FC<CartModalProps> = ({
                         {cart.length > 0 && (
                             <Surface className="space-y-2 border border-orange-100 dark:border-[#4b2f21]" variant="raised">
                                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                                    <span className="ui-text-muted">{t('subtotal')}</span>
+                                    <span className="text-slate-500 dark:text-slate-400">{t('subtotal')}</span>
                                     <span>{formatCurrency(pricing.subtotal)}</span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                                    <span className="ui-text-muted">{t('serviceFee', { rate: formatRate(pricing.serviceFeeRate) })}</span>
+                                    <span className="text-slate-500 dark:text-slate-400">{t('serviceFee', { rate: formatRate(pricing.serviceFeeRate) })}</span>
                                     <span>{formatCurrency(pricing.serviceFeeAmount)}</span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                                    <span className="ui-text-muted">{t('platformFee', { rate: formatRate(pricing.platformFeeRate) })}</span>
+                                    <span className="text-slate-500 dark:text-slate-400">{t('platformFee', { rate: formatRate(pricing.platformFeeRate) })}</span>
                                     <span>{formatCurrency(pricing.platformFeeAmount)}</span>
                                 </div>
-                                <div className="border-t border-border/30 pt-2 mt-2 flex items-center justify-between text-sm font-black uppercase tracking-widest">
+                                <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 text-sm font-black uppercase tracking-widest dark:border-slate-700">
                                     <span>{t('total')}</span>
                                     <span>{formatCurrency(pricing.totalBeforeDelivery)}</span>
                                 </div>
-                                <p className="ui-state-warning rounded-lg px-2 py-1 text-[10px] font-bold">
+                                <Surface className="rounded-lg px-2 py-1 text-[10px] font-bold text-amber-700 dark:text-amber-200" padding="none" variant="muted">
                                     {t('deliveryDisclaimer')}
-                                </p>
+                                </Surface>
                                 {isPricingUnavailable && (
-                                    <p className="ui-text-muted text-[10px] font-bold">{t('feesUnavailable')}</p>
+                                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t('feesUnavailable')}</p>
                                 )}
                             </Surface>
                         )}
