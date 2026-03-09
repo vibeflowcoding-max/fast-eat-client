@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { DiscoveryIntent, LocationContext, RecommendationItem, UserConstraints } from '@/features/home-discovery/types';
+import { calculateDistance } from '@/utils/geoUtils';
 
 interface BranchRow {
     id: string;
@@ -140,29 +141,6 @@ function isDealActiveNow(deal: Pick<DealRow, 'starts_at' | 'ends_at'>) {
     }
 
     return true;
-}
-
-function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-    const earthRadiusKm = 6371;
-    const toRad = Math.PI / 180;
-
-    // Convert to radians once
-    const radLat1 = lat1 * toRad;
-    const radLat2 = lat2 * toRad;
-    const dLat = radLat2 - radLat1;
-    const dLon = (lon2 - lon1) * toRad;
-
-    const sinDLat2 = Math.sin(dLat / 2);
-    const sinDLon2 = Math.sin(dLon / 2);
-
-    const a =
-        sinDLat2 * sinDLat2 +
-        Math.cos(radLat1) * Math.cos(radLat2) *
-        sinDLon2 * sinDLon2;
-
-    // Math.asin is mathematically equivalent to Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    // but noticeably faster in V8/JavaScript engines.
-    return earthRadiusKm * 2 * Math.asin(Math.sqrt(a));
 }
 
 function getRankingWeights(): RankingWeights {
@@ -580,17 +558,43 @@ export async function getRestaurantRows() {
             };
         });
 
-        const rating = restaurant.rating ?? average(branches.map((branch) => toNumber(branch.rating)));
-        const reviewCount = restaurant.review_count ?? branches
-            .map((branch) => toNumber(branch.review_count))
-            .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
-            .reduce((sum, value) => sum + value, 0);
-        const etaMinAvg = restaurant.eta_min ?? average(branches.map((branch) => toNumber(branch.eta_min)));
-        const avgPriceEstimate = restaurant.avg_price_estimate ?? average(branches.map((branch) => toNumber(branch.avg_price_estimate)));
-        const estimatedDeliveryFee = average(branches.map((branch) => toNumber(branch.estimated_delivery_fee)))
-            ?? toNumber(restaurant.estimated_delivery_fee);
+        // ⚡ Bolt: Accumulate derived branch metrics in a single O(N) loop to eliminate redundant
+        // map/filter/reduce iterations over the branch array, improving request throughput
+        let sumRating = 0, countRating = 0;
+        let sumReviewCount = 0;
+        let sumEta = 0, countEta = 0;
+        let sumAvgPrice = 0, countAvgPrice = 0;
+        let sumFee = 0, countFee = 0;
+        let firstPromoBranch: typeof branches[0] | undefined;
 
-        const firstPromoBranch = branches.find((branch) => Boolean(branch.promo_text));
+        for (const branch of branches) {
+            const r = toNumber(branch.rating);
+            if (r !== null && Number.isFinite(r)) { sumRating += r; countRating++; }
+
+            const rc = toNumber(branch.review_count);
+            if (rc !== null && Number.isFinite(rc)) { sumReviewCount += rc; }
+
+            const eta = toNumber(branch.eta_min);
+            if (eta !== null && Number.isFinite(eta)) { sumEta += eta; countEta++; }
+
+            const price = toNumber(branch.avg_price_estimate);
+            if (price !== null && Number.isFinite(price)) { sumAvgPrice += price; countAvgPrice++; }
+
+            const fee = toNumber(branch.estimated_delivery_fee);
+            if (fee !== null && Number.isFinite(fee)) { sumFee += fee; countFee++; }
+
+            if (!firstPromoBranch && branch.promo_text) {
+                firstPromoBranch = branch;
+            }
+        }
+
+        const ratingAvg = countRating > 0 ? sumRating / countRating : null;
+        const rating = restaurant.rating ?? ratingAvg;
+        const reviewCount = restaurant.review_count ?? sumReviewCount;
+        const etaMinAvg = restaurant.eta_min ?? (countEta > 0 ? sumEta / countEta : null);
+        const avgPriceEstimate = restaurant.avg_price_estimate ?? (countAvgPrice > 0 ? sumAvgPrice / countAvgPrice : null);
+        const estimatedDeliveryFee = (countFee > 0 ? sumFee / countFee : null) ?? toNumber(restaurant.estimated_delivery_fee);
+
         const promoDeal = firstPromoBranch ? dealsByBranch.get(firstPromoBranch.id) : undefined;
 
         return {
@@ -627,7 +631,7 @@ export function buildRecommendationItems(params: {
             firstBranch?.latitude !== null &&
             firstBranch?.longitude !== null
         ) {
-            distanceKm = calculateDistanceKm(
+            distanceKm = calculateDistance(
                 params.location.lat,
                 params.location.lng,
                 firstBranch.latitude,
