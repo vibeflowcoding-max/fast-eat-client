@@ -15,6 +15,7 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: { name?: string }) => {
     const dictionary: Record<string, string> = {
       promo: 'PROMO',
+      imageAlt: 'Imagen de {name}',
       etaPending: 'ETA pending',
       approx: 'approx',
       pricePending: 'Estimated total pending',
@@ -26,6 +27,10 @@ vi.mock('next-intl', () => ({
 
     if (key === 'viewMenuAria') {
       return `View menu ${values?.name ?? ''}`;
+    }
+
+    if (key === 'imageAlt') {
+      return `Imagen de ${values?.name ?? ''}`;
     }
 
     return dictionary[key] ?? key;
@@ -113,5 +118,16 @@ describe('RestaurantCard', () => {
     );
 
     expect(screen.getByText('No reviews yet')).toBeInTheDocument();
+  });
+
+  it('calls onOpen and routes to the restaurant slug on click', () => {
+    const onOpen = vi.fn();
+
+    render(<RestaurantCard restaurant={baseRestaurant} onOpen={onOpen} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'View menu Pizza House' }));
+
+    expect(onOpen).toHaveBeenCalledWith(baseRestaurant);
+    expect(pushMock).toHaveBeenCalledWith('/pizza-house');
   });
 });

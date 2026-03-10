@@ -12,6 +12,7 @@ export const dynamic = 'force-dynamic';
 function SignInPageContent() {
   const router = useRouter();
   const t = useTranslations('auth.signIn');
+  const tCommon = useTranslations('auth.common');
   const searchParams = useSearchParams();
   const nextPath = useMemo(() => {
     const value = searchParams.get('next') || '/';
@@ -92,8 +93,9 @@ function SignInPageContent() {
           </Link>
         </>
       )}
-      heroDescription="Accede a favoritos, pedidos, dirección y toda tu experiencia de cliente desde una sola sesión."
-      heroTitle="La forma más rápida de volver a pedir."
+      heroDescription={t('heroDescription')}
+      heroFooterText={tCommon('heroFooter')}
+      heroTitle={t('heroTitle')}
       title={t('title')}
     >
       <form className="space-y-4" onSubmit={handleSubmit}>
@@ -103,8 +105,9 @@ function SignInPageContent() {
           label={t('email')}
           leadingIcon={<Icon symbol="mail" tone="muted" />}
           onChange={(event) => setEmail(event.target.value)}
-          placeholder="name@example.com"
+          placeholder={t('emailPlaceholder')}
           required
+          requiredLabel={tCommon('requiredBadge')}
           type="email"
           value={email}
         />
@@ -116,8 +119,9 @@ function SignInPageContent() {
           leadingIcon={<Icon symbol="lock" tone="muted" />}
           minLength={6}
           onChange={(event) => setPassword(event.target.value)}
-          placeholder="••••••••"
+          placeholder={t('passwordPlaceholder')}
           required
+          requiredLabel={tCommon('requiredBadge')}
           trailingAction={(
             <button
               aria-label={showPassword ? t('hidePassword') : t('showPassword')}

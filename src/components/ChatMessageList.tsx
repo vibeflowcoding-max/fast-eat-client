@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import React, { useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { MenuItem, ChatMessage } from '../types';
 
 type RenderableChatMessage = ChatMessage & {
@@ -24,6 +25,7 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({
     menuItems,
     onNavigateToItem
 }) => {
+    const t = useTranslations('home.discoveryAssistant');
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -64,7 +66,7 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({
                     )}
                 </div>
                 <div className="text-left">
-                    <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-gray-400 group-hover/btn:text-red-600 mb-0.5">Ver detalles</span>
+                    <span className="mb-0.5 block text-[8px] font-black uppercase tracking-[0.2em] text-gray-400 group-hover/btn:text-red-600">{t('viewDetails')}</span>
                     <span className="block text-xs font-black uppercase tracking-tighter line-clamp-1 text-gray-900">{item.name}</span>
                 </div>
             </div>
@@ -108,7 +110,7 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({
                 </div>
                 {recommendedButtons.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-1">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Platillos sugeridos:</span>
+                        <span className="mb-2 text-[9px] font-black uppercase tracking-widest text-gray-400">{t('suggestedDishes')}</span>
                         {recommendedButtons}
                     </div>
                 )}

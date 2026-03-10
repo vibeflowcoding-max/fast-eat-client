@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import StoryVideoPlayer, { StoryVideoItem } from './StoryVideoPlayer';
 import { Clapperboard } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useTranslations } from 'next-intl';
 
 interface StoryApiItem {
     id?: string;
@@ -53,6 +54,7 @@ function normalizeStories(payload: unknown): StoryVideoItem[] {
 }
 
 export default function StoryMenuFeed() {
+    const t = useTranslations('home.storyFeed');
     const [stories, setStories] = useState<StoryVideoItem[]>([]);
     const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
     const [isMuted, setIsMuted] = useState(true);
@@ -73,7 +75,7 @@ export default function StoryMenuFeed() {
                 const accessToken = data.session?.access_token;
 
                 if (!accessToken) {
-                    throw new Error('Debes iniciar sesión para ver Story Menus.');
+                    throw new Error(t('authRequired'));
                 }
 
                 const response = await fetch('/api/consumer/content/stories', {
@@ -87,7 +89,7 @@ export default function StoryMenuFeed() {
 
                 const payload: unknown = await response.json();
                 if (!response.ok) {
-                    throw new Error('No se pudo cargar Story Menus.');
+                    throw new Error(t('loadError'));
                 }
 
                 const list = normalizeStories((payload as { data?: unknown })?.data);
@@ -106,7 +108,7 @@ export default function StoryMenuFeed() {
 
                 setStories([]);
                 setActiveStoryId(null);
-                setError(fetchError instanceof Error ? fetchError.message : 'No se pudo cargar Story Menus.');
+                setError(fetchError instanceof Error ? fetchError.message : t('loadError'));
             } finally {
                 if (!abortController.signal.aborted) {
                     setIsLoading(false);
@@ -119,7 +121,7 @@ export default function StoryMenuFeed() {
         return () => {
             abortController.abort();
         };
-    }, [reloadToken]);
+    }, [reloadToken, t]);
 
     useEffect(() => {
         if (!stories.length) {
@@ -159,11 +161,11 @@ export default function StoryMenuFeed() {
         <div className="w-full mb-8">
             <div className="flex items-center gap-2 mb-4 px-1">
                 <Clapperboard className="w-5 h-5 text-red-500" />
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Story Menus</h3>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest dark:text-slate-100">{t('title')}</h3>
             </div>
 
             {isLoading && (
-                <div className="px-1 py-6 text-sm text-gray-500">Cargando historias...</div>
+                <div className="px-1 py-6 text-sm text-gray-500 dark:text-slate-400">{t('loading')}</div>
             )}
 
             {!isLoading && error && (
@@ -174,13 +176,13 @@ export default function StoryMenuFeed() {
                         onClick={() => setReloadToken((prev) => prev + 1)}
                         className="mt-2 text-xs font-bold text-red-600 underline"
                     >
-                        Reintentar
+                        {t('retry')}
                     </button>
                 </div>
             )}
 
             {!isLoading && !error && stories.length === 0 && (
-                <div className="px-1 py-6 text-sm text-gray-500">No hay Story Menus activos por ahora.</div>
+                <div className="px-1 py-6 text-sm text-gray-500 dark:text-slate-400">{t('empty')}</div>
             )}
 
             {/* Snap Scrolling Container */}
@@ -194,7 +196,7 @@ export default function StoryMenuFeed() {
                         <div
                             key={story.id}
                             data-story-id={story.id}
-                            className="story-container w-[280px] h-[450px] sm:w-[320px] sm:h-[500px] flex-shrink-0 snap-center rounded-3xl overflow-hidden shadow-lg relative"
+                            className="story-container relative h-[450px] w-[min(82vw,280px)] flex-shrink-0 snap-center overflow-hidden rounded-3xl shadow-lg sm:h-[500px] sm:w-[320px]"
                         >
                             <StoryVideoPlayer
                                 item={story}

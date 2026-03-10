@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, ShieldAlert, X, Save, Leaf, Activity, Loader2 } from 'lucide-react';
 import { useCartStore } from '@/store';
-import { DietaryOption, DietaryOptionGroup, DietaryOptionsCatalog, DietaryProfile } from '@/types';
+import { DietaryOptionGroup, DietaryOptionsCatalog, DietaryProfile } from '@/types';
 import { fetchDietaryOptions, saveDietaryProfile } from '@/services/api';
 
 interface DietaryProfileSettingsProps {

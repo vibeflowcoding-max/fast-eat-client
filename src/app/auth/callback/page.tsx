@@ -12,6 +12,7 @@ export const dynamic = 'force-dynamic';
 function AuthCallbackContent() {
   const router = useRouter();
   const t = useTranslations('auth.callback');
+  const tCommon = useTranslations('auth.common');
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
 
@@ -67,8 +68,9 @@ function AuthCallbackContent() {
     <AuthShell
       brand="FastEat"
       description={t('loading')}
-      heroDescription="Sincronizamos la sesión del proveedor externo con tu experiencia de cliente para llevarte de vuelta a la app sin pasos manuales."
-      heroTitle="Un momento, estamos cerrando tu acceso."
+      heroDescription={t('heroDescription')}
+      heroFooterText={tCommon('heroFooter')}
+      heroTitle={t('heroTitle')}
       title={t('title')}
     >
       <Surface className="space-y-4 text-center" variant="base">

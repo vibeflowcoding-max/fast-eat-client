@@ -2,11 +2,12 @@ import React from 'react';
 
 interface HomeRailSkeletonProps {
     itemCount?: number;
+    ariaLabel?: string;
 }
 
-export default function HomeRailSkeleton({ itemCount = 3 }: HomeRailSkeletonProps) {
+export default function HomeRailSkeleton({ itemCount = 3, ariaLabel }: HomeRailSkeletonProps) {
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 motion-safe:animate-pulse" role="status" aria-live="polite" aria-label="Cargando restaurantes">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 motion-safe:animate-pulse" role="status" aria-live="polite" aria-label={ariaLabel}>
             {Array.from({ length: itemCount }).map((_, index) => (
                 <div key={index} className="overflow-hidden rounded-2xl bg-white shadow-sm">
                     <div className="aspect-[16/9] w-full bg-gray-200" />

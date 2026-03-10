@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import React, { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { fetchBranches } from '../services/api';
 
 interface Branch {
@@ -16,6 +17,7 @@ interface BranchSelectionModalProps {
 }
 
 const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({ onSelectBranch }) => {
+    const t = useTranslations('branchSelection');
     const [branches, setBranches] = useState<Branch[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -38,7 +40,7 @@ const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({ onSelectBra
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                 <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-                    <p className="font-bold text-gray-500">Cargando restaurantes...</p>
+                    <p className="font-bold text-gray-500">{t('loading')}</p>
                 </div>
             </div>
         );
@@ -48,8 +50,8 @@ const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({ onSelectBra
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fadeIn">
                 <div className="text-center mb-8">
-                    <h2 className="text-2xl md:text-3xl font-black mb-2">Selecciona un Restaurante</h2>
-                    <p className="text-gray-500 font-medium">Elige una sucursal para ver el menú</p>
+                    <h2 className="text-2xl md:text-3xl font-black mb-2">{t('title')}</h2>
+                    <p className="text-gray-500 font-medium">{t('subtitle')}</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
@@ -79,7 +81,7 @@ const BranchSelectionModal: React.FC<BranchSelectionModalProps> = ({ onSelectBra
 
                     {branches.length === 0 && (
                         <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-                            <p className="text-gray-400 font-bold">No hay restaurantes disponibles.</p>
+                            <p className="text-gray-400 font-bold">{t('empty')}</p>
                         </div>
                     )}
                 </div>

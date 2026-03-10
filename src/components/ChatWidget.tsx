@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { MenuItem, OrderMetadata } from '../types';
 import { useCartStore } from '../store';
 import { sendChatToN8N, CartAction } from '../services/api';
@@ -31,6 +32,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   onNavigateToItem,
   orderMetadata
 }) => {
+  const t = useTranslations('home.discoveryAssistant');
   const { items: cart, branchId, fromNumber, isTestMode } = useCartStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -38,7 +40,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   const [messages, setMessages] = useState<ExtendedChatMessage[]>(() => {
     const saved = localStorage.getItem('izakaya_chat_history');
     return saved ? JSON.parse(saved) : [
-      { role: 'assistant', content: '¡Konichiwa! Soy el Chef Zen. ¿Puedo ayudarte con alguna recomendación del menú?', action: 'none', confirmation: true }
+      { role: 'assistant', content: t('welcomeMessage'), action: 'none', confirmation: true }
     ];
   });
 
@@ -97,7 +99,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: response?.output || (response.confirmation ? "¡Entendido! 🏮" : "Lo siento, mi conexión con la cocina falló. ⛩️"),
+        content: response?.output || (response.confirmation ? t('confirmationMessage') : t('kitchenFailedMessage')),
         action: response?.action || 'none',
         item_id: response?.item_id,
         item_ids: response?.item_ids,
@@ -106,7 +108,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
     } catch {
       setIsTyping(false);
-      setMessages(prev => [...prev, { role: 'assistant', content: "Lo siento, tuve un problema conectando con la cocina. 🏮", confirmation: false }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: t('kitchenConnectionError'), confirmation: false }]);
     }
   };
 
@@ -118,17 +120,17 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   return (
     <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[100] flex flex-col items-end pointer-events-none">
       {showInvitation && !isOpen && !showNotification && (
-        <div className="mb-4 mr-2 bg-white px-5 py-3 rounded-2xl shadow-2xl border-2 border-red-600 animate-fadeIn relative pointer-events-auto cursor-pointer hover:scale-105 transition-transform" onClick={() => { setShowInvitation(false); setIsOpen(true); }}>
-          <p className="text-[11px] font-black text-gray-900 uppercase tracking-widest">¿Dudas con el menú? 🍱</p>
-          <p className="text-[9px] font-bold text-red-600 uppercase mt-1">Pregúntale al Chef Zen</p>
+        <div className="relative mb-4 mr-2 w-[min(18rem,calc(100vw-2rem))] cursor-pointer rounded-2xl border-2 border-red-600 bg-white px-5 py-3 shadow-2xl transition-transform animate-fadeIn pointer-events-auto hover:scale-105" onClick={() => { setShowInvitation(false); setIsOpen(true); }}>
+          <p className="break-words text-[11px] font-black uppercase tracking-widest text-gray-900">{t('menuQuestion')}</p>
+          <p className="mt-1 break-words text-[9px] font-bold uppercase text-red-600">{t('askChef')}</p>
           <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-r-2 border-b-2 border-red-600 rotate-45"></div>
         </div>
       )}
       {showNotification && !isOpen && (
-        <div className="mb-4 mr-2 max-w-[250px] md:max-w-[280px] bg-white border-[3px] border-red-600 rounded-[2rem] p-5 shadow-2xl animate-popIn relative cursor-pointer hover:scale-105 transition-transform pointer-events-auto" onClick={() => { setIsOpen(true); setShowNotification(false); }}>
+        <div className="relative mb-4 mr-2 w-[min(17.5rem,calc(100vw-2rem))] rounded-[2rem] border-[3px] border-red-600 bg-white p-5 shadow-2xl transition-transform animate-popIn cursor-pointer pointer-events-auto hover:scale-105" onClick={() => { setIsOpen(true); setShowNotification(false); }}>
           <button
             type="button"
-            aria-label="Cerrar notificación de Chef Zen"
+            aria-label={t('dismissNotificationAria')}
             className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-red-200 bg-white text-base font-black text-red-600 transition-colors hover:bg-red-50"
             onClick={handleDismissNotification}
           >
@@ -136,7 +138,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           </button>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xl">👨‍🍳</span>
-            <span className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em]">Chef Zen dice:</span>
+            <span className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em]">{t('chefSays')}</span>
           </div>
           <p className="text-gray-900 text-sm font-bold leading-snug break-words">{notification?.content}</p>
         </div>
@@ -147,14 +149,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 md:w-14 md:h-14 bg-red-600 rounded-xl flex items-center justify-center text-xl md:text-3xl border-2 border-white/20">👨‍🍳</div>
               <div>
-                <h4 className="font-black text-xs md:text-base uppercase tracking-widest leading-none">Chef Zen</h4>
+                <h4 className="font-black text-xs md:text-base uppercase tracking-widest leading-none">{t('chefName')}</h4>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                  <p className="text-[8px] md:text-[10px] text-gray-400 font-black uppercase tracking-widest">En línea</p>
+                  <p className="text-[8px] md:text-[10px] text-gray-400 font-black uppercase tracking-widest">{t('online')}</p>
                 </div>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="w-10 h-10 rounded-full bg-white/10 hover:bg-red-600 flex items-center justify-center transition-all font-bold">✕</button>
+            <button type="button" aria-label={t('closeAria')} onClick={() => setIsOpen(false)} className="w-10 h-10 rounded-full bg-white/10 hover:bg-red-600 flex items-center justify-center transition-all font-bold">✕</button>
           </div>
 
           <ChatMessageList
@@ -169,13 +171,16 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
             onSend={handleSend}
             isTyping={isTyping}
             onFocusChange={setIsInputFocused}
+            inputAriaLabel={t('inputAria')}
+            placeholder={t('inputPlaceholder')}
+            sendButtonAriaLabel={t('sendAria')}
           />
         </div>
       )}
       <div className="relative pointer-events-auto">
         {!isOpen && <div className="absolute inset-0 rounded-full bg-red-600 animate-ping opacity-25 scale-125"></div>}
-        <button onClick={() => { setShowInvitation(false); setIsOpen(!isOpen); setShowNotification(false); }} className={`w-16 h-16 md:w-24 md:h-24 rounded-full shadow-2xl flex items-center justify-center transition-all duration-500 border-4 border-white active:scale-90 relative z-20 overflow-hidden ${isOpen ? 'bg-black rotate-180' : 'bg-red-600 hover:scale-110'}`}>
-          {isThinking ? <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div> : isOpen ? <span className="text-white text-2xl font-light">✕</span> : <div className="flex flex-col items-center"><span className="text-white text-4xl">👨‍🍳</span><span className="text-white text-[7px] font-black uppercase tracking-tighter -mt-1">Chef Zen</span></div>}
+        <button type="button" aria-label={isOpen ? t('closeAria') : t('openAria')} onClick={() => { setShowInvitation(false); setIsOpen(!isOpen); setShowNotification(false); }} className={`relative z-20 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-2xl transition-all duration-500 active:scale-90 md:h-24 md:w-24 ${isOpen ? 'rotate-180 bg-black' : 'bg-red-600 hover:scale-110'}`}>
+          {isThinking ? <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div> : isOpen ? <span className="text-white text-2xl font-light">✕</span> : <div className="flex flex-col items-center"><span className="text-white text-4xl">👨‍🍳</span><span className="-mt-1 text-[7px] font-black uppercase tracking-tighter text-white">{t('chefName')}</span></div>}
         </button>
       </div>
     </div>

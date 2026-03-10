@@ -17,7 +17,7 @@ export function EmptyState({
   title,
   description,
   icon,
-  actionLabel = "Explore",
+  actionLabel,
   action,
   ...props
 }: EmptyStateProps) {
@@ -28,7 +28,7 @@ export function EmptyState({
       </div>
       <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h3>
       {description ? <p className="mt-2 max-w-[32ch] text-sm text-slate-500 dark:text-slate-400">{description}</p> : null}
-      <div className="mt-5">{action ?? <Button>{actionLabel}</Button>}</div>
+      {action || actionLabel ? <div className="mt-5">{action ?? <Button>{actionLabel}</Button>}</div> : null}
     </div>
   );
 }

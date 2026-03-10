@@ -1,10 +1,18 @@
 {
   "auth": {
+    "common": {
+      "requiredBadge": "Obligatorio",
+      "heroFooter": "Autenticación, onboarding y dirección en una misma experiencia base."
+    },
     "signIn": {
       "title": "Iniciar sesión",
       "description": "Accede con tu cuenta para cargar tus favoritos, historial y ajustes.",
+      "heroTitle": "La forma más rápida de volver a pedir.",
+      "heroDescription": "Accede a favoritos, pedidos, dirección y toda tu experiencia de cliente desde una sola sesión.",
       "email": "Email",
+      "emailPlaceholder": "name@example.com",
       "password": "Contraseña",
+      "passwordPlaceholder": "••••••••",
       "showPassword": "Mostrar contraseña",
       "hidePassword": "Ocultar contraseña",
       "socialDivider": "o continúa con",
@@ -19,12 +27,17 @@
     "signUp": {
       "title": "Crear cuenta",
       "description": "Regístrate para guardar pedidos, favoritos y preferencias.",
+      "heroTitle": "Tu próxima orden empieza con un perfil listo.",
+      "heroDescription": "Crea una cuenta de cliente para guardar favoritos, direcciones y pedidos sin volver a empezar en cada visita.",
       "fullName": "Nombre completo",
+      "fullNamePlaceholder": "Tu nombre",
       "phone": "Teléfono",
       "phonePlaceholder": "88887777",
       "phoneTitle": "Ingresa 8 dígitos; el prefijo +506 se agrega automáticamente",
       "email": "Email",
+      "emailPlaceholder": "name@example.com",
       "password": "Contraseña",
+      "passwordPlaceholder": "Min. 6 caracteres",
       "showPassword": "Mostrar contraseña",
       "hidePassword": "Ocultar contraseña",
       "socialDivider": "o continúa con",
@@ -39,6 +52,8 @@
     },
     "callback": {
       "title": "Finalizando autenticación...",
+      "heroTitle": "Un momento, estamos cerrando tu acceso.",
+      "heroDescription": "Sincronizamos la sesión del proveedor externo con tu experiencia de cliente para llevarte de vuelta a la app sin pasos manuales.",
       "loading": "Un momento, te estamos ingresando.",
       "missingCode": "No se recibió código OAuth",
       "genericError": "No se pudo completar la autenticación"
@@ -58,7 +73,45 @@
     "openRestaurantReviews": "Abrir reseñas del restaurante",
     "addFavoriteRestaurant": "Agregar restaurante a favoritos",
     "removeFavoriteRestaurant": "Quitar restaurante de favoritos",
-    "ratingNotAvailable": "N/D"
+    "ratingNotAvailable": "N/D",
+    "favoriteError": "No se pudo guardar el restaurante en favoritos.",
+    "unfavoriteError": "No se pudo quitar el restaurante de favoritos.",
+    "dismissOrderStatusNotification": "Cerrar notificación de estado del pedido",
+    "dismissBidNotification": "Cerrar notificación de oferta",
+    "newOfferReceived": "Nueva oferta recibida"
+  },
+  "notifications": {
+    "trayTitle": "Notificaciones recientes",
+    "traySubtitle": "Ofertas y actividad nueva para tus pedidos",
+    "newBadge": "Nuevas",
+    "closeTray": "Cerrar notificaciones",
+    "seeAll": "Ver todas las notificaciones",
+    "emptyTitle": "Todavía no hay notificaciones",
+    "emptyDescription": "Cuando llegue una nueva oferta o actualización de pedido, aparecerá aquí.",
+    "emptyAction": "Explorar restaurantes",
+    "pageTitle": "Notificaciones",
+    "pageSubtitle": "Historial reciente de alertas y ofertas",
+    "backToHome": "Volver",
+    "offerTitle": "Oferta de entrega recibida",
+    "offerBody": "Tienes una oferta de entrega por ₡{amount} para la orden {orderId}.",
+    "time": {
+      "now": "Ahora",
+      "yesterday": "Ayer"
+    },
+    "groups": {
+      "today": {
+        "eyebrow": "Ahora",
+        "title": "Hoy"
+      },
+      "yesterday": {
+        "eyebrow": "Archivo reciente",
+        "title": "Ayer"
+      },
+      "earlier": {
+        "eyebrow": "Historial",
+        "title": "Antes"
+      }
+    }
   },
   "carts": {
     "title": "Tus carritos",
@@ -116,16 +169,47 @@
     "phone": "Teléfono",
     "name": "Nombre",
     "location": "Ubicación",
+    "editSectionEyebrow": "Perfil",
+    "editSectionTitle": "Editar perfil",
+    "saveButton": "Guardar perfil",
+    "saveSuccess": "Perfil actualizado correctamente.",
+    "validationNamePhone": "El nombre y el teléfono son obligatorios.",
+    "authRequiredUpdateProfile": "Debes iniciar sesión otra vez para actualizar tu perfil.",
+    "updateProfileError": "No se pudo actualizar el perfil.",
     "noAddress": "No has guardado una dirección todavía",
+    "locationSectionEyebrow": "Dirección",
+    "locationSectionDescription": "Administra tu punto de entrega principal.",
+    "savedLocationValue": "Ubicación guardada en Google Maps",
+    "savedCoordinates": "Punto guardado: {lat}, {lng}",
+    "locationUrlRequired": "La URL de ubicación es obligatoria.",
+    "authRequiredUpdateLocation": "Debes iniciar sesión otra vez para actualizar tu ubicación.",
+    "updateLocationError": "No se pudo actualizar la ubicación.",
+    "defaultDeliveryNote": "Entregar en la puerta",
     "viewOrders": "Ver pedidos",
     "favoriteRestaurants": "Restaurantes favoritos",
     "noFavorites": "Todavía no hay suficientes pedidos para detectar favoritos.",
     "allergiesSettings": "Configuración de alergias",
     "noAllergies": "No registras alergias por ahora.",
+    "dietaryProfileLabel": "Perfil alimenticio",
+    "syncStatusSynced": "Sincronizado",
+    "syncStatusLocal": "Local",
+    "avoidIngredientPrefix": "Evitar",
+    "dietaryAdjustButton": "Ajustar perfil alimenticio",
+    "plannerTitle": "Planner IA",
+    "plannerDescription": "Recibe ideas de platos según tu dieta, gustos y momento del día.",
+    "plannerAction": "Abrir",
+    "mysteryBoxTitle": "Mystery Box",
+    "mysteryBoxDescription": "Descubre combos sorpresa compatibles con tu perfil y stock disponible.",
+    "mysteryBoxAction": "Ver ofertas",
     "languageSection": "Idioma",
     "languageDescription": "Elige cómo quieres ver el contenido de la app.",
     "languageLabel": "Idioma de la app",
     "languageUpdated": "Idioma actualizado",
+    "logoutSection": "Sesión",
+    "logoutDescription": "Cierra tu sesión en este dispositivo y protege tu cuenta.",
+    "logoutButton": "Cerrar sesión",
+    "logoutPending": "Cerrando sesión...",
+    "logoutError": "No se pudo cerrar la sesión. Inténtalo de nuevo.",
     "setLocation": "Definir ubicación",
     "changeLocation": "Cambiar ubicación",
     "resolvingLocation": "Obteniendo ubicación actual...",
@@ -135,6 +219,111 @@
     "languageUpdated": "Idioma actualizado",
     "save": "Guardar",
     "cancel": "Cancelar"
+  },
+  "branchSelection": {
+    "loading": "Cargando restaurantes...",
+    "title": "Selecciona un restaurante",
+    "subtitle": "Elige una sucursal para ver el menú",
+    "empty": "No hay restaurantes disponibles."
+  },
+  "cartItemRow": {
+    "unitPrice": "₡{price} c/u",
+    "decrementQuantity": "Reducir cantidad de {itemName}",
+    "incrementQuantity": "Aumentar cantidad de {itemName}",
+    "removeItem": "Quitar {itemName}"
+  },
+  "itemDetailModal": {
+    "closeAria": "Cerrar",
+    "dietaryAnalyzing": "Analizando ingredientes...",
+    "variantSection": "Tamaño o variante",
+    "required": "Requerido",
+    "optional": "Opcional",
+    "maxSelection": "Máx {count}",
+    "selectionCount": "{count} selección(es)",
+    "multipleChoice": "Selección múltiple",
+    "singleChoice": "Selección única",
+    "included": "Incluido",
+    "decrementQuantity": "Reducir cantidad de {itemName}",
+    "incrementQuantity": "Aumentar cantidad de {itemName}",
+    "customizationLabel": "Personalización",
+    "customizationPlaceholder": "Ej: Sin cebolla...",
+    "addButton": "Añadir por ₡{total} 🍱"
+  },
+  "menuItemCard": {
+    "syncError": "Error al sincronizar. Reintente por favor.",
+    "removeError": "No se pudo quitar del pedido.",
+    "customizable": "Personalizable con extras y selecciones",
+    "dietaryAnalyzing": "Analizando ingredientes...",
+    "inOrder": "{count} en tu pedido",
+    "noImage": "Sin foto",
+    "editItem": "Editar {itemName}",
+    "addItem": "Añadir {itemName}",
+    "quantity": "Cantidad",
+    "decrementQuantity": "Reducir cantidad de {itemName}",
+    "incrementQuantity": "Aumentar cantidad de {itemName}",
+    "notesPlaceholder": "Notas (ej. sin cebolla)...",
+    "close": "Cerrar",
+    "saving": "Guardando...",
+    "confirm": "Confirmar",
+    "removeFromOrder": "Quitar del pedido"
+  },
+  "userOnboardingModal": {
+    "title": "¡Bienvenido! 👋",
+    "subtitle": "Completa tus datos para ordenar más rápido",
+    "nameLabel": "Nombre completo",
+    "namePlaceholder": "Ej: Juan Pérez",
+    "phoneLabel": "WhatsApp",
+    "phonePlaceholder": "Ej: 88881234",
+    "locationLabel": "Ubicación",
+    "locationLoading": "Obteniendo ubicación...",
+    "locationGranted": "Ubicación obtenida ✓",
+    "allowLocation": "Permitir ubicación",
+    "locationHelper": "Esto nos ayuda a mostrarte restaurantes cercanos",
+    "continue": "Continuar",
+    "skip": "Omitir por ahora",
+    "errors": {
+      "nameRequired": "Por favor ingresa tu nombre",
+      "phoneRequired": "Por favor ingresa tu WhatsApp",
+      "phoneInvalid": "Formato de número inválido"
+    },
+    "locationErrors": {
+      "permissionDenied": "Permiso de ubicación denegado. Puedes continuar sin él.",
+      "positionUnavailable": "Ubicación no disponible. Intenta de nuevo.",
+      "timeout": "Tiempo de espera agotado. Intenta de nuevo.",
+      "generic": "Error al obtener ubicación."
+    }
+  },
+  "payments": {
+    "billSplitter": {
+      "title": "Dividir cuenta",
+      "closeAria": "Cerrar",
+      "totalLabel": "Total de la orden: {total}",
+      "tabs": {
+        "itemized": "Por persona",
+        "equal": "Partes iguales",
+        "custom": "Personalizado"
+      },
+      "descriptions": {
+        "itemized": "Cada quien paga solo lo que pidió. Los impuestos y el costo de envío se dividen proporcionalmente al consumo.",
+        "equal": "El total exacto se divide en partes iguales entre todos los miembros del carrito.",
+        "custom": "Asigna montos manuales a cada persona. Útil si alguien quiere invitar parte de la cuenta."
+      },
+      "participantBreakdown": "Detalle por participante",
+      "participantLine": "Consumo: {itemsTotal} • Extras: {extrasTotal}",
+      "remainingToAssign": "Restante por asignar:",
+      "confirmSinpePayments": "Confirmar pagos SINPE 📱"
+    },
+    "sinpe": {
+      "title": "Cobrar por SINPE",
+      "subtitle": "Comparte el resumen con tus amigos",
+      "closeAria": "Cerrar",
+      "organizerInstructionsTitle": "Instrucciones para el organizador",
+      "organizerInstructionsBody": "Usa los botones para copiar el mensaje o enviarlo directamente por WhatsApp a cada participante.",
+      "messageTemplate": "¡Hola {participantName}! Tu parte de la cuenta en FastEat es de {total}. Por favor, pásalo por SINPE al {hostPhone} a nombre de {hostName}. ¡Gracias! 🍣🍱",
+      "copyTextTitle": "Copiar texto",
+      "back": "Atrás",
+      "done": "Listo ⛩️"
+    }
   },
   "pwa": {
     "installPrompt": {
@@ -304,10 +493,16 @@
       "fullName": "Nombre completo",
       "fullNamePlaceholder": "Ej: Macarena...",
       "phone": "Teléfono de contacto",
+      "paymentCash": "💴 Efectivo",
+      "paymentCard": "💳 Tarjeta (Datáfono)",
+      "paymentSinpe": "📱 SINPE Móvil",
       "phoneUnavailable": "No disponible",
       "paymentMethod": "Forma de pago",
       "selectPayment": "Seleccionar método de pago",
       "noPaymentOptions": "No hay opciones disponibles",
+      "servicePickup": "🥡 Para recoger",
+      "serviceDelivery": "🛵 Envío a casa",
+      "serviceDineIn": "🍱 Comer en el restaurante",
       "serviceType": "Tipo de servicio",
       "selectServiceType": "Seleccionar tipo de entrega",
       "noServiceTypes": "No hay tipos de servicio disponibles",
@@ -322,6 +517,7 @@
       "profileLocationTag": "Ubicación guardada del perfil",
       "currentOrderLocation": "Ubicación actual del pedido",
       "locationNotSelected": "No hay ubicación seleccionada para este pedido.",
+      "savingProfileLocation": "Guardando la ubicación actual en tu perfil...",
       "openMapLocationPicker": "Elegir ubicación en mapa",
       "openMapLocationPickerLoading": "Obteniendo ubicación actual...",
       "gpsAttached": "Ubicación GPS adjunta",
@@ -340,6 +536,15 @@
       "title": "Confirma tu pedido",
       "subtitle": "Revisa productos, completa los datos de entrega y confirma el pago desde una pantalla dedicada.",
       "backToMenu": "Volver al menú",
+      "defaultDeliveryNote": "Entregar en la puerta",
+      "locationServicesDisabled": "Los servicios de ubicación están desactivados. Abriremos el mapa con una ubicación predeterminada.",
+      "locationPermissionPrompt": "Permite el acceso a tu ubicación para centrar el mapa en tu posición actual.",
+      "locationPermissionDenied": "No pudimos acceder a tu ubicación. Abriremos el mapa con una ubicación predeterminada.",
+      "saveProfileLocationConfirm": "¿Quieres guardar esta ubicación como tu nueva ubicación de perfil?",
+      "profileLocationSaved": "✅ Ubicación guardada en tu perfil.",
+      "profileLocationSaveFailed": "⚠️ No se pudo guardar la ubicación en tu perfil. La mantuvimos solo para este pedido.",
+      "browserGeolocationUnsupported": "Tu navegador no soporta geolocalización. 🏮",
+      "geolocationFailed": "No pudimos obtener tu ubicación. 🏮",
       "groupMode": "Pedido grupal",
       "soloMode": "Pedido individual",
       "phoneFallback": "Sin teléfono",
@@ -352,6 +557,106 @@
       "summaryEyebrow": "Pago",
       "summaryTitle": "Resumen final",
       "placeOrder": "Confirmar pedido"
+    }
+  },
+  "addressModal": {
+    "title": "Dirección de entrega",
+    "close": "Cerrar",
+    "back": "Volver",
+    "heading": "¿Dónde entregamos?",
+    "description": "Elige el pin o pega una dirección de Google Maps para usarla tanto en checkout como en perfil.",
+    "urlLabel": "URL de Google Maps",
+    "urlDescription": "Puedes dejarlo en blanco si solo marcas el punto en el mapa.",
+    "urlPlaceholder": "https://www.google.com/maps/search/?api=1&query=...",
+    "buildingTypeLabel": "Tipo de edificio",
+    "buildingTypeDescription": "Esto ayuda a que las instrucciones de entrega sean más precisas cuando vuelvas a abrir la dirección.",
+    "buildingTypes": {
+      "apartment": "Apartamento",
+      "residentialBuilding": "Edificio residencial",
+      "hotel": "Hotel",
+      "officeBuilding": "Edificio de oficinas",
+      "other": "Otro"
+    },
+    "unitDetailsLabel": "Apartamento, suite o piso",
+    "unitDetailsPlaceholder": "Apto 8B, piso 3",
+    "deliveryNotesLabel": "Notas de entrega",
+    "deliveryNotesDescription": "Cualquier detalle que el repartidor deba saber al llegar al edificio.",
+    "deliveryNotesPlaceholder": "Entréguelo en el lobby, llame al llegar, déjelo con recepción...",
+    "defaultDeliveryNote": "Entregar en la puerta",
+    "saveUrlError": "Agrega una URL de Google Maps antes de guardar.",
+    "saveError": "No se pudo guardar la dirección. Inténtalo de nuevo.",
+    "saving": "Guardando...",
+    "save": "Guardar dirección"
+  },
+  "mysteryBox": {
+    "eyebrow": "Mystery Box",
+    "title": "Ofertas sorpresa compatibles contigo",
+    "description": "Estas cajas usan disponibilidad dinámica y tu perfil alimenticio para armar combos con descuento y menor desperdicio.",
+    "authTitle": "Necesitas iniciar sesión para ver ofertas sorpresa personalizadas.",
+    "authDescription": "La disponibilidad y los filtros dietarios dependen de tu contexto autenticado.",
+    "filtersEyebrow": "Filtros",
+    "filtersTitle": "Refina las cajas disponibles",
+    "filtersDescription": "Cada búsqueda usa tu sesión actual y la disponibilidad dinámica para actualizar las ofertas.",
+    "maxPriceLabel": "Precio máximo",
+    "maxPriceDescription": "Controla el techo del combo antes de aplicar el descuento sorpresa.",
+    "serviceModeLabel": "Modalidad",
+    "serviceModeDescription": "Ajusta la oferta según logística de delivery o retiro en tienda.",
+    "search": "Buscar ofertas",
+    "loadError": "No se pudieron cargar las ofertas.",
+    "cannotAcceptYet": "Esta oferta no se puede aceptar todavía.",
+    "acceptSuccess": "Oferta aceptada correctamente.",
+    "acceptError": "No se pudo aceptar la oferta.",
+    "viewCreatedOrder": "Ver orden creada",
+    "empty": "No hay mystery boxes disponibles con estos filtros por ahora.",
+    "restaurantFallback": "Restaurante",
+    "defaultOfferDescription": "Oferta generada con inventario disponible y compatibilidad dietaria.",
+    "originalValue": "Valor original ₡{amount}",
+    "excludedAllergen": "Sin {allergen}",
+    "availableUntil": "Disponible hasta {value}",
+    "limitedAvailability": "Disponibilidad limitada",
+    "acceptButton": "Aceptar oferta",
+    "unavailableButton": "No disponible",
+    "serviceModes": {
+      "delivery": {
+        "title": "Delivery",
+        "description": "Ofertas listas para enviarse con la logística disponible."
+      },
+      "pickup": {
+        "title": "Pickup",
+        "description": "Combos pensados para recoger rápido en el local."
+      }
+    }
+  },
+  "reviews": {
+    "composer": {
+      "submit": "Enviar reseña",
+      "dismiss": "Ahora no",
+      "submitting": "Enviando...",
+      "submitError": "No se pudo enviar la reseña",
+      "ratingAriaPrefix": "Calificar con",
+      "placeholder": "Comentario opcional"
+    }
+  },
+  "loyalty": {
+    "dashboard": {
+      "close": "Cerrar vista de puntos",
+      "currentTierLabel": "Tu rango actual",
+      "pointsSuffix": "pts",
+      "pointsToNextTier": "Faltan {points} pts para",
+      "streakTitle": "Racha de pedidos",
+      "currentStreak": "Racha actual",
+      "bestStreak": "Mejor racha",
+      "streakHint": "Pide 1 vez más esta semana para mantener tu racha viva y ganar multiplicadores.",
+      "badgesTitle": "Insignias obtenidas",
+      "keepExploring": "Sigue explorando",
+      "emptyBadges": "Aún no tienes insignias. Haz tu primer pedido para empezar a coleccionarlas.",
+      "tiers": {
+        "explorer": "Explorador",
+        "enthusiast": "Aficionado",
+        "connoisseur": "Conocedor",
+        "localGourmet": "Gourmet local",
+        "masterOfFlavor": "Maestro del sabor"
+      }
     }
   },
   "tracking": {
@@ -467,10 +772,23 @@
       "subtitle": "Encuentra mejores opciones antes de elegir restaurante",
       "closeAria": "Cerrar asistente",
       "viewRestaurant": "Ver restaurante",
+      "viewDetails": "Ver detalles",
       "inputAria": "Mensaje para asistente de descubrimiento",
       "inputPlaceholder": "Ej. quiero algo barato con envío rápido",
+      "sendAria": "Enviar mensaje al asistente",
       "openAria": "Abrir asistente de descubrimiento",
       "buttonLabel": "Asistente",
+      "chefName": "Chef Zen",
+      "online": "En línea",
+      "menuQuestion": "¿Dudas con el menú? 🍱",
+      "askChef": "Pregúntale al Chef Zen",
+      "chefSays": "Chef Zen dice:",
+      "dismissNotificationAria": "Cerrar notificación de Chef Zen",
+      "welcomeMessage": "¡Konichiwa! Soy el Chef Zen. ¿Puedo ayudarte con alguna recomendación del menú?",
+      "confirmationMessage": "¡Entendido! 🏮",
+      "kitchenFailedMessage": "Lo siento, mi conexión con la cocina falló. ⛩️",
+      "kitchenConnectionError": "Lo siento, tuve un problema conectando con la cocina. 🏮",
+      "suggestedDishes": "Platillos sugeridos:",
       "quickPrompts": {
         "budget": "Algo barato para hoy",
         "family": "Combo familiar",
@@ -479,6 +797,7 @@
       }
     },
     "restaurantRail": {
+      "loadingAria": "Cargando restaurantes",
       "empty": {
         "query": "No encontramos resultados para tu búsqueda actual.",
         "queryAction": "Limpiar búsqueda",
@@ -507,12 +826,22 @@
       "discount": "Desc."
     },
     "categoryBar": {
-      "all": "Todos"
+      "all": "Todos",
+      "listAria": "Lista horizontal de categorías"
     },
     "intentBar": {
+      "all": "Todos",
       "scrollLeft": "Desplazar secciones a la izquierda",
       "scrollRight": "Desplazar secciones a la derecha",
       "openFilters": "Filtros y orden"
+    },
+    "storyFeed": {
+      "title": "Story Menus",
+      "authRequired": "Debes iniciar sesión para ver Story Menus.",
+      "loadError": "No se pudo cargar Story Menus.",
+      "loading": "Cargando historias...",
+      "retry": "Reintentar",
+      "empty": "No hay Story Menus activos por ahora."
     },
     "voiceSearch": {
       "holdToOrderTitle": "Mantén presionado para ordenar por voz",
@@ -582,6 +911,7 @@
     },
     "restaurantCard": {
       "restaurantFallback": "Restaurante",
+      "imageAlt": "Imagen de {name}",
       "promo": "Promo",
       "etaPending": "ETA por confirmar",
       "approx": "aprox",

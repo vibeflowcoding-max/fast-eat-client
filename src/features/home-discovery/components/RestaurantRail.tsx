@@ -6,6 +6,7 @@ import HomeRailSkeleton from './HomeRailSkeleton';
 import { emitHomeEvent } from '../analytics';
 import { HOME_VISUAL_TOKENS } from './homeVisualTokens';
 import { useTranslations } from 'next-intl';
+import { Button, Surface } from '@/../resources/components';
 
 type RailEmptyVariant = 'default' | 'query' | 'intent_or_filter' | 'nearby';
 
@@ -163,31 +164,32 @@ export default function RestaurantRail({
     const renderEmptyState = () => {
         if (!statePolishV1) {
             return (
-                <div className="ui-panel text-center rounded-[1.75rem] border-dashed py-8">
-                    <p className="text-sm text-[var(--color-text-muted)]">{t('empty.default')}</p>
-                </div>
+                <Surface className="rounded-[1.75rem] border border-dashed border-slate-200 py-8 text-center dark:border-slate-700" variant="base">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('empty.default')}</p>
+                </Surface>
             );
         }
 
         return (
-            <div className="ui-panel rounded-[1.75rem] border-dashed px-4 py-6 text-center">
-                <p className="text-sm text-[var(--color-text-muted)]">{emptyStateConfig.message}</p>
+            <Surface className="rounded-[1.75rem] border border-dashed border-slate-200 px-4 py-6 text-center dark:border-slate-700" variant="base">
+                <p className="text-sm text-slate-500 dark:text-slate-400">{emptyStateConfig.message}</p>
                 {emptyStateConfig.action && onEmptyAction && (
-                    <button
-                        type="button"
+                    <Button
                         onClick={handleEmptyAction}
-                        className="ui-btn-secondary mt-3 rounded-full px-4 py-2 text-sm font-semibold"
+                        className="mt-3 min-h-[44px] rounded-full px-4"
+                        size="sm"
+                        variant="outline"
                     >
                         {emptyStateConfig.action.label}
-                    </button>
+                    </Button>
                 )}
-            </div>
+            </Surface>
         );
     };
 
     const renderState = () => {
         if (railState === 'loading') {
-            return <HomeRailSkeleton />;
+            return <HomeRailSkeleton ariaLabel={t('loadingAria')} />;
         }
 
         if (railState === 'error') {
@@ -221,7 +223,7 @@ export default function RestaurantRail({
                 {restaurants.map((restaurant, index) => (
                     <div
                         key={`${railId}-${restaurant.id}`}
-                        className="w-[280px] shrink-0 snap-start sm:w-auto sm:shrink sm:snap-none"
+                        className="w-[min(280px,calc(100vw-2.5rem))] shrink-0 snap-start sm:w-auto sm:shrink sm:snap-none"
                     >
                         <RestaurantCard
                             restaurant={restaurant}
@@ -239,15 +241,15 @@ export default function RestaurantRail({
             aria-labelledby={`${railId}-title`}
         >
             <div className="flex items-center justify-between mb-3">
-                <div>
+                <div className="min-w-0">
                     <h2
                         id={`${railId}-title`}
-                        className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.titleStyle : 'text-lg font-semibold text-gray-900'}
+                        className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.titleStyle : 'text-lg font-semibold text-gray-900 break-words'}
                     >
                         {title}
                     </h2>
                     {subtitle && (
-                        <p className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.subtitleStyle : 'text-sm text-gray-500'}>
+                        <p className={visualHierarchyV2 ? `${HOME_VISUAL_TOKENS.subtitleStyle} break-words` : 'break-words text-sm text-gray-500'}>
                             {subtitle}
                         </p>
                     )}

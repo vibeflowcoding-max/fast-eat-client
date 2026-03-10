@@ -277,7 +277,7 @@ export async function loadBranchMenuFromSupabase(branchId: string) {
 
   const categories = Array.from(categoryMap.values())
     .sort((left, right) => left.order - right.order)
-    .map(({ order, ...category }) => category);
+    .map(({ order: _order, ...category }) => category);
 
   return {
     menu: { id: String(branchRecord.restaurant_id), name: 'Menu' },

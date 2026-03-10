@@ -110,7 +110,23 @@ interface SocialSettingsRow {
 }
 
 function getMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (error && typeof error === 'object') {
+    const message = 'message' in error ? error.message : null;
+    if (typeof message === 'string' && message.length > 0) {
+      return message;
+    }
+
+    const details = 'details' in error ? error.details : null;
+    if (typeof details === 'string' && details.length > 0) {
+      return details;
+    }
+  }
+
+  return fallback;
 }
 
 function logBootstrapWarning(scope: string, userId: string, error: unknown) {
@@ -150,8 +166,10 @@ export async function getClientBootstrapPayload(userId: string): Promise<ClientB
   const { data: address, error: addressError } = typedCustomer?.id
     ? await (supabaseServer as any)
         .from('customer_address')
-        .select('id, customer_id, url_address, building_type, unit_details, delivery_notes, lat, lng, formatted_address, place_id')
+        .select('id, customer_id, url_address, building_type, unit_details, delivery_notes')
         .eq('customer_id', typedCustomer.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
     : { data: null, error: null };
 

@@ -22,22 +22,14 @@ function createRestaurant(id: string, name: string) {
 }
 
 describe('useRestaurants', () => {
-  it('aborts stale list requests when dependencies change', async () => {
+  it('ignores stale list responses when dependencies change', async () => {
     const pending: Array<{
-      signal?: AbortSignal;
       resolve: (value: unknown) => void;
-      reject: (reason?: unknown) => void;
     }> = [];
 
-    vi.stubGlobal('fetch', vi.fn((_url: string, init?: RequestInit) => {
-      return new Promise((resolve, reject) => {
-        const signal = init?.signal as AbortSignal | undefined;
-
-        signal?.addEventListener('abort', () => {
-          reject(new DOMException('Aborted', 'AbortError'));
-        });
-
-        pending.push({ signal, resolve, reject });
+    vi.stubGlobal('fetch', vi.fn(() => {
+      return new Promise((resolve) => {
+        pending.push({ resolve });
       });
     }) as typeof fetch);
 
@@ -48,11 +40,18 @@ describe('useRestaurants', () => {
 
     rerender({ categoryId: 'cat-2' });
 
-    expect(pending[0]?.signal?.aborted).toBe(true);
-
     pending[1]?.resolve({
       ok: true,
       json: async () => [createRestaurant('restaurant-2', 'Sushi')],
+    });
+
+    await waitFor(() => {
+      expect(result.current.restaurants[0]?.id).toBe('restaurant-2');
+    });
+
+    pending[0]?.resolve({
+      ok: true,
+      json: async () => [createRestaurant('restaurant-1', 'Burger House')],
     });
 
     await waitFor(() => {
@@ -71,7 +70,7 @@ describe('useRestaurants', () => {
       });
     }) as typeof fetch);
 
-    const first = renderHook(() => useRestaurants({ categoryId: 'cat-1' }));
+    const first = renderHook(() => useRestaurants({ categoryId: 'shared-cat' }));
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledTimes(1);
@@ -79,7 +78,7 @@ describe('useRestaurants', () => {
 
     first.unmount();
 
-    const second = renderHook(() => useRestaurants({ categoryId: 'cat-1' }));
+    const second = renderHook(() => useRestaurants({ categoryId: 'shared-cat' }));
 
     resolveFetch?.({
       ok: true,

@@ -1,10 +1,18 @@
 {
   "auth": {
+    "common": {
+      "requiredBadge": "Required",
+      "heroFooter": "Authentication, onboarding, and address setup in one shared experience."
+    },
     "signIn": {
       "title": "Sign in",
       "description": "Access your account to load favorites, history and settings.",
+      "heroTitle": "The fastest way to order again.",
+      "heroDescription": "Access favorites, orders, address details, and your entire customer experience from a single session.",
       "email": "Email",
+      "emailPlaceholder": "name@example.com",
       "password": "Password",
+      "passwordPlaceholder": "••••••••",
       "showPassword": "Show password",
       "hidePassword": "Hide password",
       "socialDivider": "or continue with",
@@ -19,12 +27,17 @@
     "signUp": {
       "title": "Create account",
       "description": "Sign up to save orders, favorites and preferences.",
+      "heroTitle": "Your next order starts with a ready profile.",
+      "heroDescription": "Create a customer account to save favorites, addresses, and orders without starting over on every visit.",
       "fullName": "Full name",
+      "fullNamePlaceholder": "Your name",
       "phone": "Phone",
       "phonePlaceholder": "88887777",
       "phoneTitle": "Enter 8 digits; +506 is added automatically",
       "email": "Email",
+      "emailPlaceholder": "name@example.com",
       "password": "Password",
+      "passwordPlaceholder": "Min. 6 characters",
       "showPassword": "Show password",
       "hidePassword": "Hide password",
       "socialDivider": "or continue with",
@@ -39,6 +52,8 @@
     },
     "callback": {
       "title": "Finishing authentication...",
+      "heroTitle": "One moment, we are wrapping up your access.",
+      "heroDescription": "We are syncing the external provider session with your customer experience so we can take you back into the app without manual steps.",
       "loading": "One moment, signing you in.",
       "missingCode": "OAuth code was not received",
       "genericError": "Could not complete authentication"
@@ -58,7 +73,45 @@
     "openRestaurantReviews": "Open restaurant reviews",
     "addFavoriteRestaurant": "Add restaurant to favorites",
     "removeFavoriteRestaurant": "Remove restaurant from favorites",
-    "ratingNotAvailable": "N/A"
+    "ratingNotAvailable": "N/A",
+    "favoriteError": "Could not save this restaurant to favorites.",
+    "unfavoriteError": "Could not remove this restaurant from favorites.",
+    "dismissOrderStatusNotification": "Dismiss order status notification",
+    "dismissBidNotification": "Dismiss bid notification",
+    "newOfferReceived": "New offer received"
+  },
+  "notifications": {
+    "trayTitle": "Recent notifications",
+    "traySubtitle": "Fresh offers and activity for your orders",
+    "newBadge": "New",
+    "closeTray": "Close notifications",
+    "seeAll": "See all notifications",
+    "emptyTitle": "No notifications yet",
+    "emptyDescription": "New delivery offers and order updates will appear here when they arrive.",
+    "emptyAction": "Browse restaurants",
+    "pageTitle": "Notifications",
+    "pageSubtitle": "Recent alert and offer history",
+    "backToHome": "Go back",
+    "offerTitle": "Delivery offer received",
+    "offerBody": "You have a delivery offer for ₡{amount} on order {orderId}.",
+    "time": {
+      "now": "Now",
+      "yesterday": "Yesterday"
+    },
+    "groups": {
+      "today": {
+        "eyebrow": "Right now",
+        "title": "Today"
+      },
+      "yesterday": {
+        "eyebrow": "Recent archive",
+        "title": "Yesterday"
+      },
+      "earlier": {
+        "eyebrow": "History",
+        "title": "Earlier"
+      }
+    }
   },
   "carts": {
     "title": "Your carts",
@@ -116,16 +169,47 @@
     "phone": "Phone",
     "name": "Name",
     "location": "Location",
+    "editSectionEyebrow": "Profile",
+    "editSectionTitle": "Edit profile",
+    "saveButton": "Save profile",
+    "saveSuccess": "Profile updated successfully.",
+    "validationNamePhone": "Name and phone are required.",
+    "authRequiredUpdateProfile": "You must sign in again to update your profile.",
+    "updateProfileError": "Could not update profile.",
     "noAddress": "You have not saved an address yet",
+    "locationSectionEyebrow": "Address",
+    "locationSectionDescription": "Manage your primary delivery point.",
+    "savedLocationValue": "Saved Google Maps location",
+    "savedCoordinates": "Saved pin: {lat}, {lng}",
+    "locationUrlRequired": "Location URL is required.",
+    "authRequiredUpdateLocation": "You must sign in again to update your location.",
+    "updateLocationError": "Could not update location.",
+    "defaultDeliveryNote": "Meet at door",
     "viewOrders": "View orders",
     "favoriteRestaurants": "Favorite restaurants",
     "noFavorites": "Not enough orders yet to detect favorites.",
     "allergiesSettings": "Allergy settings",
     "noAllergies": "No allergies registered yet.",
+    "dietaryProfileLabel": "Dietary profile",
+    "syncStatusSynced": "Synced",
+    "syncStatusLocal": "Local",
+    "avoidIngredientPrefix": "Avoid",
+    "dietaryAdjustButton": "Adjust dietary profile",
+    "plannerTitle": "AI Planner",
+    "plannerDescription": "Get dish ideas based on your diet, preferences, and time of day.",
+    "plannerAction": "Open",
+    "mysteryBoxTitle": "Mystery Box",
+    "mysteryBoxDescription": "Discover surprise combos that match your profile and available stock.",
+    "mysteryBoxAction": "View offers",
     "languageSection": "Language",
     "languageDescription": "Choose how you want to view app content.",
     "languageLabel": "App language",
     "languageUpdated": "Language updated",
+    "logoutSection": "Session",
+    "logoutDescription": "Sign out on this device and protect your account.",
+    "logoutButton": "Sign out",
+    "logoutPending": "Signing out...",
+    "logoutError": "Could not sign out. Please try again.",
     "setLocation": "Set location",
     "changeLocation": "Change location",
     "resolvingLocation": "Getting current location...",
@@ -135,6 +219,111 @@
     "languageUpdated": "Language updated",
     "save": "Save",
     "cancel": "Cancel"
+  },
+  "branchSelection": {
+    "loading": "Loading restaurants...",
+    "title": "Select a restaurant",
+    "subtitle": "Choose a branch to view the menu",
+    "empty": "No restaurants are currently available."
+  },
+  "cartItemRow": {
+    "unitPrice": "₡{price} each",
+    "decrementQuantity": "Decrease quantity of {itemName}",
+    "incrementQuantity": "Increase quantity of {itemName}",
+    "removeItem": "Remove {itemName}"
+  },
+  "itemDetailModal": {
+    "closeAria": "Close",
+    "dietaryAnalyzing": "Analyzing ingredients...",
+    "variantSection": "Size or variant",
+    "required": "Required",
+    "optional": "Optional",
+    "maxSelection": "Max {count}",
+    "selectionCount": "{count} selection(s)",
+    "multipleChoice": "Multiple choice",
+    "singleChoice": "Single choice",
+    "included": "Included",
+    "decrementQuantity": "Decrease quantity of {itemName}",
+    "incrementQuantity": "Increase quantity of {itemName}",
+    "customizationLabel": "Customization",
+    "customizationPlaceholder": "E.g. no onions...",
+    "addButton": "Add for ₡{total} 🍱"
+  },
+  "menuItemCard": {
+    "syncError": "There was a sync error. Please try again.",
+    "removeError": "Could not remove this item from the order.",
+    "customizable": "Customizable with extras and selections",
+    "dietaryAnalyzing": "Analyzing ingredients...",
+    "inOrder": "{count} in your order",
+    "noImage": "No image",
+    "editItem": "Edit {itemName}",
+    "addItem": "Add {itemName}",
+    "quantity": "Quantity",
+    "decrementQuantity": "Decrease quantity of {itemName}",
+    "incrementQuantity": "Increase quantity of {itemName}",
+    "notesPlaceholder": "Notes (e.g. no onions)...",
+    "close": "Close",
+    "saving": "Saving...",
+    "confirm": "Confirm",
+    "removeFromOrder": "Remove from order"
+  },
+  "userOnboardingModal": {
+    "title": "Welcome! 👋",
+    "subtitle": "Complete your details to order faster",
+    "nameLabel": "Full name",
+    "namePlaceholder": "E.g. John Doe",
+    "phoneLabel": "WhatsApp",
+    "phonePlaceholder": "E.g. 88881234",
+    "locationLabel": "Location",
+    "locationLoading": "Getting location...",
+    "locationGranted": "Location received ✓",
+    "allowLocation": "Allow location",
+    "locationHelper": "This helps us show nearby restaurants",
+    "continue": "Continue",
+    "skip": "Skip for now",
+    "errors": {
+      "nameRequired": "Please enter your name",
+      "phoneRequired": "Please enter your WhatsApp number",
+      "phoneInvalid": "Invalid phone number format"
+    },
+    "locationErrors": {
+      "permissionDenied": "Location permission denied. You can continue without it.",
+      "positionUnavailable": "Location unavailable. Try again.",
+      "timeout": "Location request timed out. Try again.",
+      "generic": "Error getting location."
+    }
+  },
+  "payments": {
+    "billSplitter": {
+      "title": "Split bill",
+      "closeAria": "Close",
+      "totalLabel": "Order total: {total}",
+      "tabs": {
+        "itemized": "Per person",
+        "equal": "Equal parts",
+        "custom": "Custom"
+      },
+      "descriptions": {
+        "itemized": "Each person only pays for what they ordered. Taxes and delivery fees are split proportionally to consumption.",
+        "equal": "The exact total is divided into equal parts among all cart members.",
+        "custom": "Assign manual amounts to each person. Useful when someone wants to cover part of the bill."
+      },
+      "participantBreakdown": "Breakdown by participant",
+      "participantLine": "Items: {itemsTotal} • Extras: {extrasTotal}",
+      "remainingToAssign": "Remaining to assign:",
+      "confirmSinpePayments": "Confirm SINPE payments 📱"
+    },
+    "sinpe": {
+      "title": "Collect with SINPE",
+      "subtitle": "Share the summary with your friends",
+      "closeAria": "Close",
+      "organizerInstructionsTitle": "Host instructions",
+      "organizerInstructionsBody": "Use the buttons to copy the message or send it directly by WhatsApp to each participant.",
+      "messageTemplate": "Hi {participantName}! Your share of the FastEat order is {total}. Please send it by SINPE to {hostPhone} under the name {hostName}. Thanks! 🍣🍱",
+      "copyTextTitle": "Copy text",
+      "back": "Back",
+      "done": "Done ⛩️"
+    }
   },
   "pwa": {
     "installPrompt": {
@@ -304,10 +493,16 @@
       "fullName": "Full name",
       "fullNamePlaceholder": "Ex: Macarena...",
       "phone": "Contact phone",
+      "paymentCash": "💴 Cash",
+      "paymentCard": "💳 Card (reader)",
+      "paymentSinpe": "📱 SINPE Móvil",
       "phoneUnavailable": "Unavailable",
       "paymentMethod": "Payment method",
       "selectPayment": "Select payment method",
       "noPaymentOptions": "No options available",
+      "servicePickup": "🥡 Pickup",
+      "serviceDelivery": "🛵 Home delivery",
+      "serviceDineIn": "🍱 Dine in",
       "serviceType": "Service type",
       "selectServiceType": "Select service type",
       "noServiceTypes": "No service types available",
@@ -322,6 +517,7 @@
       "profileLocationTag": "Saved profile location",
       "currentOrderLocation": "Current order location",
       "locationNotSelected": "No location selected for this order.",
+      "savingProfileLocation": "Saving the current location to your profile...",
       "openMapLocationPicker": "Pick location on map",
       "openMapLocationPickerLoading": "Getting current location...",
       "gpsAttached": "GPS location attached",
@@ -340,6 +536,15 @@
       "title": "Confirm your order",
       "subtitle": "Review items, complete delivery details, and confirm payment from a dedicated screen.",
       "backToMenu": "Back to menu",
+      "defaultDeliveryNote": "Meet at door",
+      "locationServicesDisabled": "Location services are disabled. We will open the map with a default location.",
+      "locationPermissionPrompt": "Please allow location access to center the map on your current location.",
+      "locationPermissionDenied": "We could not access your location. We will open the map with a default location.",
+      "saveProfileLocationConfirm": "Do you want to save this location as your new profile location?",
+      "profileLocationSaved": "✅ Location saved to your profile.",
+      "profileLocationSaveFailed": "⚠️ Could not save the location to your profile. We kept it only for this order.",
+      "browserGeolocationUnsupported": "Your browser does not support geolocation. 🏮",
+      "geolocationFailed": "We could not get your location. 🏮",
       "groupMode": "Group order",
       "soloMode": "Solo order",
       "phoneFallback": "No phone",
@@ -352,6 +557,106 @@
       "summaryEyebrow": "Payment",
       "summaryTitle": "Final summary",
       "placeOrder": "Confirm order"
+    }
+  },
+  "addressModal": {
+    "title": "Delivery address",
+    "close": "Close",
+    "back": "Back",
+    "heading": "Where should we deliver?",
+    "description": "Pick the pin or paste a Google Maps address so the app can use it across checkout and profile.",
+    "urlLabel": "Google Maps URL",
+    "urlDescription": "You can leave this blank if you are only placing the pin on the map.",
+    "urlPlaceholder": "https://www.google.com/maps/search/?api=1&query=...",
+    "buildingTypeLabel": "Building type",
+    "buildingTypeDescription": "This helps delivery instructions feel more specific when the address is reopened later.",
+    "buildingTypes": {
+      "apartment": "Apartment",
+      "residentialBuilding": "Residential building",
+      "hotel": "Hotel",
+      "officeBuilding": "Office building",
+      "other": "Other"
+    },
+    "unitDetailsLabel": "Apartment, suite or floor",
+    "unitDetailsPlaceholder": "Apt 8B, floor 3",
+    "deliveryNotesLabel": "Delivery notes",
+    "deliveryNotesDescription": "Anything the driver should know when arriving at the building.",
+    "deliveryNotesPlaceholder": "Meet at the lobby, call on arrival, leave with concierge...",
+    "defaultDeliveryNote": "Meet at door",
+    "saveUrlError": "Please provide a Google Maps URL before saving.",
+    "saveError": "Could not save address. Please retry.",
+    "saving": "Saving...",
+    "save": "Save address"
+  },
+  "mysteryBox": {
+    "eyebrow": "Mystery Box",
+    "title": "Surprise offers compatible with you",
+    "description": "These boxes use dynamic availability and your dietary profile to build discounted combos with less waste.",
+    "authTitle": "You need to sign in to view personalized surprise offers.",
+    "authDescription": "Availability and dietary filters depend on your authenticated context.",
+    "filtersEyebrow": "Filters",
+    "filtersTitle": "Refine the available boxes",
+    "filtersDescription": "Each search uses your current session and dynamic availability to refresh the offers.",
+    "maxPriceLabel": "Max price",
+    "maxPriceDescription": "Control the combo ceiling before the surprise discount is applied.",
+    "serviceModeLabel": "Mode",
+    "serviceModeDescription": "Adjust the offer for delivery logistics or pickup.",
+    "search": "Search offers",
+    "loadError": "Could not load offers.",
+    "cannotAcceptYet": "This offer cannot be accepted yet.",
+    "acceptSuccess": "Offer accepted successfully.",
+    "acceptError": "Could not accept the offer.",
+    "viewCreatedOrder": "View created order",
+    "empty": "There are no mystery boxes available with these filters right now.",
+    "restaurantFallback": "Restaurant",
+    "defaultOfferDescription": "Offer generated from available inventory and dietary compatibility.",
+    "originalValue": "Original value ₡{amount}",
+    "excludedAllergen": "No {allergen}",
+    "availableUntil": "Available until {value}",
+    "limitedAvailability": "Limited availability",
+    "acceptButton": "Accept offer",
+    "unavailableButton": "Unavailable",
+    "serviceModes": {
+      "delivery": {
+        "title": "Delivery",
+        "description": "Offers ready to ship with the available logistics."
+      },
+      "pickup": {
+        "title": "Pickup",
+        "description": "Combos designed for quick pickup at the store."
+      }
+    }
+  },
+  "reviews": {
+    "composer": {
+      "submit": "Submit review",
+      "dismiss": "Not now",
+      "submitting": "Sending...",
+      "submitError": "Could not submit review",
+      "ratingAriaPrefix": "Set rating",
+      "placeholder": "Optional comment"
+    }
+  },
+  "loyalty": {
+    "dashboard": {
+      "close": "Close points view",
+      "currentTierLabel": "Your current tier",
+      "pointsSuffix": "pts",
+      "pointsToNextTier": "{points} pts left for",
+      "streakTitle": "Order streak",
+      "currentStreak": "Current streak",
+      "bestStreak": "Best streak",
+      "streakHint": "Place 1 more order this week to keep your streak alive and earn multipliers.",
+      "badgesTitle": "Earned badges",
+      "keepExploring": "Keep exploring",
+      "emptyBadges": "You do not have badges yet. Place your first order to start collecting them.",
+      "tiers": {
+        "explorer": "Explorer",
+        "enthusiast": "Enthusiast",
+        "connoisseur": "Connoisseur",
+        "localGourmet": "Local gourmet",
+        "masterOfFlavor": "Master of flavor"
+      }
     }
   },
   "tracking": {
@@ -467,10 +772,23 @@
       "subtitle": "Find better options before choosing a restaurant",
       "closeAria": "Close assistant",
       "viewRestaurant": "View restaurant",
+      "viewDetails": "View details",
       "inputAria": "Message for discovery assistant",
       "inputPlaceholder": "e.g. I want something affordable with fast delivery",
+      "sendAria": "Send message to assistant",
       "openAria": "Open discovery assistant",
       "buttonLabel": "Assistant",
+      "chefName": "Chef Zen",
+      "online": "Online",
+      "menuQuestion": "Questions about the menu? 🍱",
+      "askChef": "Ask Chef Zen",
+      "chefSays": "Chef Zen says:",
+      "dismissNotificationAria": "Dismiss Chef Zen notification",
+      "welcomeMessage": "Konichiwa! I'm Chef Zen. Can I help you with a menu recommendation?",
+      "confirmationMessage": "Understood! 🏮",
+      "kitchenFailedMessage": "Sorry, my connection with the kitchen failed. ⛩️",
+      "kitchenConnectionError": "Sorry, I had a problem connecting with the kitchen. 🏮",
+      "suggestedDishes": "Suggested dishes:",
       "quickPrompts": {
         "budget": "Something affordable today",
         "family": "Family combo",
@@ -479,6 +797,7 @@
       }
     },
     "restaurantRail": {
+      "loadingAria": "Loading restaurants",
       "empty": {
         "query": "No results found for your current search.",
         "queryAction": "Clear search",
@@ -507,12 +826,22 @@
       "discount": "Discount"
     },
     "categoryBar": {
-      "all": "All"
+      "all": "All",
+      "listAria": "Horizontal category list"
     },
     "intentBar": {
+      "all": "All",
       "scrollLeft": "Scroll sections to the left",
       "scrollRight": "Scroll sections to the right",
       "openFilters": "Filters and sorting"
+    },
+    "storyFeed": {
+      "title": "Story menus",
+      "authRequired": "You must sign in to view story menus.",
+      "loadError": "Could not load story menus.",
+      "loading": "Loading stories...",
+      "retry": "Retry",
+      "empty": "There are no active story menus right now."
     },
     "voiceSearch": {
       "holdToOrderTitle": "Hold to order with voice",
@@ -582,6 +911,7 @@
     },
     "restaurantCard": {
       "restaurantFallback": "Restaurant",
+      "imageAlt": "Image of {name}",
       "promo": "Promo",
       "etaPending": "ETA pending",
       "approx": "approx",

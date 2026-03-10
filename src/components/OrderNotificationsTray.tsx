@@ -1,51 +1,121 @@
 "use client";
 
 import React, { useMemo } from 'react';
+import { Bell, Sparkles, X } from 'lucide-react';
+import { Button, EmptyState, Surface } from '@/../resources/components';
+import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
+import NotificationListItem from '@/features/notifications/components/NotificationListItem';
+import { mapBidNotificationsToItems } from '@/features/notifications/notifications-model';
+import { useTranslations } from 'next-intl';
 
 interface OrderNotificationsTrayProps {
   onOpenTracking: () => void;
+  onClose?: () => void;
 }
 
-const OrderNotificationsTray: React.FC<OrderNotificationsTrayProps> = ({ onOpenTracking }) => {
+const OrderNotificationsTray: React.FC<OrderNotificationsTrayProps> = ({ onOpenTracking, onClose }) => {
+  const router = useAppRouter();
+  const t = useTranslations('notifications');
   const bidNotifications = useCartStore((state) => state.bidNotifications);
   const markBidNotificationRead = useCartStore((state) => state.markBidNotificationRead);
   const setDeepLinkTarget = useCartStore((state) => state.setDeepLinkTarget);
 
   const sortedNotifications = useMemo(
-    () => [...bidNotifications].sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime()).slice(0, 20),
+    () => mapBidNotificationsToItems(bidNotifications).slice(0, 3),
     [bidNotifications]
   );
 
+  const unreadCount = bidNotifications.filter((notification) => !notification.read).length;
+
+  const handleOpenHistory = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fast-eat:notifications_history_opened', {
+        detail: { source: 'notifications_tray' },
+      }));
+    }
+
+    onClose?.();
+    router.push('/notifications');
+  };
+
   if (!sortedNotifications.length) {
     return (
-      <div className="w-80 max-h-96 overflow-y-auto rounded-2xl border border-gray-200 bg-white p-4 shadow-2xl">
-        <p className="text-xs font-bold text-gray-500">No hay nuevas ofertas todavía.</p>
-      </div>
+      <Surface className="w-full rounded-[2.15rem] border border-orange-100/90 bg-[#fffaf6] p-4 shadow-[0_30px_80px_-34px_rgba(98,60,29,0.45)] dark:bg-[#2d1e16]" variant="base">
+        <div className="flex items-start justify-between gap-3 border-b border-orange-100/80 pb-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-[1.05rem] font-black tracking-[-0.02em] text-slate-900 dark:text-slate-100">{t('trayTitle')}</h3>
+            </div>
+            <p className="mt-1 text-sm leading-5 text-slate-500 dark:text-slate-300">{t('traySubtitle')}</p>
+          </div>
+          <Button aria-label={t('closeTray')} className="mt-0.5 size-9 rounded-full border border-transparent text-slate-500 hover:border-orange-100 hover:bg-orange-50 dark:text-slate-300 dark:hover:bg-orange-500/10" onClick={onClose} size="icon" variant="ghost">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="pt-5">
+          <EmptyState
+            action={<Button onClick={handleOpenHistory} size="sm" variant="outline">{t('seeAll')}</Button>}
+            description={t('emptyDescription')}
+            icon={<Bell className="h-6 w-6" />}
+            title={t('emptyTitle')}
+          />
+        </div>
+      </Surface>
     );
   }
 
   return (
-    <div className="w-80 max-h-96 overflow-y-auto rounded-2xl border border-gray-200 bg-white p-2 shadow-2xl">
-      {sortedNotifications.map((notification) => (
-        <button
-          key={`${notification.orderId}-${notification.id}`}
-          type="button"
-          onClick={() => {
-            markBidNotificationRead(notification.id);
-            setDeepLinkTarget({ orderId: notification.orderId, bidId: notification.id });
-            onOpenTracking();
-          }}
-          className={`w-full text-left p-3 rounded-xl border mb-2 last:mb-0 transition-all ${notification.read ? 'bg-gray-50 border-gray-200' : 'bg-red-50 border-red-200'}`}
+    <Surface className="w-full rounded-[2.15rem] border border-orange-100/90 bg-[#fffaf6] p-4 shadow-[0_30px_80px_-34px_rgba(98,60,29,0.45)] dark:bg-[#2d1e16]" variant="base">
+      <div className="flex items-start justify-between gap-3 border-b border-orange-100/80 pb-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-[1.05rem] font-black tracking-[-0.02em] text-slate-900 dark:text-slate-100">{t('trayTitle')}</h3>
+            {unreadCount > 0 ? <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-orange-700 dark:bg-orange-500/10 dark:text-orange-200">{t('newBadge')}</span> : null}
+          </div>
+          <p className="mt-1 text-sm leading-5 text-slate-500 dark:text-slate-300">{t('traySubtitle')}</p>
+        </div>
+        <Button aria-label={t('closeTray')} className="mt-0.5 size-9 rounded-full border border-transparent text-slate-500 hover:border-orange-100 hover:bg-orange-50 dark:text-slate-300 dark:hover:bg-orange-500/10" onClick={onClose} size="icon" variant="ghost">
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {sortedNotifications.map((notification) => (
+          <NotificationListItem
+            key={`${notification.orderId}-${notification.id}`}
+            compact
+            item={{
+              ...notification,
+              title: t('offerTitle'),
+              body: t('offerBody', {
+                amount: Math.round(bidNotifications.find((entry) => entry.id === notification.bidId)?.bid.bidAmount || 0).toLocaleString(),
+                orderId: notification.orderId.slice(0, 8),
+              }),
+              timestampLabel: notification.timestampLabel === 'now' ? t('time.now') : notification.timestampLabel,
+            }}
+            onClick={() => {
+              markBidNotificationRead(notification.id);
+              setDeepLinkTarget({ orderId: notification.orderId, bidId: notification.id });
+              onClose?.();
+              onOpenTracking();
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="mt-4 border-t border-orange-100/80 pt-4">
+        <Button
+          className="h-14 rounded-[1.35rem] text-sm font-black"
+          fullWidth
+          onClick={handleOpenHistory}
+          size="md"
         >
-          <p className="text-[9px] font-black uppercase tracking-widest text-gray-500">
-            Orden #{notification.orderId.slice(0, 8)}
-          </p>
-          <p className="text-sm font-black text-gray-900">Nueva oferta: ₡{notification.bid.bidAmount.toLocaleString()}</p>
-          <p className="text-[11px] text-gray-600">Rating {notification.bid.driverRating.toFixed(1)} · {new Date(notification.receivedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-        </button>
-      ))}
-    </div>
+          <Sparkles className="h-4 w-4" />
+          {t('seeAll')}
+        </Button>
+      </div>
+    </Surface>
   );
 };
 

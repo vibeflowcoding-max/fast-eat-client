@@ -375,7 +375,7 @@ export default function GoogleMapsAddressPicker({
     return () => {
       cancelled = true;
     };
-  }, [emitPositionChange, initialPosition, initialUrl, mapId, moveMapToPosition, position, preferCurrentLocationOnLoad]);
+  }, [emitPositionChange, initialPosition, initialUrl, mapId, moveMapToPosition, position, preferCurrentLocationOnLoad, propsApiKey]);
 
   const handleUseMyLocation = React.useCallback(() => {
     if (!navigator.geolocation) {

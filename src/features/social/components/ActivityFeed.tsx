@@ -67,20 +67,20 @@ export default function ActivityFeed() {
                 {feed.map((item) => {
                     const isLiked = likedItems.has(item.id);
                     return (
-                        <div key={item.id} className="bg-white rounded-[1.5rem] p-5 shadow-sm border border-gray-100 min-w-[280px] sm:min-w-[320px] max-w-[320px] snap-center flex-shrink-0 flex flex-col">
+                        <div key={item.id} className="flex w-[min(280px,calc(100vw-2.5rem))] shrink-0 snap-center flex-col rounded-[1.5rem] border border-gray-100 bg-white p-5 shadow-sm sm:w-[320px]">
                             <div className="flex items-start gap-4 mb-3">
                                 <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-2xl shadow-inner flex-shrink-0">
                                     {item.emoji}
                                 </div>
-                                <div className="flex-1 pt-1">
+                                <div className="min-w-0 flex-1 pt-1">
                                     <div className="flex justify-between items-start mb-1">
-                                        <p className="font-bold text-gray-900 text-sm">{item.userName}</p>
+                                        <p className="break-words font-bold text-gray-900 text-sm">{item.userName}</p>
                                     </div>
-                                    <span className="text-[10px] text-gray-400 font-medium bg-gray-50 px-2 py-0.5 rounded-full inline-block mb-2">@{item.restaurantName} • {item.timestamp}</span>
+                                    <span className="mb-2 inline-block break-words rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-400">@{item.restaurantName} • {item.timestamp}</span>
                                 </div>
                             </div>
 
-                            <p className="text-xs text-gray-600 mb-4 leading-relaxed flex-grow">
+                            <p className="mb-4 flex-grow break-words text-xs leading-relaxed text-gray-600">
                                 {item.caption}
                             </p>
 

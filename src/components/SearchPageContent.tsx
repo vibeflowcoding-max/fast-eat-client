@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Sparkles, Search, Loader2 } from 'lucide-react';
-import { Badge, Button, EmptyState, SectionHeader, Surface, TextField } from '@/../resources/components';
+import { Button, EmptyState, SectionHeader, Surface, TextField } from '@/../resources/components';
 import BottomNav from '@/components/BottomNav';
 import RestaurantCard from '@/components/RestaurantCard';
 import { useCategories } from '@/hooks/useCategories';
@@ -188,7 +188,7 @@ export default function SearchPageContent() {
         </header>
 
         <Surface className="rounded-[1.75rem]" variant="base">
-          <form className="flex items-end gap-3" onSubmit={submitSearch}>
+          <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={submitSearch}>
             <div className="min-w-0 flex-1">
               <TextField
                 aria-label={t('searchPlaceholder')}
@@ -198,7 +198,7 @@ export default function SearchPageContent() {
                 value={query}
               />
             </div>
-            <Button className="shrink-0" type="submit" variant="primary">
+            <Button className="w-full shrink-0 sm:w-auto" type="submit" variant="primary">
               {t('searchButton')}
             </Button>
           </form>
@@ -255,7 +255,7 @@ export default function SearchPageContent() {
 
         <section className="space-y-2">
           <SectionHeader eyebrow={t('filterByCategory')} title=" " className="block" />
-          <div className="flex overflow-x-auto gap-2 pb-1">
+          <div className="flex overflow-x-auto gap-2 pb-1 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <Button
               onClick={() => setSelectedCategoryId(null)}
               size="sm"
@@ -267,7 +267,7 @@ export default function SearchPageContent() {
               <Button
                 key={category.id}
                 onClick={() => setSelectedCategoryId(category.id)}
-                className="whitespace-nowrap"
+                className="shrink-0 whitespace-nowrap"
                 size="sm"
                 variant={selectedCategoryId === category.id ? 'primary' : 'outline'}
               >

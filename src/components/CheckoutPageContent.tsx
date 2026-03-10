@@ -26,20 +26,20 @@ import { useCartActions } from '@/hooks/useCartActions';
 import { fetchCheckoutContext } from '@/services/api';
 import { useCartStore } from '@/store';
 
-function mapPaymentOptions(methods: string[]) {
+function mapPaymentOptions(methods: string[], tOrderForm: ReturnType<typeof useTranslations>) {
   return methods.map((method) => {
-    if (method === 'cash') return { id: 'cash', label: '💴 Efectivo' };
-    if (method === 'card') return { id: 'card', label: '💳 Tarjeta (Datáfono)' };
-    if (method === 'sinpe') return { id: 'sinpe', label: '📱 SINPE Móvil' };
+    if (method === 'cash') return { id: 'cash', label: tOrderForm('paymentCash') };
+    if (method === 'card') return { id: 'card', label: tOrderForm('paymentCard') };
+    if (method === 'sinpe') return { id: 'sinpe', label: tOrderForm('paymentSinpe') };
     return { id: method, label: method.charAt(0).toUpperCase() + method.slice(1) };
   });
 }
 
-function mapServiceOptions(modes: string[]) {
+function mapServiceOptions(modes: string[], tOrderForm: ReturnType<typeof useTranslations>) {
   return modes.map((mode) => {
-    if (mode === 'pickup') return { id: 'pickup', label: '🥡 Para recoger' };
-    if (mode === 'delivery') return { id: 'delivery', label: '🛵 Envío a casa' };
-    if (mode === 'dine_in') return { id: 'dine_in', label: '🍱 Comer en el restaurante' };
+    if (mode === 'pickup') return { id: 'pickup', label: tOrderForm('servicePickup') };
+    if (mode === 'delivery') return { id: 'delivery', label: tOrderForm('serviceDelivery') };
+    if (mode === 'dine_in') return { id: 'dine_in', label: tOrderForm('serviceDineIn') };
     return { id: mode, label: mode.charAt(0).toUpperCase() + mode.slice(1).replace('_', ' ') };
   });
 }
@@ -47,6 +47,7 @@ function mapServiceOptions(modes: string[]) {
 export default function CheckoutPageContent() {
   const tPage = useTranslations('checkout.page');
   const tCart = useTranslations('checkout.cart');
+  const tOrderForm = useTranslations('checkout.orderForm');
   const router = useRouter();
   const {
     items: cart,
@@ -153,8 +154,8 @@ export default function CheckoutPageContent() {
 
       if (context?.restaurant) {
         setRestaurantInfo(context.restaurant);
-        setPaymentOptions(mapPaymentOptions(context.restaurant.payment_methods || []));
-        setServiceOptions(mapServiceOptions(context.restaurant.service_modes || []));
+        setPaymentOptions(mapPaymentOptions(context.restaurant.payment_methods || [], tOrderForm));
+        setServiceOptions(mapServiceOptions(context.restaurant.service_modes || [], tOrderForm));
       }
 
       const nextFeeRates = context?.feeRates || { serviceFeeRate: 0, platformFeeRate: 0 };
@@ -169,7 +170,7 @@ export default function CheckoutPageContent() {
     return () => {
       active = false;
     };
-  }, [branchId, restaurantInfo, setRestaurantInfo]);
+  }, [branchId, restaurantInfo, setRestaurantInfo, tOrderForm]);
 
   React.useEffect(() => {
     if (!profileLocation) {
@@ -283,7 +284,7 @@ export default function CheckoutPageContent() {
       setCustomerAddress({
         urlAddress: persistedUrl,
         buildingType: 'Other',
-        deliveryNotes: 'Meet at door',
+        deliveryNotes: tPage('defaultDeliveryNote'),
         lat: persistedCoords.lat ?? input.position.lat,
         lng: persistedCoords.lng ?? input.position.lng,
         formattedAddress: input.formattedAddress || persistedUrl,
@@ -291,7 +292,7 @@ export default function CheckoutPageContent() {
     } finally {
       setIsAutoSavingProfileLocation(false);
     }
-  }, [setCustomerAddress]);
+  }, [setCustomerAddress, tPage]);
 
   const applyProfileLocationToOrder = React.useCallback(() => {
     if (!profileLocation) {
@@ -342,12 +343,12 @@ export default function CheckoutPageContent() {
     }
 
     if (!navigator.geolocation) {
-      setLocationServicePrompt('Location services are disabled. Opening map with default location.');
+      setLocationServicePrompt(tPage('locationServicesDisabled'));
       openModalWithPosition(openContext.initialPosition || DEFAULT_ORDER_MAP_CENTER);
       return;
     }
 
-    setLocationServicePrompt('Please allow location access to center the map on your current location.');
+    setLocationServicePrompt(tPage('locationPermissionPrompt'));
     setIsResolvingOrderLocation(true);
 
     navigator.geolocation.getCurrentPosition(
@@ -358,14 +359,14 @@ export default function CheckoutPageContent() {
         setIsOrderLocationModalOpen(true);
       },
       () => {
-        setLocationServicePrompt('Location permission denied or unavailable. Opening map with default location.');
+        setLocationServicePrompt(tPage('locationPermissionDenied'));
         setOrderAddressInitialPosition(openContext.initialPosition || DEFAULT_ORDER_MAP_CENTER);
         setIsResolvingOrderLocation(false);
         setIsOrderLocationModalOpen(true);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
-  }, [orderMetadata.customerLatitude, orderMetadata.customerLongitude, profileLocation, setCheckoutDraft]);
+  }, [orderMetadata.customerLatitude, orderMetadata.customerLongitude, profileLocation, setCheckoutDraft, tPage]);
 
   const handleSaveOrderLocation = React.useCallback(async (value: {
     urlAddress: string;
@@ -415,7 +416,7 @@ export default function CheckoutPageContent() {
       return;
     }
 
-    const shouldPersistAsProfile = window.confirm('Do you want to save this location as your new profile location?');
+    const shouldPersistAsProfile = window.confirm(tPage('saveProfileLocationConfirm'));
     if (!shouldPersistAsProfile) {
       return;
     }
@@ -426,15 +427,15 @@ export default function CheckoutPageContent() {
         mapsUrl: nextGps || nextAddress,
         formattedAddress: nextAddress,
       });
-      setChefNotification({ content: '✅ Location saved to your profile.' });
+      setChefNotification({ content: tPage('profileLocationSaved') });
     } catch {
-      setChefNotification({ content: '⚠️ Could not save location to profile. We kept it for this order.' });
+      setChefNotification({ content: tPage('profileLocationSaveFailed') });
     }
-  }, [persistProfileLocation, profileLocation, setCheckoutDraft, setChefNotification]);
+  }, [persistProfileLocation, profileLocation, setCheckoutDraft, setChefNotification, tPage]);
 
   const handleGetLocation = React.useCallback(() => {
     if (!navigator.geolocation) {
-      setChefNotification({ content: 'Tu navegador no soporta geolocalización. 🏮' });
+      setChefNotification({ content: tPage('browserGeolocationUnsupported') });
       return;
     }
 
@@ -454,11 +455,11 @@ export default function CheckoutPageContent() {
         setIsLocating(false);
       },
       () => {
-        setChefNotification({ content: 'No pudimos obtener tu ubicación. 🏮' });
+        setChefNotification({ content: tPage('geolocationFailed') });
         setIsLocating(false);
       },
     );
-  }, [profileLocation, setCheckoutDraft, setChefNotification]);
+  }, [profileLocation, setCheckoutDraft, setChefNotification, tPage]);
 
   const handlePlaceOrderFromPage = React.useCallback(async () => {
     if (effectiveCart.length === 0 || !isOrderFormValid) {
@@ -480,7 +481,7 @@ export default function CheckoutPageContent() {
 
   if (!branchId) {
     return (
-      <main className="ui-page min-h-screen pb-14">
+      <main className="min-h-screen bg-[#f8f6f2] pb-14 text-slate-900 dark:bg-[#221610] dark:text-slate-100">
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pb-8 pt-6">
           <EmptyState
             action={(
@@ -503,9 +504,9 @@ export default function CheckoutPageContent() {
   }
 
   return (
-    <main className="ui-page min-h-screen pb-14">
+    <main className="min-h-screen bg-[#f8f6f2] pb-14 text-slate-900 dark:bg-[#221610] dark:text-slate-100">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pb-8 pt-6">
-        <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <Surface className="space-y-4" padding="lg" variant="raised">
           <div className="space-y-2">
             <Button
               leadingIcon={<ArrowLeft className="h-4 w-4" />}
@@ -516,22 +517,23 @@ export default function CheckoutPageContent() {
             >
               {tPage('backToMenu')}
             </Button>
-            <div>
-              <p className="ui-section-title">{tPage('eyebrow')}</p>
-              <h1 className="text-3xl font-black tracking-[-0.03em] text-[var(--color-text)]">{tPage('title')}</h1>
-              <p className="ui-text-muted max-w-2xl text-sm">{tPage('subtitle')}</p>
-            </div>
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Badge className="px-4 py-2 text-xs font-black" variant="brand">
-              {isGroupCheckout ? tPage('groupMode') : tPage('soloMode')}
-            </Badge>
-            <Badge className="px-4 py-2 text-xs font-black" variant="neutral">
-              {formatPhoneForDisplay(fromNumber) || tPage('phoneFallback')}
-            </Badge>
-          </div>
-        </header>
+          <SectionHeader
+            eyebrow={tPage('eyebrow')}
+            title={tPage('title')}
+            description={tPage('subtitle')}
+            action={(
+              <div className="flex flex-wrap justify-end gap-2">
+                <Badge className="px-4 py-2 text-xs font-black" variant="brand">
+                  {isGroupCheckout ? tPage('groupMode') : tPage('soloMode')}
+                </Badge>
+                <Badge className="px-4 py-2 text-xs font-black" variant="neutral">
+                  {formatPhoneForDisplay(fromNumber) || tPage('phoneFallback')}
+                </Badge>
+              </div>
+            )}
+          />
+        </Surface>
 
         {chefNotification?.content ? (
           <Surface className="text-sm font-semibold" variant="raised">
@@ -563,16 +565,16 @@ export default function CheckoutPageContent() {
                 <div className="space-y-4">
                   {groupParticipants.map((participant) => (
                     <div key={participant.id} className="space-y-2">
-                      <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-2">
-                        <p className="text-sm font-black text-[var(--color-text)]">
+                      <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-2 dark:border-slate-700">
+                        <p className="text-sm font-black text-slate-900 dark:text-slate-100">
                           {participant.name}{participant.isHost ? ` (${tCart('host')})` : ''}
                         </p>
-                        <p className="ui-text-muted text-xs">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           {participant.items.reduce((sum, item) => sum + item.quantity, 0)} {tPage('itemsLabel')}
                         </p>
                       </div>
                       {participant.items.length === 0 ? (
-                        <p className="ui-text-muted text-xs italic">{tCart('participantNoItems')}</p>
+                        <p className="text-xs italic text-slate-500 dark:text-slate-400">{tCart('participantNoItems')}</p>
                       ) : (
                         participant.items.map((item, index) => (
                           <CartItemRow
@@ -636,24 +638,24 @@ export default function CheckoutPageContent() {
               <SectionHeader eyebrow={tPage('summaryEyebrow')} title={tPage('summaryTitle')} />
               <Surface className="space-y-2" variant="muted">
                 <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest">
-                  <span className="ui-text-muted">{tCart('subtotal')}</span>
+                  <span className="text-slate-500 dark:text-slate-400">{tCart('subtotal')}</span>
                   <span>{formatCurrency(pricing.subtotal)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest">
-                  <span className="ui-text-muted">{tCart('serviceFee', { rate: formatRate(pricing.serviceFeeRate) })}</span>
+                  <span className="text-slate-500 dark:text-slate-400">{tCart('serviceFee', { rate: formatRate(pricing.serviceFeeRate) })}</span>
                   <span>{formatCurrency(pricing.serviceFeeAmount)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest">
-                  <span className="ui-text-muted">{tCart('platformFee', { rate: formatRate(pricing.platformFeeRate) })}</span>
+                  <span className="text-slate-500 dark:text-slate-400">{tCart('platformFee', { rate: formatRate(pricing.platformFeeRate) })}</span>
                   <span>{formatCurrency(pricing.platformFeeAmount)}</span>
                 </div>
-                <div className="mt-2 flex items-center justify-between border-t border-[var(--color-border)] pt-3 text-sm font-black uppercase tracking-widest">
+                <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-3 text-sm font-black uppercase tracking-widest dark:border-slate-700">
                   <span>{tCart('total')}</span>
                   <span>{formatCurrency(pricing.totalBeforeDelivery)}</span>
                 </div>
                 <Surface className="text-[10px] font-bold" variant="raised">{tCart('deliveryDisclaimer')}</Surface>
                 {isPricingUnavailable ? (
-                  <p className="ui-text-muted text-[10px] font-bold">{tCart('feesUnavailable')}</p>
+                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{tCart('feesUnavailable')}</p>
                 ) : null}
               </Surface>
 

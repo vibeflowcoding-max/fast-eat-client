@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslations } from 'next-intl';
 import { useLoyaltyStore } from '../store/useLoyaltyStore';
 import { Trophy, Star, TrendingUp, Presentation, Hexagon, X, Zap } from 'lucide-react';
 
@@ -10,6 +11,7 @@ interface LoyaltyDashboardProps {
 }
 
 export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
+    const t = useTranslations('loyalty.dashboard');
     const { points, currentStreak, longestStreak, badges, resetStreakIfExpired } = useLoyaltyStore();
 
     useEffect(() => {
@@ -20,7 +22,7 @@ export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
     const currentTierProgress = (points % POINTS_PER_TIER) / POINTS_PER_TIER;
     const currentTier = Math.floor(points / POINTS_PER_TIER);
 
-    const tierNames = ["Explorador", "Aficionado", "Conocedor", "Gourmet Local", "Maestro del Sabor"];
+    const tierNames = [t('tiers.explorer'), t('tiers.enthusiast'), t('tiers.connoisseur'), t('tiers.localGourmet'), t('tiers.masterOfFlavor')];
     const currentTierName = tierNames[Math.min(currentTier, tierNames.length - 1)];
     const nextTierName = tierNames[Math.min(currentTier + 1, tierNames.length - 1)];
     const pointsToNextTier = POINTS_PER_TIER - (points % POINTS_PER_TIER);
@@ -75,7 +77,7 @@ export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
                     onPointerDown={handleCloseInteraction}
                     onTouchEnd={handleCloseInteraction}
                     className="absolute top-6 right-6 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors z-50 cursor-pointer"
-                    aria-label="Cerrar vista de puntos"
+                    aria-label={t('close')}
                 >
                     <X className="w-5 h-5 pointer-events-none" />
                 </button>
@@ -88,7 +90,7 @@ export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
                         </div>
 
                         <div className="relative z-10">
-                            <h2 className="text-sm font-bold uppercase tracking-widest text-red-100 mb-1">Tu Rango Actual</h2>
+                            <h2 className="text-sm font-bold uppercase tracking-widest text-red-100 mb-1">{t('currentTierLabel')}</h2>
                             <div className="flex items-center gap-3 mb-6">
                                 <Trophy className="w-8 h-8 text-yellow-300 fill-current" />
                                 <h1 className="text-4xl font-black tracking-tight">{currentTierName}</h1>
@@ -98,11 +100,11 @@ export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
                                 <div className="flex justify-between items-end mb-2">
                                     <div>
                                         <span className="text-3xl font-black">{points.toLocaleString()}</span>
-                                        <span className="text-red-100 ml-1 font-medium">pts</span>
+                                        <span className="text-red-100 ml-1 font-medium">{t('pointsSuffix')}</span>
                                     </div>
                                     {currentTier < tierNames.length - 1 && (
                                         <div className="text-right text-xs font-medium text-red-100">
-                                            Faltan {pointsToNextTier.toLocaleString()} pts para <br /> {nextTierName}
+                                            {t('pointsToNextTier', { points: pointsToNextTier.toLocaleString() })} <br /> {nextTierName}
                                         </div>
                                     )}
                                 </div>
@@ -125,7 +127,7 @@ export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
                         <div>
                             <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-4 flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4 text-orange-500" />
-                                Racha de Pedidos
+                                {t('streakTitle')}
                             </h3>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -134,7 +136,7 @@ export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
                                         <Zap className="w-6 h-6 fill-current" />
                                     </div>
                                     <span className="text-2xl font-black text-gray-900">{currentStreak}</span>
-                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Racha Actual</span>
+                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('currentStreak')}</span>
                                 </div>
 
                                 <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
@@ -142,11 +144,11 @@ export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
                                         <Presentation className="w-6 h-6" />
                                     </div>
                                     <span className="text-xl font-bold text-gray-900">{longestStreak}</span>
-                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Mejor Racha</span>
+                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('bestStreak')}</span>
                                 </div>
                             </div>
                             <p className="text-xs text-gray-500 text-center mt-3 font-medium">
-                                Pide 1 vez más esta semana para mantener tu racha viva y ganar a multiplicadores.
+                                {t('streakHint')}
                             </p>
                         </div>
 
@@ -154,7 +156,7 @@ export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
                         <div>
                             <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-4 flex items-center gap-2">
                                 <Hexagon className="w-4 h-4 text-purple-500" />
-                                Insignias Obtenidas
+                                {t('badgesTitle')}
                             </h3>
 
                             {badges.length > 0 ? (
@@ -172,12 +174,12 @@ export default function LoyaltyDashboard({ onClose }: LoyaltyDashboardProps) {
                                         <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mb-2">
                                             <span className="text-gray-400 text-lg font-black">?</span>
                                         </div>
-                                        <span className="text-[10px] font-bold text-gray-500 uppercase">Sigue Explorando</span>
+                                        <span className="text-[10px] font-bold text-gray-500 uppercase">{t('keepExploring')}</span>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="bg-gray-50 p-6 rounded-2xl text-center border border-gray-100">
-                                    <p className="text-gray-500 text-sm font-medium">Aún no tienes insignias. ¡Haz tu primer pedido para empezar a coleccionarlas!</p>
+                                    <p className="text-gray-500 text-sm font-medium">{t('emptyBadges')}</p>
                                 </div>
                             )}
                         </div>

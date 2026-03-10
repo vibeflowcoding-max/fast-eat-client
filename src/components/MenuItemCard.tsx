@@ -6,6 +6,7 @@ import { MenuItem, CartItem } from '../types';
 import { useDietaryGuardian } from '../features/home-discovery/hooks/useDietaryGuardian';
 import { ShieldCheck, ShieldAlert, Loader2, Plus, Pencil } from 'lucide-react';
 import { Badge, Button, QuantitySelector, Surface } from '@/../resources/components';
+import { useTranslations } from 'next-intl';
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -16,6 +17,7 @@ interface MenuItemCardProps {
 }
 
 const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQuantity, isHighlighted, onOpenDetails }) => {
+  const t = useTranslations('menuItemCard');
   const [quantity, setQuantity] = useState(currentQuantity > 0 ? currentQuantity : 1);
   const [notes, setNotes] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -51,7 +53,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
     if (success) {
       setIsAdding(false);
     } else {
-      setSyncError("Error al sincronizar. Reintente por favor.");
+      setSyncError(t('syncError'));
     }
     setIsSyncing(false);
   };
@@ -66,7 +68,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
     setSyncError(null);
     const success = await onAddToCart({ ...item, quantity: 1, notes: '' });
     if (!success) {
-      setSyncError('Error al sincronizar. Reintente por favor.');
+      setSyncError(t('syncError'));
     }
     setIsSyncing(false);
   };
@@ -80,7 +82,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
       setQuantity(1);
       setNotes('');
     } else {
-      setSyncError("No se pudo quitar del pedido.");
+      setSyncError(t('removeError'));
     }
     setIsSyncing(false);
   };
@@ -88,13 +90,13 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
   return (
     <Surface
       id={`item-${item.id}`}
-      className={`ui-list-card rounded-2xl border p-4 transition-colors ${isHighlighted ? 'border-[var(--color-brand)]' : 'border-[var(--color-border)]'}`}
+      className={`rounded-2xl border p-4 transition-colors ${isHighlighted ? 'border-orange-300' : 'border-slate-200 dark:border-slate-800'}`}
       variant="base"
     >
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="text-base font-bold leading-tight text-[var(--color-text)]">
+            <h3 className="text-base font-bold leading-tight text-slate-900 dark:text-slate-100">
               {item.name}
             </h3>
             {isHighlighted ? (
@@ -102,54 +104,56 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
             ) : null}
           </div>
 
-          <p className="mt-1 text-sm leading-5 text-[var(--color-text-muted)] line-clamp-2">
+          <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-500 dark:text-slate-400">
             {item.description}
           </p>
 
           {item.hasStructuredCustomization ? (
-            <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-brand)]">
-              Personalizable con extras y selecciones
+            <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.16em] text-orange-600 dark:text-orange-300">
+              {t('customizable')}
             </p>
           ) : null}
 
           {isDietaryGuardianEnabled && isActive && (
             <div className="mt-3">
             {loadingMap[item.id] ? (
-              <div className="ui-panel-soft flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-bold italic ui-text-muted">
+              <Badge className="px-3 py-1.5 text-[10px] font-bold italic" leading={<Loader2 className="h-3 w-3 animate-spin" />} variant="neutral">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                <span>Analizando ingredientes...</span>
-              </div>
+                <span>{t('dietaryAnalyzing')}</span>
+              </Badge>
             ) : resultsMap[item.id] ? (
-              <div
+              <Surface
                 className={`flex max-w-full items-start gap-2 rounded-2xl px-3 py-2 text-[10px] font-bold shadow-sm ${resultsMap[item.id].is_safe
-                  ? 'ui-state-success shadow-emerald-500/5'
-                  : 'ui-state-danger shadow-red-500/5'
+                  ? 'text-emerald-700 dark:text-emerald-200'
+                  : 'text-red-700 dark:text-red-200'
                   }`}
+                padding="none"
+                variant={resultsMap[item.id].is_safe ? 'muted' : 'raised'}
               >
                 {resultsMap[item.id].is_safe ? (
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                 ) : (
-                  <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-brand)]" />
+                  <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-orange-600 dark:text-orange-300" />
                 )}
                 <span className="flex-1 break-words leading-relaxed italic">&ldquo;{resultsMap[item.id].reason}&rdquo;</span>
-              </div>
+              </Surface>
             ) : null}
             </div>
           )}
 
           <div className="mt-3 flex items-end justify-between gap-3">
             <div>
-              <p className="text-base font-bold text-[var(--color-brand)]">₡{item.price.toLocaleString()}</p>
+              <p className="text-base font-bold text-orange-600 dark:text-orange-300">₡{item.price.toLocaleString()}</p>
               {currentQuantity > 0 ? (
-                <p className="mt-1 text-[11px] font-semibold text-[var(--color-text-muted)]">
-                  {currentQuantity} en tu pedido
+                <p className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  {t('inOrder', { count: currentQuantity })}
                 </p>
               ) : null}
             </div>
           </div>
         </div>
 
-        <div className="relative h-24 w-24 shrink-0 overflow-visible rounded-xl bg-[var(--color-surface-muted)]">
+        <div className="relative h-24 w-24 shrink-0 overflow-visible rounded-xl bg-[#f4eee8] dark:bg-slate-800">
           {item.image ? (
             <img
               src={item.image}
@@ -160,21 +164,21 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
               }}
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center rounded-xl bg-[var(--color-surface-strong)] text-[var(--color-text-muted)]">
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em]">Sin foto</span>
+            <div className="flex h-full w-full items-center justify-center rounded-xl bg-[#eadfd4] text-slate-500 dark:bg-slate-700 dark:text-slate-400">
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em]">{t('noImage')}</span>
             </div>
           )}
 
           {currentQuantity > 0 ? (
-            <div className="absolute left-2 top-2 rounded-full bg-white/92 px-2 py-1 text-[10px] font-bold text-[var(--color-text)] shadow-sm">
+            <Badge className="absolute left-2 top-2 bg-white/92 px-2 py-1 text-[10px] font-bold text-slate-900 shadow-sm dark:bg-slate-900/92 dark:text-slate-100" variant="neutral">
               {currentQuantity}
-            </div>
+            </Badge>
           ) : null}
 
           <Button
             type="button"
             disabled={isSyncing}
-            aria-label={currentQuantity > 0 ? `Editar ${item.name}` : `Añadir ${item.name}`}
+            aria-label={currentQuantity > 0 ? t('editItem', { itemName: item.name }) : t('addItem', { itemName: item.name })}
             onClick={() => {
               if (item.hasStructuredCustomization && onOpenDetails) {
                 onOpenDetails(item.id);
@@ -198,23 +202,23 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
       </div>
 
       {syncError ? (
-        <p className="mt-3 text-[11px] font-semibold text-[var(--color-brand)]">{syncError}</p>
+        <p className="mt-3 text-[11px] font-semibold text-orange-600 dark:text-orange-300">{syncError}</p>
       ) : null}
 
       {isAdding ? (
-        <Surface className="animate-fadeIn relative mt-4 space-y-4 rounded-2xl border border-[var(--color-border)]" variant="muted">
+        <Surface className="animate-fadeIn relative mt-4 space-y-4 rounded-2xl border border-slate-200 dark:border-slate-700" variant="muted">
             {isSyncing && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/80 backdrop-blur-[2px]">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-black border-t-[var(--color-brand)]"></div>
+              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/80 backdrop-blur-[2px] dark:bg-slate-900/80">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-orange-600 dark:border-slate-100 dark:border-t-orange-300"></div>
               </div>
             )}
 
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Cantidad</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{t('quantity')}</span>
               <QuantitySelector
-                decrementLabel={`Reducir cantidad de ${item.name}`}
+                decrementLabel={t('decrementQuantity', { itemName: item.name })}
                 disabled={isSyncing}
-                incrementLabel={`Aumentar cantidad de ${item.name}`}
+                incrementLabel={t('incrementQuantity', { itemName: item.name })}
                 onDecrement={() => setQuantity(Math.max(1, quantity - 1))}
                 onIncrement={() => setQuantity(quantity + 1)}
                 value={quantity}
@@ -224,24 +228,24 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, onAddToCart, currentQ
             <div>
               <textarea
                 disabled={isSyncing}
-                placeholder="Notas (ej. sin cebolla)..."
+                placeholder={t('notesPlaceholder')}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="ui-textarea w-full rounded-2xl px-4 py-3 text-sm disabled:opacity-50"
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button disabled={isSyncing} onClick={() => { setIsAdding(false); setSyncError(null); }} type="button" variant="outline">
-                Cerrar
+                {t('close')}
               </Button>
               <Button disabled={isSyncing} fullWidth onClick={handleUpdate} type="button">
-                  {isSyncing ? 'Guardando...' : 'Confirmar'}
+                  {isSyncing ? t('saving') : t('confirm')}
                 </Button>
               {currentQuantity > 0 && (
                 <Button disabled={isSyncing} onClick={handleRemove} type="button" variant="ghost">
-                  Quitar del pedido
+                  {t('removeFromOrder')}
                 </Button>
               )}
             </div>

@@ -42,21 +42,6 @@ const postActionSchema = z.discriminatedUnion('action', [
   }),
 ]);
 
-function buildQueryString(params: Record<string, string | number | undefined>) {
-  const searchParams = new URLSearchParams();
-
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === '') {
-      return;
-    }
-
-    searchParams.set(key, String(value));
-  });
-
-  const normalized = searchParams.toString();
-  return normalized ? `?${normalized}` : '';
-}
-
 export async function GET(request: NextRequest) {
   try {
     const parsed = getActionSchema.safeParse(Object.fromEntries(request.nextUrl.searchParams.entries()));

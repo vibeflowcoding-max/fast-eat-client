@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { GroupCartParticipant } from '@/types';
 import { EqualSplitStrategy, ItemizedSplitStrategy, CustomAmountSplitStrategy, SplitResult } from '../utils/splitStrategies';
 import { Calculator, Users, PieChart, Info } from 'lucide-react';
@@ -22,6 +23,7 @@ export default function BillSplitterModal({
     onClose,
     onConfirmSplit
 }: BillSplitterModalProps) {
+    const t = useTranslations('payments.billSplitter');
     const [strategyType, setStrategyType] = useState<'equal' | 'itemized' | 'custom'>('itemized');
     const [customAmounts, setCustomAmounts] = useState<Record<string, number>>({});
 
@@ -66,11 +68,11 @@ export default function BillSplitterModal({
                     <div>
                         <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
                             <Calculator className="w-6 h-6 text-red-500" />
-                            Dividir Cuenta
+                            {t('title')}
                         </h3>
-                        <p className="text-sm text-gray-500 font-medium">Total de la orden: {formatCurrency(total)}</p>
+                        <p className="text-sm text-gray-500 font-medium">{t('totalLabel', { total: formatCurrency(total) })}</p>
                     </div>
-                    <button onClick={onClose} className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-500 font-bold hover:bg-gray-100 transition-colors border border-gray-200">✕</button>
+                    <button aria-label={t('closeAria')} onClick={onClose} className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-500 font-bold hover:bg-gray-100 transition-colors border border-gray-200">✕</button>
                 </div>
 
                 <div className="flex-grow overflow-y-auto p-5 md:p-6 space-y-6">
@@ -82,40 +84,40 @@ export default function BillSplitterModal({
                             className={`flex-1 flex flex-col items-center py-2 text-xs font-bold rounded-lg transition-all ${strategyType === 'itemized' ? 'bg-white shadow text-black' : 'text-gray-500 hover:text-gray-700'}`}
                         >
                             <Users className="w-4 h-4 mb-1" />
-                            Por Persona
+                            {t('tabs.itemized')}
                         </button>
                         <button
                             onClick={() => setStrategyType('equal')}
                             className={`flex-1 flex flex-col items-center py-2 text-xs font-bold rounded-lg transition-all ${strategyType === 'equal' ? 'bg-white shadow text-black' : 'text-gray-500 hover:text-gray-700'}`}
                         >
                             <PieChart className="w-4 h-4 mb-1" />
-                            Partes Iguales
+                            {t('tabs.equal')}
                         </button>
                         <button
                             onClick={() => setStrategyType('custom')}
                             className={`flex-1 flex flex-col items-center py-2 text-xs font-bold rounded-lg transition-all ${strategyType === 'custom' ? 'bg-white shadow text-black' : 'text-gray-500 hover:text-gray-700'}`}
                         >
                             <Calculator className="w-4 h-4 mb-1" />
-                            Personalizado
+                            {t('tabs.custom')}
                         </button>
                     </div>
 
                     <div className="bg-blue-50 text-blue-800 p-3 flex gap-3 text-xs rounded-xl items-start">
                         <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
                         <p>
-                            {strategyType === 'itemized' && "Cada quien paga solo lo que pidió. Los impuestos y costo de envío se dividen proporcionalmente al consumo."}
-                            {strategyType === 'equal' && "El total exacto se divide en partes iguales entre todos los miembros del carrito."}
-                            {strategyType === 'custom' && "Asigna montos manuales a cada persona. Útil si alguien quiere invitar parte de la cuenta."}
+                            {strategyType === 'itemized' && t('descriptions.itemized')}
+                            {strategyType === 'equal' && t('descriptions.equal')}
+                            {strategyType === 'custom' && t('descriptions.custom')}
                         </p>
                     </div>
 
                     <div className="space-y-3">
-                        <h4 className="font-bold text-gray-900 uppercase tracking-widest text-[10px]">Detalle por Participante</h4>
+                        <h4 className="font-bold text-gray-900 uppercase tracking-widest text-[10px]">{t('participantBreakdown')}</h4>
                         {splitResults.map((result) => (
                             <div key={result.participantId} className="flex justify-between items-center bg-gray-50 border border-gray-100 p-4 rounded-2xl">
                                 <div>
                                     <p className="font-bold text-gray-900">{result.participantName}</p>
-                                    <p className="text-[10px] text-gray-500 font-medium">Consumo: {formatCurrency(result.itemsTotal)} • Extras: {formatCurrency(result.proportionalTaxAndFees)}</p>
+                                    <p className="text-[10px] text-gray-500 font-medium">{t('participantLine', { itemsTotal: formatCurrency(result.itemsTotal), extrasTotal: formatCurrency(result.proportionalTaxAndFees) })}</p>
                                 </div>
 
                                 {strategyType === 'custom' ? (
@@ -142,7 +144,7 @@ export default function BillSplitterModal({
 
                     {strategyType === 'custom' && (
                         <div className="bg-gray-900 text-white p-4 rounded-xl flex justify-between items-center shadow-inner">
-                            <span className="font-bold text-sm">Restante por asignar:</span>
+                            <span className="font-bold text-sm">{t('remainingToAssign')}</span>
                             <span className={`text-lg font-black ${customRemaining > 0 ? 'text-yellow-400' : customRemaining < 0 ? 'text-red-400' : 'text-green-400'}`}>
                                 {formatCurrency(customRemaining)}
                             </span>
@@ -159,7 +161,7 @@ export default function BillSplitterModal({
                                 : 'bg-black text-white hover:bg-red-600 active:scale-95 shadow-xl'
                             }`}
                     >
-                        Confirmar Pagos SINPE 📱
+                        {t('confirmSinpePayments')}
                     </button>
                 </div>
             </div>

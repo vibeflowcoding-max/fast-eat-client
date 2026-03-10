@@ -19,12 +19,13 @@ export default function IntentChipsBar({
     onIntentChange,
     disabled,
     showAllOption = false,
-    allLabel = 'Todos',
+    allLabel,
     children,
     onOpenFilters
 }: IntentChipsBarProps & { onOpenFilters?: () => void }) {
     const t = useTranslations('home.intentBar');
     const scrollRef = React.useRef<HTMLDivElement | null>(null);
+    const resolvedAllLabel = allLabel ?? t('all');
 
     const scrollChips = React.useCallback((direction: 'left' | 'right') => {
         if (!scrollRef.current) {
@@ -39,7 +40,7 @@ export default function IntentChipsBar({
 
     return (
         <div className="px-4 pt-2 pb-4">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
                 <button
                     type="button"
                     onClick={() => scrollChips('left')}
@@ -49,7 +50,7 @@ export default function IntentChipsBar({
                     <ChevronLeft size={16} />
                 </button>
 
-                <div ref={scrollRef} className="overflow-x-auto flex-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                <div ref={scrollRef} className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     <div className="flex min-w-max items-center gap-2 px-1">
                         {showAllOption && (
                             <button
@@ -64,7 +65,7 @@ export default function IntentChipsBar({
                                 } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                                 aria-pressed={activeIntent === null}
                             >
-                                {allLabel}
+                                {resolvedAllLabel}
                             </button>
                         )}
 

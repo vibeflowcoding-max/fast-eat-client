@@ -3,6 +3,7 @@
 import React from 'react';
 import { useParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import { Button, Surface } from '@/../resources/components';
 import { useTranslations } from 'next-intl';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import BottomNav from '@/components/BottomNav';
@@ -15,9 +16,9 @@ export default function BranchReviewsPage() {
 
   if (!params?.branchId) {
     return (
-      <main className="ui-page min-h-screen pb-32">
+      <main className="min-h-screen bg-[#f8f6f2] pb-32 text-slate-900 dark:bg-[#221610] dark:text-slate-100">
         <div className="mx-auto w-full max-w-3xl px-4 pt-6">
-          <div className="ui-state-danger rounded-2xl p-4 text-sm">Missing branchId</div>
+          <Surface className="rounded-2xl text-sm text-red-700 dark:text-red-200" variant="raised">Missing branchId</Surface>
         </div>
         <BottomNav />
       </main>
@@ -25,16 +26,16 @@ export default function BranchReviewsPage() {
   }
 
   return (
-    <main className="ui-page min-h-screen pb-32">
+    <main className="min-h-screen bg-[#f8f6f2] pb-32 text-slate-900 dark:bg-[#221610] dark:text-slate-100">
       <div className="mx-auto w-full max-w-3xl px-4 pt-6 space-y-4">
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => router.back()}
-          className="ui-btn-secondary inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold"
+          leadingIcon={<ArrowLeft className="w-4 h-4" />}
         >
-          <ArrowLeft className="w-4 h-4" />
           {t('backToMenu')}
-        </button>
+        </Button>
 
         <RestaurantReviewsSection branchId={params.branchId} limit={50} />
       </div>

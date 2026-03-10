@@ -1,25 +1,35 @@
 'use client';
 
 import React from 'react';
-import { Gift, Loader2, ShieldAlert, Sparkles } from 'lucide-react';
+import { ArrowRight, Gift, Loader2, ShieldAlert, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import BottomNav from '@/components/BottomNav';
+import { Badge, Button, ChoiceCard, FieldLabel, SectionHeader, Surface, TextField } from '@/../resources/components';
 import { acceptMysteryBoxOffer, fetchMysteryBoxOffers } from '@/services/api';
 import { MysteryBoxOffer, MysteryBoxOffersResponse } from '@/types';
 import { useCartStore } from '@/store';
 import { useAppRouter } from '@/hooks/useAppRouter';
 
-function resolveAcceptedOrderId(payload: any): string | null {
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+}
+
+function resolveAcceptedOrderId(payload: unknown): string | null {
+  const root = asRecord(payload);
+  const order = asRecord(root?.order);
+  const acceptedOrder = asRecord(root?.acceptedOrder);
   const candidates = [
-    payload?.orderId,
-    payload?.order_id,
-    payload?.order?.id,
-    payload?.acceptedOrder?.id,
+    root?.orderId,
+    root?.order_id,
+    order?.id,
+    acceptedOrder?.id,
   ];
 
   return candidates.find((value) => typeof value === 'string' && value.trim().length > 0) || null;
 }
 
 export default function MysteryBoxPage() {
+  const t = useTranslations('mysteryBox');
   const router = useAppRouter();
   const { isAuthenticated } = useCartStore();
 
@@ -31,6 +41,18 @@ export default function MysteryBoxPage() {
   const [serviceMode, setServiceMode] = React.useState<'delivery' | 'pickup'>('delivery');
   const [acceptFeedback, setAcceptFeedback] = React.useState<string | null>(null);
   const [acceptedOrderId, setAcceptedOrderId] = React.useState<string | null>(null);
+  const serviceModeOptions = React.useMemo(() => ([
+    {
+      value: 'delivery',
+      title: t('serviceModes.delivery.title'),
+      description: t('serviceModes.delivery.description'),
+    },
+    {
+      value: 'pickup',
+      title: t('serviceModes.pickup.title'),
+      description: t('serviceModes.pickup.description'),
+    },
+  ] as const), [t]);
 
   const loadOffers = React.useCallback(async () => {
     setLoading(true);
@@ -44,11 +66,11 @@ export default function MysteryBoxPage() {
       });
       setOffersPayload(response);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudieron cargar las ofertas.');
+      setError(requestError instanceof Error ? requestError.message : t('loadError'));
     } finally {
       setLoading(false);
     }
-  }, [maxPrice, serviceMode]);
+  }, [maxPrice, serviceMode, t]);
 
   React.useEffect(() => {
     if (!isAuthenticated) {
@@ -60,7 +82,7 @@ export default function MysteryBoxPage() {
 
   const handleAccept = React.useCallback(async (offer: MysteryBoxOffer) => {
     if (!offer.id) {
-      setError('Esta oferta no se puede aceptar todavía.');
+      setError(t('cannotAcceptYet'));
       return;
     }
 
@@ -72,156 +94,179 @@ export default function MysteryBoxPage() {
     try {
       const response = await acceptMysteryBoxOffer(offer.id);
       const nextOrderId = resolveAcceptedOrderId(response);
-      setAcceptFeedback('Oferta aceptada correctamente.');
+      setAcceptFeedback(t('acceptSuccess'));
       setAcceptedOrderId(nextOrderId);
       await loadOffers();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'No se pudo aceptar la oferta.');
+      setError(requestError instanceof Error ? requestError.message : t('acceptError'));
     } finally {
       setAcceptingOfferId(null);
     }
-  }, [loadOffers]);
+  }, [loadOffers, t]);
 
   return (
-    <main className="ui-page min-h-screen pb-32">
+    <main className="min-h-screen bg-[#f8f6f2] pb-32 text-slate-900 dark:bg-[#221610] dark:text-slate-100">
       <div className="mx-auto w-full max-w-4xl px-4 pt-6 space-y-5">
-        <header className="ui-panel rounded-[2rem] p-5 md:p-6">
-          <div className="space-y-2">
-            <p className="ui-section-title">Mystery Box</p>
-            <h1 className="text-3xl font-black tracking-[-0.03em] text-[var(--color-text)]">Ofertas sorpresa compatibles contigo</h1>
-            <p className="ui-text-muted max-w-2xl text-sm">
-              Estas cajas usan disponibilidad dinámica y tu perfil alimenticio para armar combos con descuento y menor desperdicio.
-            </p>
-          </div>
-        </header>
+        <Surface className="rounded-[2rem]" variant="raised" padding="lg">
+          <SectionHeader
+            eyebrow={t('eyebrow')}
+            title={t('title')}
+            description={t('description')}
+          />
+        </Surface>
 
         {!isAuthenticated ? (
-          <section className="ui-panel rounded-[2rem] p-5 text-sm text-[var(--color-text)]">
+          <Surface className="rounded-[2rem] text-sm" variant="base" padding="lg">
             <div className="flex items-start gap-3">
               <ShieldAlert className="mt-0.5 h-5 w-5 text-amber-600" />
               <div className="space-y-2">
-                <p className="font-black">Necesitas iniciar sesión para ver ofertas sorpresa personalizadas.</p>
-                <p className="ui-text-muted">La disponibilidad y los filtros dietarios dependen de tu contexto autenticado.</p>
+                <p className="font-black">{t('authTitle')}</p>
+                <p className="text-slate-500 dark:text-slate-400">{t('authDescription')}</p>
               </div>
             </div>
-          </section>
+          </Surface>
         ) : (
           <>
-            <section className="ui-panel rounded-[2rem] p-5 space-y-4">
-              <div className="grid gap-3 md:grid-cols-3">
-                <label className="text-sm font-semibold text-[var(--color-text)]">
-                  Precio máximo
-                  <input
-                    type="number"
-                    min="0"
-                    step="500"
-                    value={maxPrice}
-                    onChange={(event) => setMaxPrice(event.target.value)}
-                    className="ui-input mt-1 rounded-xl px-3 py-2 text-sm"
+            <Surface className="space-y-5 rounded-[2rem]" variant="base" padding="lg">
+              <SectionHeader
+                eyebrow={t('filtersEyebrow')}
+                title={t('filtersTitle')}
+                description={t('filtersDescription')}
+                action={<Gift className="h-5 w-5 text-fuchsia-600 dark:text-fuchsia-300" />}
+              />
+
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                <TextField
+                  type="number"
+                  min="0"
+                  step="500"
+                  inputMode="numeric"
+                  label={t('maxPriceLabel')}
+                  description={t('maxPriceDescription')}
+                  value={maxPrice}
+                  onChange={(event) => setMaxPrice(event.target.value)}
+                />
+
+                <div className="space-y-2">
+                  <FieldLabel
+                    label={t('serviceModeLabel')}
+                    description={t('serviceModeDescription')}
                   />
-                </label>
-                <label className="text-sm font-semibold text-[var(--color-text)]">
-                  Modalidad
-                  <select
-                    value={serviceMode}
-                    onChange={(event) => setServiceMode(event.target.value as 'delivery' | 'pickup')}
-                    className="ui-select mt-1 rounded-xl px-3 py-2 text-sm"
-                  >
-                    <option value="delivery">Delivery</option>
-                    <option value="pickup">Pickup</option>
-                  </select>
-                </label>
-                <div className="flex items-end">
-                  <button
-                    type="button"
-                    onClick={loadOffers}
-                    disabled={loading}
-                    className="ui-btn-primary inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-black disabled:opacity-60"
-                  >
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    Buscar ofertas
-                  </button>
+                  <div className="grid gap-2">
+                    {serviceModeOptions.map((option) => (
+                      <ChoiceCard
+                        key={option.value}
+                        title={option.title}
+                        description={option.description}
+                        checked={serviceMode === option.value}
+                        onClick={() => setServiceMode(option.value)}
+                        type="radio"
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
-              {acceptFeedback ? <p className="ui-state-success inline-flex rounded-xl px-3 py-2 text-xs">{acceptFeedback}</p> : null}
-              {acceptedOrderId ? (
-                <button
-                  type="button"
-                  onClick={() => router.push(`/orders/${acceptedOrderId}`)}
-                  className="ui-btn-secondary inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
-                >
-                  Ver orden creada
-                </button>
-              ) : null}
-            </section>
 
-            {error ? <section className="ui-state-danger rounded-[1.7rem] p-4 text-sm">{error}</section> : null}
+              <Button
+                onClick={loadOffers}
+                disabled={loading}
+                leadingIcon={loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                size="md"
+              >
+                {t('search')}
+              </Button>
+
+              {acceptFeedback ? (
+                <Surface className="inline-flex rounded-xl px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-200" variant="muted" padding="none">
+                  {acceptFeedback}
+                </Surface>
+              ) : null}
+              {acceptedOrderId ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => router.push(`/orders/${acceptedOrderId}`)}
+                  leadingIcon={<ArrowRight className="h-4 w-4" />}
+                >
+                  {t('viewCreatedOrder')}
+                </Button>
+              ) : null}
+            </Surface>
+
+            {error ? (
+              <Surface className="rounded-[1.7rem] text-sm text-red-700 dark:text-red-200" variant="raised">
+                {error}
+              </Surface>
+            ) : null}
 
             {offersPayload && offersPayload.offers.length === 0 ? (
-              <section className="ui-panel rounded-[2rem] p-5 text-sm text-[var(--color-text)]">
-                No hay mystery boxes disponibles con estos filtros por ahora.
-              </section>
+              <Surface className="rounded-[2rem] text-sm" variant="base" padding="lg">
+                {t('empty')}
+              </Surface>
             ) : null}
 
             <section className="space-y-3">
               {(offersPayload?.offers || []).map((offer) => (
-                <article key={offer.id || offer.title} className="ui-panel rounded-[2rem] p-5 space-y-4">
+                <Surface key={offer.id || offer.title} className="space-y-4 rounded-[2rem]" variant="base" padding="lg">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <p className="ui-section-title">{offer.restaurant.name || 'Restaurante'}</p>
-                      <h2 className="text-xl font-black tracking-[-0.02em] text-[var(--color-text)] inline-flex items-center gap-2">
+                      <Badge variant="brand">{offer.restaurant.name || t('restaurantFallback')}</Badge>
+                      <h2 className="inline-flex items-center gap-2 text-xl font-black tracking-[-0.02em] text-slate-900 dark:text-slate-100">
                         <Gift className="h-5 w-5 text-fuchsia-600" />
                         {offer.title}
                       </h2>
-                      <p className="ui-text-muted text-sm">{offer.description || 'Oferta generada con inventario disponible y compatibilidad dietaria.'}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{offer.description || t('defaultOfferDescription')}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-black text-[var(--color-text)]">₡{Math.round(offer.price).toLocaleString()}</p>
+                      <p className="text-lg font-black text-slate-900 dark:text-slate-100">₡{Math.round(offer.price).toLocaleString()}</p>
                       {offer.originalValue ? (
-                        <p className="ui-text-muted text-xs">Valor original ₡{Math.round(offer.originalValue).toLocaleString()}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('originalValue', { amount: Math.round(offer.originalValue).toLocaleString() })}</p>
                       ) : null}
                     </div>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
                     {offer.dietaryTags.map((tag) => (
-                      <span key={tag} className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                      <Badge key={tag} variant="success">
                         {tag}
-                      </span>
+                      </Badge>
                     ))}
                     {offer.excludedAllergens.map((allergen) => (
-                      <span key={allergen} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                        Sin {allergen}
-                      </span>
+                      <Badge key={allergen} variant="warning">
+                        {t('excludedAllergen', { allergen })}
+                      </Badge>
                     ))}
                   </div>
 
                   <div className="grid gap-2 md:grid-cols-2">
                     {offer.itemsPreview.map((item, index) => (
-                      <div key={`${offer.id || offer.title}-${item.menu_item_name}-${index}`} className="ui-list-card rounded-[1.35rem] px-4 py-3 text-sm text-[var(--color-text)]">
+                      <Surface
+                        key={`${offer.id || offer.title}-${item.menu_item_name}-${index}`}
+                        className="rounded-[1.35rem] px-4 py-3 text-sm"
+                        variant="muted"
+                      >
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-semibold">{item.menu_item_name}</span>
-                          <span className="ui-text-muted text-xs">x{item.quantity}</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">x{item.quantity}</span>
                         </div>
-                      </div>
+                      </Surface>
                     ))}
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="ui-text-muted text-xs">
-                      {offer.availableUntil ? `Disponible hasta ${new Date(offer.availableUntil).toLocaleString('es-CR')}` : 'Disponibilidad limitada'}
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {offer.availableUntil ? t('availableUntil', { value: new Date(offer.availableUntil).toLocaleString('es-CR') }) : t('limitedAvailability')}
                     </p>
-                    <button
-                      type="button"
+                    <Button
                       onClick={() => handleAccept(offer)}
                       disabled={!offer.canAccept || !offer.id || acceptingOfferId === offer.id}
-                      className="ui-btn-primary inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-black disabled:opacity-60"
+                      leadingIcon={acceptingOfferId === offer.id ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
+                      size="sm"
                     >
-                      {acceptingOfferId === offer.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                      {offer.canAccept ? 'Aceptar oferta' : 'No disponible'}
-                    </button>
+                      {offer.canAccept ? t('acceptButton') : t('unavailableButton')}
+                    </Button>
                   </div>
-                </article>
+                </Surface>
               ))}
             </section>
           </>

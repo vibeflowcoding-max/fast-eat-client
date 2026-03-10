@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { RestaurantInfo } from '../types';
 import SearchBar from './SearchBar';
 import OrderNotificationsTray from './OrderNotificationsTray';
@@ -10,6 +11,8 @@ import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { audioManager } from '@/lib/audio';
 import { BidNotification } from '@/types';
+import { Button, Surface } from '@/../resources/components';
+import { cn } from '@/../resources/components/utils';
 
 type OrderStatusCue = {
     orderId: string;
@@ -81,6 +84,7 @@ const Navbar: React.FC<NavbarProps> = ({
     setSearchQuery,
 }) => {
     const [isTrayOpen, setIsTrayOpen] = useState(false);
+    const [trayStyle, setTrayStyle] = useState<{ top: number; left: number; width: number } | null>(null);
     const [isFavorite, setIsFavorite] = useState(false);
     const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
     const [activeCue, setActiveCue] = useState<BidNotification | null>(null);
@@ -100,6 +104,9 @@ const Navbar: React.FC<NavbarProps> = ({
         [bidNotifications]
     );
     const unreadCount = unreadNotifications.length;
+    const trayContainerRef = useRef<HTMLDivElement | null>(null);
+    const trayTriggerRef = useRef<HTMLDivElement | null>(null);
+    const trayRestoreFocusRef = useRef(false);
 
     const ratingLabel =
         typeof restaurantInfo?.rating === 'number' && restaurantInfo.rating > 0
@@ -189,6 +196,110 @@ const Navbar: React.FC<NavbarProps> = ({
             window.removeEventListener('touchstart', unlock);
         };
     }, []);
+
+    useEffect(() => {
+        if (!isTrayOpen) {
+            return;
+        }
+
+        const handlePointerDown = (event: PointerEvent) => {
+            const targetNode = event.target as Node | null;
+            if (!targetNode) {
+                return;
+            }
+
+            if (trayContainerRef.current?.contains(targetNode) || trayTriggerRef.current?.contains(targetNode)) {
+                return;
+            }
+
+            setIsTrayOpen(false);
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('fast-eat:notifications_tray_dismissed', {
+                    detail: { source: 'outside_click' },
+                }));
+            }
+        };
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsTrayOpen(false);
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('fast-eat:notifications_tray_dismissed', {
+                        detail: { source: 'escape_key' },
+                    }));
+                }
+            }
+        };
+
+        window.addEventListener('pointerdown', handlePointerDown);
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('pointerdown', handlePointerDown);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isTrayOpen]);
+
+    useEffect(() => {
+        if (!isTrayOpen) {
+            if (trayRestoreFocusRef.current) {
+                trayTriggerRef.current?.querySelector<HTMLElement>('button')?.focus();
+                trayRestoreFocusRef.current = false;
+            }
+            return;
+        }
+
+        trayRestoreFocusRef.current = true;
+
+        const focusTray = window.requestAnimationFrame(() => {
+            trayContainerRef.current?.focus();
+        });
+
+        return () => {
+            window.cancelAnimationFrame(focusTray);
+        };
+    }, [isTrayOpen]);
+
+    useEffect(() => {
+        if (!isTrayOpen) {
+            setTrayStyle(null);
+            return;
+        }
+
+        const updateTrayPosition = () => {
+            const trigger = trayTriggerRef.current;
+            if (!trigger) {
+                return;
+            }
+
+            const rect = trigger.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const horizontalPadding = 16;
+            const trayWidth = Math.min(392, viewportWidth - horizontalPadding * 2);
+            const isMobileViewport = viewportWidth < 768;
+            const centeredLeft = Math.max(horizontalPadding, Math.round((viewportWidth - trayWidth) / 2));
+            const anchoredLeft = Math.min(
+                Math.max(horizontalPadding, Math.round(rect.right - trayWidth)),
+                Math.max(horizontalPadding, viewportWidth - trayWidth - horizontalPadding),
+            );
+
+            setTrayStyle({
+                top: Math.round(rect.bottom + 14),
+                left: isMobileViewport ? centeredLeft : anchoredLeft,
+                width: trayWidth,
+            });
+        };
+
+        updateTrayPosition();
+
+        window.addEventListener('resize', updateTrayPosition);
+        window.addEventListener('scroll', updateTrayPosition, true);
+
+        return () => {
+            window.removeEventListener('resize', updateTrayPosition);
+            window.removeEventListener('scroll', updateTrayPosition, true);
+        };
+    }, [isTrayOpen]);
 
     useEffect(() => {
         const latestUnread = unreadNotifications[0] ?? null;
@@ -355,7 +466,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 });
 
                 if (!response.ok) {
-                    throw new Error('Could not favorite restaurant');
+                    throw new Error(t('favoriteError'));
                 }
             } else {
                 const response = await fetch(`/api/favorites?restaurantId=${encodeURIComponent(restaurantInfo.id)}`, {
@@ -366,7 +477,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 });
 
                 if (!response.ok) {
-                    throw new Error('Could not unfavorite restaurant');
+                    throw new Error(t('unfavoriteError'));
                 }
             }
         } catch {
@@ -385,7 +496,7 @@ const Navbar: React.FC<NavbarProps> = ({
             <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col">
                 {activeStatusCue && (
                     <div className="pt-3">
-                        <div className="ui-panel-soft flex items-center justify-between gap-3 rounded-[1.3rem] border border-[var(--color-border)] px-3 py-2">
+                        <Surface className="flex items-center justify-between gap-3 rounded-[1.3rem] border border-slate-200 px-3 py-2 dark:border-slate-700" padding="none" variant="muted">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -401,126 +512,141 @@ const Navbar: React.FC<NavbarProps> = ({
 
                                     onShowHistory();
                                 }}
-                                className="text-left flex-1"
+                                className="flex-1 text-left"
                                 aria-label={t('trackOrders')}
                             >
-                                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-brand)]">Estado de orden actualizado</p>
-                                <p className="text-xs font-semibold text-[var(--color-text)]">{activeStatusCue.description}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-300">{tTracking('statusUpdated')}</p>
+                                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{activeStatusCue.description}</p>
                             </button>
-                            <button
-                                type="button"
+                            <Button
                                 onClick={dismissStatusCue}
-                                className="ui-btn-secondary rounded-full p-1"
-                                aria-label="Dismiss order status notification"
+                                className="size-8 rounded-full"
+                                aria-label={t('dismissOrderStatusNotification')}
+                                size="icon"
+                                variant="outline"
                             >
                                 <X className="w-4 h-4" />
-                            </button>
-                        </div>
+                            </Button>
+                        </Surface>
                     </div>
                 )}
                 {activeCue && (
                     <div className="pt-3">
-                        <div className="ui-chip-brand flex items-center justify-between gap-3 rounded-[1.3rem] px-3 py-2 animate-pulse">
+                        <Surface className="flex items-center justify-between gap-3 rounded-[1.3rem] border border-orange-200 px-3 py-2 text-orange-700 animate-pulse dark:border-orange-400/30 dark:text-orange-200" padding="none" variant="raised">
                             <button
                                 type="button"
                                 onClick={() => openFromCue(activeCue)}
-                                className="text-left flex-1"
+                                className="flex-1 text-left"
                                 aria-label={t('openOfferNotifications')}
                             >
-                                <p className="text-[10px] font-black uppercase tracking-widest">Nueva oferta recibida</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest">{t('newOfferReceived')}</p>
                                 <p className="text-xs font-semibold">Orden #{activeCue.orderId.slice(0, 8)} · ₡{Math.round(activeCue.bid.bidAmount).toLocaleString()}</p>
                             </button>
-                            <button
-                                type="button"
+                            <Button
                                 onClick={() => dismissCue(activeCue)}
-                                className="ui-btn-secondary rounded-full p-1"
-                                aria-label="Dismiss bid notification"
+                                className="size-8 rounded-full"
+                                aria-label={t('dismissBidNotification')}
+                                size="icon"
+                                variant="outline"
                             >
                                 <X className="w-4 h-4" />
-                            </button>
-                        </div>
+                            </Button>
+                        </Surface>
                     </div>
                 )}
                 <div className="flex items-center justify-between py-3 md:py-4">
                     <div className="flex items-center gap-3 md:gap-4 overflow-visible no-scrollbar scroll-smooth flex-nowrap pr-4 -mr-4 md:pr-0 md:mr-0">
-                        <button
-                            type="button"
+                        <Button
                             onClick={onGoBack}
-                            className="ui-btn-secondary flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all shrink-0 focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
+                            className="h-10 w-10 shrink-0 rounded-full md:h-11 md:w-11"
                             aria-label={t('back')}
+                            size="icon"
+                            variant="outline"
                         >
                             <ArrowLeft className="w-5 h-5" strokeWidth={2.5} />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={onShowHistory}
-                            className="ui-btn-secondary flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all shrink-0 focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
+                            className="h-10 w-10 shrink-0 rounded-full md:h-11 md:w-11"
                             aria-label={t('trackOrders')}
+                            size="icon"
+                            variant="outline"
                         >
                             <Package className="w-5 h-5" strokeWidth={2.5} />
-                        </button>
-                        <div className="relative shrink-0">
-                            <button
-                                type="button"
-                                className="ui-btn-secondary relative flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
-                                onClick={() => setIsTrayOpen((current) => !current)}
+                        </Button>
+                        <div ref={trayTriggerRef} className="relative shrink-0">
+                            <Button
+                                className="relative h-10 w-10 rounded-full md:h-11 md:w-11"
+                                onClick={() => {
+                                    setIsTrayOpen((current) => {
+                                        const next = !current;
+
+                                        if (typeof window !== 'undefined') {
+                                            window.dispatchEvent(new CustomEvent(next ? 'fast-eat:notifications_tray_impression' : 'fast-eat:notifications_tray_dismissed', {
+                                                detail: { source: 'navbar_button' },
+                                            }));
+                                        }
+
+                                        return next;
+                                    });
+                                }}
                                 aria-label={t('openOfferNotifications')}
+                                size="icon"
+                                variant="outline"
                             >
                                 <Zap className="w-5 h-5" strokeWidth={2.5} fill="currentColor" />
                                 {unreadCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 ui-btn-primary text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center border-2 border-white font-bold shadow-sm">
+                                    <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-white bg-orange-600 px-1 text-[10px] font-bold text-white shadow-sm dark:border-slate-900">
                                         {unreadCount}
                                     </span>
                                 )}
-                            </button>
-                            {isTrayOpen && (
-                                <div className="absolute top-full mt-2 left-0 z-[120]">
-                                    <OrderNotificationsTray
-                                        onOpenTracking={() => {
-                                            onShowHistory();
-                                            setIsTrayOpen(false);
-                                        }}
-                                    />
-                                </div>
-                            )}
+                            </Button>
                         </div>
                         <div className="relative shrink-0">
-                            <button
-                                type="button"
+                            <Button
                                 onClick={onOpenReviews}
-                                className="ui-btn-secondary inline-flex items-center justify-center gap-1 px-3 h-10 md:h-11 rounded-full transition-all shrink-0 focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm"
+                                className="h-10 shrink-0 rounded-full px-3 md:h-11"
                                 aria-label={t('openRestaurantReviews')}
+                                size="sm"
+                                variant="outline"
                             >
                                 <Star className="w-4 h-4" strokeWidth={2.5} fill="currentColor" />
                                 <span className="text-xs font-black">{ratingLabel}</span>
-                            </button>
+                            </Button>
                         </div>
-                        <button
-                            type="button"
+                        <Button
                             onClick={handleToggleFavorite}
                             disabled={isFavoriteLoading || !restaurantInfo?.id}
-                            className="ui-btn-secondary flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full transition-all shrink-0 focus:ring-2 focus:ring-[var(--color-brand)] focus:outline-none shadow-sm disabled:opacity-60"
+                            className="h-10 w-10 shrink-0 rounded-full md:h-11 md:w-11"
                             aria-label={isFavorite ? t('removeFavoriteRestaurant') : t('addFavoriteRestaurant')}
+                            size="icon"
+                            variant="outline"
                         >
                             <Heart className="w-5 h-5" strokeWidth={2.5} fill={isFavorite ? 'currentColor' : 'none'} />
-                        </button>
+                        </Button>
                     </div>
 
                     <div className="hidden md:flex flex-grow justify-center px-8">
                         <SearchBar value={searchQuery} onChange={setSearchQuery} />
                     </div>
 
-                    <button
+                    <Button
                         onClick={onOpenCart}
-                        className={`relative ml-4 flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-all shadow-sm md:ml-0 md:h-14 md:w-14 ${cartLength > 0 ? 'ui-btn-primary shadow-lg hover:scale-105 active:scale-95' : 'ui-btn-secondary'}`}
+                        className={cn(
+                            'relative ml-4 h-12 w-12 shrink-0 rounded-full shadow-sm md:ml-0 md:h-14 md:w-14',
+                            cartLength > 0 ? 'shadow-lg hover:scale-105 active:scale-95' : '',
+                        )}
                         aria-label={t('myOrder')}
+                        size="icon"
+                        variant={cartLength > 0 ? 'primary' : 'outline'}
                     >
-                        <ShoppingCart className="w-6 h-6" strokeWidth={2.5} fill={cartLength > 0 ? "currentColor" : "none"} />
+                        <ShoppingCart className="w-6 h-6" strokeWidth={2.5} fill={cartLength > 0 ? 'currentColor' : 'none'} />
                         {totalItemsCount > 0 && (
-                            <span className="absolute -top-1 -right-1 ui-btn-primary text-[11px] min-w-[22px] h-[22px] rounded-full flex items-center justify-center border-2 border-white shadow-sm font-bold">
+                            <span className="absolute -right-1 -top-1 flex h-[22px] min-w-[22px] items-center justify-center rounded-full border-2 border-white bg-orange-600 px-1 text-[11px] font-bold text-white shadow-sm dark:border-slate-900">
                                 {totalItemsCount}
                             </span>
                         )}
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Mobile Search Bar Row */}
@@ -547,6 +673,7 @@ const Navbar: React.FC<NavbarProps> = ({
                             Array.from({ length: 4 }).map((_, i) => (
                                 <div
                                     key={`cat-skeleton-${i}`}
+                                    data-testid="category-skeleton"
                                     className="px-8 md:px-14 py-4 md:py-6 rounded-xl bg-gray-200 border-2 border-transparent flex-shrink-0 animate-pulse relative overflow-hidden"
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]"></div>
@@ -558,7 +685,13 @@ const Navbar: React.FC<NavbarProps> = ({
                                     key={cat}
                                     data-cat={cat}
                                     onClick={() => setActiveCategory(cat)}
-                                    className={`flex-shrink-0 rounded-xl border-2 px-5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all md:px-10 md:py-4 md:text-[11px] ${activeCategory === cat ? 'ui-btn-primary border-transparent shadow-xl scale-105' : 'ui-btn-secondary ui-text-muted'}`}
+                                    aria-current={activeCategory === cat ? 'page' : undefined}
+                                    className={cn(
+                                        'flex-shrink-0 rounded-xl border-2 px-5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 md:px-10 md:py-4 md:text-[11px]',
+                                        activeCategory === cat
+                                            ? 'border-transparent bg-[linear-gradient(135deg,#ec5b13_0%,#fb923c_100%)] text-white shadow-[0_14px_28px_-18px_rgba(236,91,19,0.8)] scale-105 hover:bg-[linear-gradient(135deg,#c9480f_0%,#f97316_100%)]'
+                                            : 'border-slate-200 bg-[#fcf7f1] text-slate-500 hover:bg-[#fdf8f3] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800',
+                                    )}
                                 >
                                     {cat}
                                 </button>
@@ -576,6 +709,38 @@ const Navbar: React.FC<NavbarProps> = ({
                     )}
                 </div>
             </div>
+            {isTrayOpen && trayStyle && typeof document !== 'undefined'
+                ? createPortal(
+                    <>
+                        <div
+                            className="fixed inset-0 z-[110] bg-[#221610]/46 backdrop-blur-md"
+                            aria-hidden="true"
+                        />
+                        <div
+                            ref={trayContainerRef}
+                            className="fixed z-[120]"
+                            tabIndex={-1}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label={t('openOfferNotifications')}
+                            style={{
+                                top: `${trayStyle.top}px`,
+                                left: `${trayStyle.left}px`,
+                                width: `${trayStyle.width}px`,
+                            }}
+                        >
+                            <OrderNotificationsTray
+                                onOpenTracking={() => {
+                                    onShowHistory();
+                                    setIsTrayOpen(false);
+                                }}
+                                onClose={() => setIsTrayOpen(false)}
+                            />
+                        </div>
+                    </>,
+                    document.body,
+                )
+                : null}
         </div>
     );
 };

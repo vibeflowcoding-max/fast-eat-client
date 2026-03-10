@@ -139,15 +139,16 @@ export default function SurpriseMeWidget({ onRecommendationClick }: SurpriseMeWi
                                 <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">
                                     {t('perfectMatch')}
                                 </span>
-                                <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight truncate">
+                                <h3 className="break-words text-base font-black leading-tight text-slate-900 dark:text-white">
                                     {result.itemId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                                 </h3>
-                                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1.5 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-orange-100 dark:border-slate-800 leading-relaxed">
+                                <p className="mt-1.5 break-words bg-white p-2.5 text-xs leading-relaxed text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 rounded-lg border border-orange-100">
                                     &ldquo;{result.justification}&rdquo;
                                 </p>
                             </div>
 
                             <button
+                                type="button"
                                 onClick={() => onRecommendationClick?.(result.restaurantId)}
                                 className="mt-3 text-xs font-bold bg-white border border-gray-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-4 py-2.5 rounded-lg hover:bg-gray-50 flex items-center justify-center w-full transition-colors shadow-sm"
                             >
