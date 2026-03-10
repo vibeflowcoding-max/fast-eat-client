@@ -388,7 +388,7 @@ Non-style logic additions:
 - Added `getCategoryIcon()` to apply override before fallback to existing icon/default.
 
 ### File: `src/components/ChatWidget.tsx`
-- Initial assistant greeting text changed from themed “Chef Zen/Konichiwa” copy to neutral “Hola...” copy.
+- Initial assistant greeting text changed from themed “Chef/Konichiwa” copy to neutral “Hola...” copy.
 
 ### File: `next-env.d.ts`
 - Path changed from `.next/types/routes.d.ts` to `.next/dev/types/routes.d.ts`.

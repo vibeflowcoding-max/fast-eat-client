@@ -85,124 +85,6 @@ const baseProps = {
   setSearchQuery: vi.fn(),
 };
 
-describe('Navbar banner cues', () => {
-  beforeEach(() => {
-    storeState.bidNotifications = [];
-    storeState.clientContext = null;
-    getSessionMock.mockReset();
-    getSessionMock.mockResolvedValue({ data: { session: null } });
-    storeState.hydrateClientContext.mockReset();
-    storeState.markBidNotificationRead.mockReset();
-    storeState.setDeepLinkTarget.mockReset();
-    baseProps.onShowHistory.mockReset();
-    baseProps.onGoBack.mockReset();
-    baseProps.onOpenReviews.mockReset();
-    baseProps.onOpenCart.mockReset();
-    vi.stubGlobal('fetch', vi.fn());
-  });
-
-  it('renders the order status cue and supports open and dismiss actions', async () => {
-    const clickDetails: Array<Record<string, unknown>> = [];
-    const dismissDetails: Array<Record<string, unknown>> = [];
-
-    const handleClick = (event: Event) => clickDetails.push((event as CustomEvent).detail);
-    const handleDismiss = (event: Event) => dismissDetails.push((event as CustomEvent).detail);
-
-    window.addEventListener('fast-eat:order_status_notification_click', handleClick as EventListener);
-    window.addEventListener('fast-eat:order_status_notification_dismiss', handleDismiss as EventListener);
-
-    render(<Navbar {...baseProps} />);
-
-    act(() => {
-      window.dispatchEvent(new CustomEvent('fast-eat:order_status_changed', {
-        detail: {
-          orderId: 'order-123',
-          statusCode: 'READY',
-          statusLabel: 'Ready',
-          description: 'Tu pedido ya casi sale.',
-        },
-      }));
-    });
-
-    expect(await screen.findByText('statusCueDescriptions.ready')).toBeInTheDocument();
-
-    fireEvent.click(screen.getAllByRole('button', { name: 'trackOrders' })[0]);
-    expect(baseProps.onShowHistory).toHaveBeenCalledTimes(1);
-    expect(clickDetails).toEqual([
-      { orderId: 'order-123', statusCode: 'READY', source: 'navbar_status_cue' },
-    ]);
-
-    fireEvent.click(screen.getByRole('button', { name: 'dismissOrderStatusNotification' }));
-
-    await waitFor(() => {
-      expect(screen.queryByText('statusCueDescriptions.ready')).not.toBeInTheDocument();
-    });
-
-    expect(dismissDetails).toEqual([
-      { orderId: 'order-123', statusCode: 'READY', source: 'navbar_status_cue' },
-    ]);
-
-    window.removeEventListener('fast-eat:order_status_notification_click', handleClick as EventListener);
-    window.removeEventListener('fast-eat:order_status_notification_dismiss', handleDismiss as EventListener);
-  });
-
-  it('renders the bid cue and keeps open and dismiss behavior intact', async () => {
-    const dismissDetails: Array<Record<string, unknown>> = [];
-    const handleDismiss = (event: Event) => dismissDetails.push((event as CustomEvent).detail);
-
-    window.addEventListener('fast-eat:bid_notification_dismiss', handleDismiss as EventListener);
-
-    storeState.bidNotifications = [
-      {
-        id: 'bid-1',
-        orderId: 'order-1',
-        bid: {
-          bidAmount: 2900,
-        },
-        read: false,
-      },
-    ];
-
-    const { rerender } = render(<Navbar {...baseProps} />);
-
-    expect(await screen.findByText(/Orden #order-1/i)).toBeInTheDocument();
-
-    fireEvent.click(screen.getAllByRole('button', { name: 'openOfferNotifications' })[0]);
-
-    expect(storeState.markBidNotificationRead).toHaveBeenCalledWith('bid-1');
-    expect(storeState.setDeepLinkTarget).toHaveBeenCalledWith({ orderId: 'order-1', bidId: 'bid-1' });
-    expect(baseProps.onShowHistory).toHaveBeenCalledTimes(1);
-
-    storeState.bidNotifications = [
-      {
-        id: 'bid-2',
-        orderId: 'order-2',
-        bid: {
-          bidAmount: 3100,
-        },
-        read: false,
-      },
-    ];
-
-    rerender(<Navbar {...baseProps} />);
-
-    expect(await screen.findByText(/Orden #order-2/i)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'dismissBidNotification' }));
-
-    await waitFor(() => {
-      expect(screen.queryByText(/Orden #order-2/i)).not.toBeInTheDocument();
-    });
-
-    expect(storeState.markBidNotificationRead).toHaveBeenCalledWith('bid-2');
-    expect(dismissDetails).toEqual([
-      { orderId: 'order-2', bidId: 'bid-2', source: 'navbar_cue' },
-    ]);
-
-    window.removeEventListener('fast-eat:bid_notification_dismiss', handleDismiss as EventListener);
-  });
-});
-
 describe('Navbar action buttons and cart', () => {
   beforeEach(() => {
     storeState.bidNotifications = [];
@@ -253,13 +135,36 @@ describe('Navbar action buttons and cart', () => {
     });
     expect(screen.queryByText('order-notifications-tray')).not.toBeInTheDocument();
 
-    const trayToggleButton = screen.getAllByRole('button', { name: 'openOfferNotifications' })[1];
+    const trayToggleButton = screen.getByRole('button', { name: 'openOfferNotifications' });
 
     fireEvent.click(trayToggleButton);
     expect(screen.getByText('order-notifications-tray')).toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'openOfferNotifications' })[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'openOfferNotifications' }));
     expect(screen.queryByText('order-notifications-tray')).not.toBeInTheDocument();
+  });
+
+  it('does not render inline status or offer banners on the screen', () => {
+    storeState.bidNotifications = [
+      { id: 'bid-1', orderId: 'order-1', bid: { bidAmount: 1200 }, read: false },
+    ];
+
+    render(<Navbar {...baseProps} />);
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent('fast-eat:order_status_changed', {
+        detail: {
+          orderId: 'order-123',
+          statusCode: 'READY',
+          statusLabel: 'Ready',
+          description: 'Tu pedido ya casi sale.',
+        },
+      }));
+    });
+
+    expect(screen.queryByText(/Orden #order-1/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('statusCueDescriptions.ready')).not.toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
   });
 
   it('dismisses the portal tray on outside pointerdown and restores focus to the trigger', async () => {
@@ -269,7 +174,7 @@ describe('Navbar action buttons and cart', () => {
 
     render(<Navbar {...baseProps} />);
 
-    const trayToggleButton = screen.getAllByRole('button', { name: 'openOfferNotifications' })[1];
+    const trayToggleButton = screen.getByRole('button', { name: 'openOfferNotifications' });
 
     fireEvent.click(trayToggleButton);
 
@@ -294,7 +199,7 @@ describe('Navbar action buttons and cart', () => {
 
     render(<Navbar {...baseProps} />);
 
-    const trayToggleButton = screen.getAllByRole('button', { name: 'openOfferNotifications' })[1];
+    const trayToggleButton = screen.getByRole('button', { name: 'openOfferNotifications' });
 
     fireEvent.click(trayToggleButton);
 
