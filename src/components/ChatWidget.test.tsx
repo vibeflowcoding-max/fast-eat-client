@@ -39,7 +39,7 @@ describe('ChatWidget', () => {
       expect(screen.getByText('Listo. Agregué 1 Gallo Pinto a tu pedido.')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: 'Cerrar notificación de Chef Zen' }));
+    await user.click(screen.getByRole('button', { name: 'Cerrar notificación del Chef' }));
 
     expect(screen.queryByText('Listo. Agregué 1 Gallo Pinto a tu pedido.')).not.toBeInTheDocument();
     expect(screen.queryByText('chat-message-list')).not.toBeInTheDocument();

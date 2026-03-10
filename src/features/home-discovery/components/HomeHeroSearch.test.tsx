@@ -17,6 +17,27 @@ const suggestion: HomeSearchSuggestionItem = {
 };
 
 describe('HomeHeroSearch', () => {
+  it('renders the notification trigger in the header above the profile prompt and search row', () => {
+    render(
+      <HomeHeroSearch
+        hasActiveLocation
+        loyaltyWidget={<button type="button">loyalty-widget</button>}
+        notificationTrigger={<button type="button">notifications-trigger</button>}
+        onSearchQueryChange={() => undefined}
+        profilePrompt={<div>profile-prompt</div>}
+        searchQuery=""
+      />,
+    );
+
+    const notificationTrigger = screen.getByRole('button', { name: 'notifications-trigger' });
+    const profilePrompt = screen.getByText('profile-prompt');
+    const searchInput = screen.getByRole('textbox', { name: 'searchLabel' });
+
+    expect(notificationTrigger).toBeInTheDocument();
+    expect(notificationTrigger.compareDocumentPosition(profilePrompt) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(notificationTrigger.compareDocumentPosition(searchInput) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('renders suggestions and notifies the selected suggestion', () => {
     const onSuggestionSelect = vi.fn();
 

@@ -10,6 +10,7 @@ import CategoryBar from '@/components/CategoryBar';
 import ProfileCompletionPrompt from '@/components/ProfileCompletionPrompt';
 import LoadingScreen from '@/components/LoadingScreen';
 import BottomNav from '@/components/BottomNav';
+import NotificationTrayTrigger from '@/components/NotificationTrayTrigger';
 import HomeHeroSearch from '@/features/home-discovery/components/HomeHeroSearch';
 import { HomeSearchSuggestionItem } from '@/features/home-discovery/components/HomeHeroSearch';
 import IntentChipsBar from '@/features/home-discovery/components/IntentChipsBar';
@@ -629,6 +630,15 @@ export default function HomePage() {
             <div className="sticky top-0 z-40 bg-white shadow-sm">
                 <HomeHeroSearch
                     hasActiveLocation={Boolean(userLocation)}
+                    notificationTrigger={(
+                        <NotificationTrayTrigger
+                            analyticsSource="home_header_button"
+                            buttonClassName="relative mt-0.5 h-12 w-12 rounded-2xl border-slate-200 bg-white shadow-sm"
+                            badgeClassName="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-white bg-orange-600 px-1 text-[10px] font-bold text-white shadow-sm"
+                            iconClassName="h-5 w-5"
+                            onOpenTracking={() => router.push('/orders')}
+                        />
+                    )}
                     searchQuery={searchQuery}
                     onSearchQueryChange={(value) => {
                         setSearchQuery(value);

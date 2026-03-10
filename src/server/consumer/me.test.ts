@@ -96,7 +96,7 @@ describe('getClientBootstrapPayload', () => {
                 data: {
                   user_id: 'user-123',
                   email: 'chef@example.com',
-                  full_name: 'Chef Zen',
+                  full_name: 'Chef',
                   phone: '+50688888888',
                   url_google_maps: null,
                 },
@@ -115,7 +115,7 @@ describe('getClientBootstrapPayload', () => {
                 data: {
                   id: 'customer-1',
                   auth_user_id: 'user-123',
-                  name: 'Chef Zen',
+                  name: 'Chef',
                   phone: '+50688888888',
                   email: 'chef@example.com',
                   address: null,

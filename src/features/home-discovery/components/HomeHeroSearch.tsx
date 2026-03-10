@@ -37,6 +37,7 @@ interface HomeHeroSearchProps {
     onClearSearch?: () => void;
     profilePrompt?: React.ReactNode;
     loyaltyWidget?: React.ReactNode;
+    notificationTrigger?: React.ReactNode;
     visualHierarchyV2?: boolean;
 }
 
@@ -56,76 +57,83 @@ export default function HomeHeroSearch({
     onClearSearch,
     profilePrompt,
     loyaltyWidget,
+    notificationTrigger,
     visualHierarchyV2 = false
 }: HomeHeroSearchProps) {
     const searchInputId = 'home-search-input';
     const t = useTranslations('home.heroSearch');
+    const headerHasRightContent = hasActiveLocation || Boolean(notificationTrigger);
 
     return (
         <div className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.heroContainer : 'px-4 py-4'}>
-            <div className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.heroHeader : `mb-4 flex items-center ${loyaltyWidget ? 'justify-between' : 'justify-end'}`}>
+            <div className={visualHierarchyV2 ? HOME_VISUAL_TOKENS.heroHeader : `mb-4 flex items-center ${loyaltyWidget || headerHasRightContent ? 'justify-between' : 'justify-end'}`}>
                 {loyaltyWidget}
-                {hasActiveLocation && (
-                    <div
-                        className={visualHierarchyV2
-                            ? HOME_VISUAL_TOKENS.locationChipStyle
-                            : 'flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-xs text-green-600'}
-                    >
-                        <MapPin size={12} />
-                        <span>{t('activeLocation')}</span>
+                {headerHasRightContent ? (
+                    <div className="flex items-center gap-2">
+                        {hasActiveLocation && (
+                            <div
+                                className={visualHierarchyV2
+                                    ? HOME_VISUAL_TOKENS.locationChipStyle
+                                    : 'flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-xs text-green-600'}
+                            >
+                                <MapPin size={12} />
+                                <span>{t('activeLocation')}</span>
+                            </div>
+                        )}
+                        {notificationTrigger ? <div className="shrink-0">{notificationTrigger}</div> : null}
                     </div>
-                )}
+                ) : null}
             </div>
 
             {profilePrompt}
 
             <div className="relative">
-                <label htmlFor={searchInputId} className="sr-only">{t('searchLabel')}</label>
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" size={20} />
-                <input
-                    id={searchInputId}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(event) => onSearchQueryChange(event.target.value)}
-                    placeholder={t('searchPlaceholder')}
-                    className={visualHierarchyV2
-                        ? HOME_VISUAL_TOKENS.searchInputStyle + ' pr-14'
-                        : 'w-full rounded-xl bg-gray-100 py-3 pl-10 pr-14 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-orange-500'}
-                />
-                <div className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10">
-                    <VoiceSearchButton />
-                </div>
+                    <label htmlFor={searchInputId} className="sr-only">{t('searchLabel')}</label>
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" size={20} />
+                    <input
+                        id={searchInputId}
+                        type="text"
+                        value={searchQuery}
+                        onChange={(event) => onSearchQueryChange(event.target.value)}
+                        placeholder={t('searchPlaceholder')}
+                        className={visualHierarchyV2
+                            ? HOME_VISUAL_TOKENS.searchInputStyle + ' pr-14'
+                            : 'w-full rounded-xl bg-gray-100 py-3 pl-10 pr-14 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-orange-500'}
+                    />
+                    <div className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10">
+                        <VoiceSearchButton />
+                    </div>
 
-                {showSuggestions && (
-                    <Surface className="absolute z-50 mt-2 w-full rounded-2xl shadow-[0_22px_48px_-28px_rgba(98,60,29,0.35)]" padding="sm" variant="base">
-                        {suggestionsLoading && (
-                            <p className="px-2 py-1.5 text-sm text-slate-500 dark:text-slate-400">{t('searchingSuggestions')}</p>
-                        )}
+                    {showSuggestions && (
+                        <Surface className="absolute z-50 mt-2 w-full rounded-2xl shadow-[0_22px_48px_-28px_rgba(98,60,29,0.35)]" padding="sm" variant="base">
+                            {suggestionsLoading && (
+                                <p className="px-2 py-1.5 text-sm text-slate-500 dark:text-slate-400">{t('searchingSuggestions')}</p>
+                            )}
 
-                        {!suggestionsLoading && suggestions.length === 0 && (
-                            <p className="px-2 py-1.5 text-sm text-slate-500 dark:text-slate-400">{t('noSuggestions')}</p>
-                        )}
+                            {!suggestionsLoading && suggestions.length === 0 && (
+                                <p className="px-2 py-1.5 text-sm text-slate-500 dark:text-slate-400">{t('noSuggestions')}</p>
+                            )}
 
-                        {!suggestionsLoading && suggestions.length > 0 && (
-                            <ul className="flex flex-col gap-1" aria-label={t('suggestionsAria')}>
-                                {suggestions.map((suggestion) => (
-                                    <li key={suggestion.id}>
-                                        <button
-                                            type="button"
-                                            onClick={() => onSuggestionSelect?.(suggestion)}
-                                            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm text-slate-900 transition-colors hover:bg-[#f4eee8] dark:text-slate-100 dark:hover:bg-slate-800"
-                                        >
-                                            <span>{suggestion.label}</span>
-                                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                                                {suggestion.kind === 'restaurant' ? t('suggestionKind.restaurant') : t('suggestionKind.category')}
-                                            </span>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </Surface>
-                )}
+                            {!suggestionsLoading && suggestions.length > 0 && (
+                                <ul className="flex flex-col gap-1" aria-label={t('suggestionsAria')}>
+                                    {suggestions.map((suggestion) => (
+                                        <li key={suggestion.id}>
+                                            <button
+                                                type="button"
+                                                onClick={() => onSuggestionSelect?.(suggestion)}
+                                                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm text-slate-900 transition-colors hover:bg-[#f4eee8] dark:text-slate-100 dark:hover:bg-slate-800"
+                                            >
+                                                <span>{suggestion.label}</span>
+                                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                    {suggestion.kind === 'restaurant' ? t('suggestionKind.restaurant') : t('suggestionKind.category')}
+                                                </span>
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </Surface>
+                    )}
             </div>
 
             {showRecovery && (
