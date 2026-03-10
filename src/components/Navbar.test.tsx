@@ -262,6 +262,52 @@ describe('Navbar action buttons and cart', () => {
     expect(screen.queryByText('order-notifications-tray')).not.toBeInTheDocument();
   });
 
+  it('dismisses the portal tray on outside pointerdown and restores focus to the trigger', async () => {
+    storeState.bidNotifications = [
+      { id: 'bid-1', orderId: 'order-1', bid: { bidAmount: 1200 }, read: false },
+    ];
+
+    render(<Navbar {...baseProps} />);
+
+    const trayToggleButton = screen.getAllByRole('button', { name: 'openOfferNotifications' })[1];
+
+    fireEvent.click(trayToggleButton);
+
+    const dialog = await screen.findByRole('dialog', { name: 'openOfferNotifications' });
+    await waitFor(() => {
+      expect(dialog).toHaveFocus();
+    });
+
+    fireEvent.pointerDown(document.body);
+
+    await waitFor(() => {
+      expect(screen.queryByText('order-notifications-tray')).not.toBeInTheDocument();
+    });
+
+    expect(trayToggleButton).toHaveFocus();
+  });
+
+  it('dismisses the portal tray on Escape and restores focus to the trigger', async () => {
+    storeState.bidNotifications = [
+      { id: 'bid-1', orderId: 'order-1', bid: { bidAmount: 1200 }, read: false },
+    ];
+
+    render(<Navbar {...baseProps} />);
+
+    const trayToggleButton = screen.getAllByRole('button', { name: 'openOfferNotifications' })[1];
+
+    fireEvent.click(trayToggleButton);
+
+    await screen.findByRole('dialog', { name: 'openOfferNotifications' });
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    await waitFor(() => {
+      expect(screen.queryByText('order-notifications-tray')).not.toBeInTheDocument();
+    });
+
+    expect(trayToggleButton).toHaveFocus();
+  });
+
   it('applies the empty-cart visual state when the cart has no items', () => {
     render(<Navbar {...baseProps} totalItemsCount={0} cartLength={0} />);
 

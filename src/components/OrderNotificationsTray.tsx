@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Bell, Sparkles, X } from 'lucide-react';
-import { Button, EmptyState, SectionHeader, Surface } from '@/../resources/components';
+import { Button, EmptyState, Surface } from '@/../resources/components';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
 import NotificationListItem from '@/features/notifications/components/NotificationListItem';
@@ -41,14 +41,19 @@ const OrderNotificationsTray: React.FC<OrderNotificationsTrayProps> = ({ onOpenT
 
   if (!sortedNotifications.length) {
     return (
-      <Surface className="w-[min(92vw,24rem)] rounded-[2rem] border border-orange-100/80 p-4 shadow-[0_24px_60px_-28px_rgba(98,60,29,0.5)]" variant="base">
-        <div className="flex items-center justify-between gap-3 border-b border-orange-100/70 pb-3">
-          <SectionHeader title={t('trayTitle')} description={t('traySubtitle')} />
-          <Button aria-label={t('closeTray')} className="size-9 rounded-full" onClick={onClose} size="icon" variant="ghost">
+      <Surface className="w-full rounded-[2.15rem] border border-orange-100/90 bg-[#fffaf6] p-4 shadow-[0_30px_80px_-34px_rgba(98,60,29,0.45)] dark:bg-[#2d1e16]" variant="base">
+        <div className="flex items-start justify-between gap-3 border-b border-orange-100/80 pb-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-[1.05rem] font-black tracking-[-0.02em] text-slate-900 dark:text-slate-100">{t('trayTitle')}</h3>
+            </div>
+            <p className="mt-1 text-sm leading-5 text-slate-500 dark:text-slate-300">{t('traySubtitle')}</p>
+          </div>
+          <Button aria-label={t('closeTray')} className="mt-0.5 size-9 rounded-full border border-transparent text-slate-500 hover:border-orange-100 hover:bg-orange-50 dark:text-slate-300 dark:hover:bg-orange-500/10" onClick={onClose} size="icon" variant="ghost">
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className="pt-4">
+        <div className="pt-5">
           <EmptyState
             action={<Button onClick={handleOpenHistory} size="sm" variant="outline">{t('seeAll')}</Button>}
             description={t('emptyDescription')}
@@ -61,14 +66,16 @@ const OrderNotificationsTray: React.FC<OrderNotificationsTrayProps> = ({ onOpenT
   }
 
   return (
-    <Surface className="w-[min(92vw,24rem)] rounded-[2rem] border border-orange-100/80 p-4 shadow-[0_24px_60px_-28px_rgba(98,60,29,0.5)]" variant="base">
-      <div className="flex items-center justify-between gap-3 border-b border-orange-100/70 pb-3">
-        <SectionHeader
-          title={t('trayTitle')}
-          description={t('traySubtitle')}
-          action={unreadCount > 0 ? <span className="rounded-full bg-orange-100 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-orange-700 dark:bg-orange-500/10 dark:text-orange-200">{t('newBadge')}</span> : undefined}
-        />
-        <Button aria-label={t('closeTray')} className="size-9 rounded-full" onClick={onClose} size="icon" variant="ghost">
+    <Surface className="w-full rounded-[2.15rem] border border-orange-100/90 bg-[#fffaf6] p-4 shadow-[0_30px_80px_-34px_rgba(98,60,29,0.45)] dark:bg-[#2d1e16]" variant="base">
+      <div className="flex items-start justify-between gap-3 border-b border-orange-100/80 pb-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-[1.05rem] font-black tracking-[-0.02em] text-slate-900 dark:text-slate-100">{t('trayTitle')}</h3>
+            {unreadCount > 0 ? <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-orange-700 dark:bg-orange-500/10 dark:text-orange-200">{t('newBadge')}</span> : null}
+          </div>
+          <p className="mt-1 text-sm leading-5 text-slate-500 dark:text-slate-300">{t('traySubtitle')}</p>
+        </div>
+        <Button aria-label={t('closeTray')} className="mt-0.5 size-9 rounded-full border border-transparent text-slate-500 hover:border-orange-100 hover:bg-orange-50 dark:text-slate-300 dark:hover:bg-orange-500/10" onClick={onClose} size="icon" variant="ghost">
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -97,8 +104,9 @@ const OrderNotificationsTray: React.FC<OrderNotificationsTrayProps> = ({ onOpenT
         ))}
       </div>
 
-      <div className="mt-4 rounded-[1.4rem] bg-orange-50/80 p-2 dark:bg-orange-500/10">
+      <div className="mt-4 border-t border-orange-100/80 pt-4">
         <Button
+          className="h-14 rounded-[1.35rem] text-sm font-black"
           fullWidth
           onClick={handleOpenHistory}
           size="md"

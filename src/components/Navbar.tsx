@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { RestaurantInfo } from '../types';
 import SearchBar from './SearchBar';
 import OrderNotificationsTray from './OrderNotificationsTray';
@@ -83,6 +84,7 @@ const Navbar: React.FC<NavbarProps> = ({
     setSearchQuery,
 }) => {
     const [isTrayOpen, setIsTrayOpen] = useState(false);
+    const [trayStyle, setTrayStyle] = useState<{ top: number; left: number; width: number } | null>(null);
     const [isFavorite, setIsFavorite] = useState(false);
     const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
     const [activeCue, setActiveCue] = useState<BidNotification | null>(null);
@@ -103,6 +105,8 @@ const Navbar: React.FC<NavbarProps> = ({
     );
     const unreadCount = unreadNotifications.length;
     const trayContainerRef = useRef<HTMLDivElement | null>(null);
+    const trayTriggerRef = useRef<HTMLDivElement | null>(null);
+    const trayRestoreFocusRef = useRef(false);
 
     const ratingLabel =
         typeof restaurantInfo?.rating === 'number' && restaurantInfo.rating > 0
@@ -199,17 +203,20 @@ const Navbar: React.FC<NavbarProps> = ({
         }
 
         const handlePointerDown = (event: PointerEvent) => {
-            if (!trayContainerRef.current) {
+            const targetNode = event.target as Node | null;
+            if (!targetNode) {
                 return;
             }
 
-            if (!trayContainerRef.current.contains(event.target as Node)) {
-                setIsTrayOpen(false);
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('fast-eat:notifications_tray_dismissed', {
-                        detail: { source: 'outside_click' },
-                    }));
-                }
+            if (trayContainerRef.current?.contains(targetNode) || trayTriggerRef.current?.contains(targetNode)) {
+                return;
+            }
+
+            setIsTrayOpen(false);
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('fast-eat:notifications_tray_dismissed', {
+                    detail: { source: 'outside_click' },
+                }));
             }
         };
 
@@ -230,6 +237,67 @@ const Navbar: React.FC<NavbarProps> = ({
         return () => {
             window.removeEventListener('pointerdown', handlePointerDown);
             window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isTrayOpen]);
+
+    useEffect(() => {
+        if (!isTrayOpen) {
+            if (trayRestoreFocusRef.current) {
+                trayTriggerRef.current?.querySelector<HTMLElement>('button')?.focus();
+                trayRestoreFocusRef.current = false;
+            }
+            return;
+        }
+
+        trayRestoreFocusRef.current = true;
+
+        const focusTray = window.requestAnimationFrame(() => {
+            trayContainerRef.current?.focus();
+        });
+
+        return () => {
+            window.cancelAnimationFrame(focusTray);
+        };
+    }, [isTrayOpen]);
+
+    useEffect(() => {
+        if (!isTrayOpen) {
+            setTrayStyle(null);
+            return;
+        }
+
+        const updateTrayPosition = () => {
+            const trigger = trayTriggerRef.current;
+            if (!trigger) {
+                return;
+            }
+
+            const rect = trigger.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const horizontalPadding = 16;
+            const trayWidth = Math.min(392, viewportWidth - horizontalPadding * 2);
+            const isMobileViewport = viewportWidth < 768;
+            const centeredLeft = Math.max(horizontalPadding, Math.round((viewportWidth - trayWidth) / 2));
+            const anchoredLeft = Math.min(
+                Math.max(horizontalPadding, Math.round(rect.right - trayWidth)),
+                Math.max(horizontalPadding, viewportWidth - trayWidth - horizontalPadding),
+            );
+
+            setTrayStyle({
+                top: Math.round(rect.bottom + 14),
+                left: isMobileViewport ? centeredLeft : anchoredLeft,
+                width: trayWidth,
+            });
+        };
+
+        updateTrayPosition();
+
+        window.addEventListener('resize', updateTrayPosition);
+        window.addEventListener('scroll', updateTrayPosition, true);
+
+        return () => {
+            window.removeEventListener('resize', updateTrayPosition);
+            window.removeEventListener('scroll', updateTrayPosition, true);
         };
     }, [isTrayOpen]);
 
@@ -506,7 +574,7 @@ const Navbar: React.FC<NavbarProps> = ({
                         >
                             <Package className="w-5 h-5" strokeWidth={2.5} />
                         </Button>
-                        <div ref={trayContainerRef} className="relative shrink-0">
+                        <div ref={trayTriggerRef} className="relative shrink-0">
                             <Button
                                 className="relative h-10 w-10 rounded-full md:h-11 md:w-11"
                                 onClick={() => {
@@ -533,20 +601,6 @@ const Navbar: React.FC<NavbarProps> = ({
                                     </span>
                                 )}
                             </Button>
-                            {isTrayOpen && (
-                                <>
-                                    <div className="fixed inset-0 z-[110] bg-[#221610]/40 backdrop-blur-[2px]" aria-hidden="true" />
-                                    <div className="absolute left-0 top-full z-[120] mt-3">
-                                    <OrderNotificationsTray
-                                        onOpenTracking={() => {
-                                            onShowHistory();
-                                            setIsTrayOpen(false);
-                                        }}
-                                        onClose={() => setIsTrayOpen(false)}
-                                    />
-                                    </div>
-                                </>
-                            )}
                         </div>
                         <div className="relative shrink-0">
                             <Button
@@ -655,6 +709,38 @@ const Navbar: React.FC<NavbarProps> = ({
                     )}
                 </div>
             </div>
+            {isTrayOpen && trayStyle && typeof document !== 'undefined'
+                ? createPortal(
+                    <>
+                        <div
+                            className="fixed inset-0 z-[110] bg-[#221610]/46 backdrop-blur-md"
+                            aria-hidden="true"
+                        />
+                        <div
+                            ref={trayContainerRef}
+                            className="fixed z-[120]"
+                            tabIndex={-1}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label={t('openOfferNotifications')}
+                            style={{
+                                top: `${trayStyle.top}px`,
+                                left: `${trayStyle.left}px`,
+                                width: `${trayStyle.width}px`,
+                            }}
+                        >
+                            <OrderNotificationsTray
+                                onOpenTracking={() => {
+                                    onShowHistory();
+                                    setIsTrayOpen(false);
+                                }}
+                                onClose={() => setIsTrayOpen(false)}
+                            />
+                        </div>
+                    </>,
+                    document.body,
+                )
+                : null}
         </div>
     );
 };
