@@ -25,7 +25,7 @@ function resolveAcceptedOrderId(payload: unknown): string | null {
     acceptedOrder?.id,
   ];
 
-  return candidates.find((value) => typeof value === 'string' && value.trim().length > 0) || null;
+  return candidates.find((value): value is string => typeof value === 'string' && value.trim().length > 0) || null;
 }
 
 export default function MysteryBoxPage() {
