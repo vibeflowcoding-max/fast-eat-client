@@ -118,7 +118,7 @@ export default function NotificationTrayTrigger({
       const rect = trigger.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const horizontalPadding = 16;
-      const trayWidth = Math.min(392, viewportWidth - horizontalPadding * 2);
+      const trayWidth = Math.min(360, viewportWidth - horizontalPadding * 2);
       const isMobileViewport = viewportWidth < 768;
       const centeredLeft = Math.max(horizontalPadding, Math.round((viewportWidth - trayWidth) / 2));
       const anchoredLeft = Math.min(
@@ -127,7 +127,7 @@ export default function NotificationTrayTrigger({
       );
 
       setTrayStyle({
-        top: Math.round(rect.bottom + 14),
+        top: Math.round(rect.bottom + 12),
         left: isMobileViewport ? centeredLeft : anchoredLeft,
         width: trayWidth,
       });
@@ -176,7 +176,7 @@ export default function NotificationTrayTrigger({
         ? createPortal(
             <>
               <div
-                className="fixed inset-0 z-[110] bg-[#221610]/46 backdrop-blur-md"
+                className="fixed inset-0 z-[110] bg-[#221610]/42 backdrop-blur-[3px]"
                 aria-hidden="true"
               />
               <div

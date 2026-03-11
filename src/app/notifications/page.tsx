@@ -5,7 +5,7 @@ import { ArrowLeft, Bell, History, Truck } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
-import { AppShell, Button, SectionHeader, StickyHeaderBar, Surface } from '@/../resources/components';
+import { AppShell, Button, Surface } from '@/../resources/components';
 import NotificationListItem from '@/features/notifications/components/NotificationListItem';
 import { groupNotifications, mapBidNotificationsToItems, type NotificationGroupKey } from '@/features/notifications/notifications-model';
 import { useTranslations } from 'next-intl';
@@ -55,12 +55,11 @@ export default function NotificationsPage() {
       chromeInset="bottom-nav"
       footer={<BottomNav />}
       header={(
-        <StickyHeaderBar
-          title={t('pageTitle')}
-          subtitle={t('pageSubtitle')}
-          leadingAction={(
+        <div className="sticky top-0 z-10 bg-[#f8f6f2]/95 px-4 pb-3 pt-4 backdrop-blur dark:bg-[#221610]/95">
+          <div className="relative flex min-h-[4.5rem] items-start justify-center">
             <Button
               aria-label={t('backToHome')}
+              className="absolute left-0 top-0 text-slate-700 dark:text-slate-200"
               onClick={() => {
                 if (typeof window !== 'undefined') {
                   window.dispatchEvent(new CustomEvent('fast-eat:notifications_history_back', {
@@ -74,33 +73,37 @@ export default function NotificationsPage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-          )}
-        />
+            <div className="px-12 pt-0.5 text-center">
+              <h1 className="text-[1.45rem] font-black tracking-[-0.03em] text-slate-900 dark:text-slate-100">{t('pageTitle')}</h1>
+              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{t('pageSubtitle')}</p>
+            </div>
+          </div>
+          <div className="border-b border-slate-200/90 dark:border-slate-800/90" />
+        </div>
       )}
     >
-      <div className="space-y-6 pt-5">
+      <div className="space-y-7 pt-4">
         {groups.length === 0 ? (
-          <Surface className="relative overflow-hidden rounded-[2rem]" variant="raised" padding="none">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.2),transparent_48%),radial-gradient(circle_at_bottom_left,rgba(251,191,36,0.18),transparent_40%)]" />
-            <div className="relative space-y-5 px-6 py-6">
+          <Surface className="rounded-[2rem] border border-orange-100/90 bg-[#fffaf6] px-5 py-6 shadow-none" variant="base" padding="none">
+            <div className="space-y-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2">
-                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-orange-700 dark:text-orange-300">
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-orange-600 dark:text-orange-300">
                     {t('groups.today.eyebrow')}
                   </p>
-                  <h2 className="max-w-[18ch] text-2xl font-black tracking-[-0.03em] text-slate-900 dark:text-slate-100">
+                  <h2 className="max-w-[18ch] text-[1.8rem] font-black tracking-[-0.04em] text-slate-900 dark:text-slate-100">
                     {t('emptyTitle')}
                   </h2>
                   <p className="max-w-[34ch] text-sm leading-6 text-slate-600 dark:text-slate-300">
                     {t('emptyDescription')}
                   </p>
                 </div>
-                <div className="flex size-14 shrink-0 items-center justify-center rounded-[1.25rem] bg-white/85 text-orange-600 shadow-[0_14px_34px_-22px_rgba(234,88,12,0.8)] ring-1 ring-orange-100 dark:bg-slate-950/60 dark:text-orange-300 dark:ring-orange-900/50">
+                <div className="flex size-14 shrink-0 items-center justify-center rounded-[1.15rem] bg-orange-600 text-white shadow-[0_14px_34px_-22px_rgba(234,88,12,0.8)]">
                   <Bell className="h-6 w-6" />
                 </div>
               </div>
 
-              <Surface className="space-y-3 rounded-[1.5rem]" variant="base" padding="lg">
+              <Surface className="space-y-3 rounded-[1.5rem] border border-orange-100/80 bg-white/90" variant="base" padding="lg">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
                   {t('traySubtitle')}
                 </p>
@@ -112,16 +115,23 @@ export default function NotificationsPage() {
           </Surface>
         ) : (
           groups.map((group) => (
-            <section key={group.key} className="space-y-3">
-              <SectionHeader
-                action={groupIconByKey[group.key]}
-                eyebrow={t(`groups.${group.key}.eyebrow`)}
-                title={t(`groups.${group.key}.title`)}
-              />
-              <div className="space-y-3">
+            <section key={group.key} className="space-y-3.5">
+              <div className="flex items-start justify-between gap-4 px-1">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-orange-600 dark:text-orange-300">
+                    {t(`groups.${group.key}.eyebrow`)}
+                  </p>
+                  <h2 className="mt-1 text-[1.95rem] font-black leading-none tracking-[-0.05em] text-slate-900 dark:text-slate-100">
+                    {t(`groups.${group.key}.title`)}
+                  </h2>
+                </div>
+                <div className="pt-1">{groupIconByKey[group.key]}</div>
+              </div>
+              <div className="space-y-2.5">
                 {group.items.map((item) => (
                   <NotificationListItem
                     key={`${item.orderId}-${item.id}`}
+                    compact
                     item={{
                       ...item,
                       title: t('offerTitle'),
@@ -138,6 +148,7 @@ export default function NotificationsPage() {
                           : item.timestampLabel,
                     }}
                     onClick={() => handleNotificationClick(item.orderId, item.bidId)}
+                    timestampClassName="text-[11px] font-black uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500"
                   />
                 ))}
               </div>

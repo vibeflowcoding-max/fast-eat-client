@@ -494,7 +494,7 @@ export async function createConsumerOrderLocal(orderData: {
   const { data: order, error } = await admin
     .from('orders')
     .insert(orderPayload)
-    .select('id, status_id, source, delivery_enabled, delivery_distance_km, delivery_base_price, prep_time_estimate')
+    .select('id, order_number, status_id, source, delivery_enabled, delivery_distance_km, delivery_base_price, prep_time_estimate, workflow_code')
     .single();
 
   if (error) {
@@ -528,6 +528,8 @@ export async function createConsumerOrderLocal(orderData: {
 
   return {
     ...order,
+    orderNumber: order.order_number,
+    workflowCode: order.workflow_code,
     deliveryEnabled: order.delivery_enabled,
     deliveryDistanceKm: order.delivery_distance_km,
     deliveryBasePrice: order.delivery_base_price,

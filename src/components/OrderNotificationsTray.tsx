@@ -41,10 +41,10 @@ const OrderNotificationsTray: React.FC<OrderNotificationsTrayProps> = ({ onOpenT
 
   if (!sortedNotifications.length) {
     return (
-      <Surface className="w-full rounded-[2.15rem] border border-orange-100/90 bg-[#fffaf6] p-4 shadow-[0_30px_80px_-34px_rgba(98,60,29,0.45)] dark:bg-[#2d1e16]" variant="base">
+      <Surface className="w-full rounded-[2rem] border border-orange-100/90 bg-[#fffaf6] p-[1.15rem] shadow-[0_28px_80px_-38px_rgba(98,60,29,0.5)] dark:bg-[#2d1e16]" variant="base">
         <div className="flex items-start justify-between gap-3 border-b border-orange-100/80 pb-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 pr-3">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-[1.05rem] font-black tracking-[-0.02em] text-slate-900 dark:text-slate-100">{t('trayTitle')}</h3>
             </div>
             <p className="mt-1 text-sm leading-5 text-slate-500 dark:text-slate-300">{t('traySubtitle')}</p>
@@ -66,9 +66,9 @@ const OrderNotificationsTray: React.FC<OrderNotificationsTrayProps> = ({ onOpenT
   }
 
   return (
-    <Surface className="w-full rounded-[2.15rem] border border-orange-100/90 bg-[#fffaf6] p-4 shadow-[0_30px_80px_-34px_rgba(98,60,29,0.45)] dark:bg-[#2d1e16]" variant="base">
+    <Surface className="w-full rounded-[2rem] border border-orange-100/90 bg-[#fffaf6] p-[1.15rem] shadow-[0_28px_80px_-38px_rgba(98,60,29,0.5)] dark:bg-[#2d1e16]" variant="base">
       <div className="flex items-start justify-between gap-3 border-b border-orange-100/80 pb-4">
-        <div className="min-w-0">
+        <div className="min-w-0 pr-3">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-[1.05rem] font-black tracking-[-0.02em] text-slate-900 dark:text-slate-100">{t('trayTitle')}</h3>
             {unreadCount > 0 ? <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-orange-700 dark:bg-orange-500/10 dark:text-orange-200">{t('newBadge')}</span> : null}
@@ -80,7 +80,7 @@ const OrderNotificationsTray: React.FC<OrderNotificationsTrayProps> = ({ onOpenT
         </Button>
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 space-y-2.5">
         {sortedNotifications.map((notification) => (
           <NotificationListItem
             key={`${notification.orderId}-${notification.id}`}
@@ -104,9 +104,9 @@ const OrderNotificationsTray: React.FC<OrderNotificationsTrayProps> = ({ onOpenT
         ))}
       </div>
 
-      <div className="mt-4 border-t border-orange-100/80 pt-4">
+      <div className="mt-5 border-t border-orange-100/80 pt-4">
         <Button
-          className="h-14 rounded-[1.35rem] text-sm font-black"
+          className="h-14 rounded-[1.4rem] border-0 bg-orange-600 text-[0.98rem] font-black shadow-none hover:bg-orange-700"
           fullWidth
           onClick={handleOpenHistory}
           size="md"

@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
                 avg_price_estimate,
                 estimated_delivery_fee,
                 promo_text,
-                branches!inner (
+                branches!branches_restaurant_id_fkey!inner (
                     id,
                     name,
                     address,

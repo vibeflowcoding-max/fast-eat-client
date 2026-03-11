@@ -80,8 +80,10 @@ describe('createConsumerOrderLocal', () => {
                 single: vi.fn().mockResolvedValue({
                   data: {
                     id: 'order-1',
+                    order_number: 'ORDER_124',
                     status_id: 'status-pending',
                     source: 'client',
+                    workflow_code: 'PICKUP',
                     delivery_enabled: true,
                     delivery_distance_km: null,
                     delivery_base_price: null,
@@ -98,7 +100,7 @@ describe('createConsumerOrderLocal', () => {
       throw new Error(`Unexpected table ${table}`);
     });
 
-    await createConsumerOrderLocal({
+    const result = await createConsumerOrderLocal({
       restaurant_id: 'rest-1',
       customer_name: 'Ana',
       customer_phone: '+50688888888',
@@ -113,6 +115,13 @@ describe('createConsumerOrderLocal', () => {
       expect.objectContaining({
         payment_method_id: 3,
         payment_method: 'SINPE',
+      }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        order_number: 'ORDER_124',
+        orderNumber: 'ORDER_124',
+        workflowCode: 'PICKUP',
       }),
     );
   });
@@ -171,6 +180,7 @@ describe('createConsumerOrderLocal', () => {
                     id: 'order-1',
                     status_id: 'status-pending',
                     source: 'client',
+                    workflow_code: 'PICKUP',
                     delivery_enabled: true,
                     delivery_distance_km: null,
                     delivery_base_price: null,

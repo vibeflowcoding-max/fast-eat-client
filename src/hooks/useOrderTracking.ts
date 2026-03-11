@@ -45,7 +45,6 @@ const EVENT_TTL_MS = 5 * 60 * 1000;
 
 const TERMINAL_STATUS_CODES = new Set([
   'COMPLETED',
-  'DELIVERED',
   'CANCELLED',
   'CANCELED',
   'REFUNDED',

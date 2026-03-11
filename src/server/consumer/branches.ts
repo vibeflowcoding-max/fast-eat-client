@@ -33,7 +33,7 @@ async function getBranchRestaurantRecord(branchId: string): Promise<any | null> 
       opening_hours,
       payment_methods,
       service_modes,
-      restaurants (
+      restaurants!branches_restaurant_id_fkey (
         id,
         name,
         description,
