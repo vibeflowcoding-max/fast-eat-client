@@ -4,6 +4,7 @@ import React from 'react';
 import { ArrowRight, Gift, Loader2, ShieldAlert, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import BottomNav from '@/components/BottomNav';
+import FeatureGateCard from '@/components/FeatureGateCard';
 import { Badge, Button, ChoiceCard, FieldLabel, SectionHeader, Surface, TextField } from '@/../resources/components';
 import { acceptMysteryBoxOffer, fetchMysteryBoxOffers } from '@/services/api';
 import { MysteryBoxOffer, MysteryBoxOffersResponse } from '@/types';
@@ -30,6 +31,8 @@ function resolveAcceptedOrderId(payload: unknown): string | null {
 
 export default function MysteryBoxPage() {
   const t = useTranslations('mysteryBox');
+  const authT = useTranslations('auth.signIn');
+  const navT = useTranslations('nav');
   const router = useAppRouter();
   const { isAuthenticated } = useCartStore();
 
@@ -116,15 +119,17 @@ export default function MysteryBoxPage() {
         </Surface>
 
         {!isAuthenticated ? (
-          <Surface className="rounded-[2rem] text-sm" variant="base" padding="lg">
-            <div className="flex items-start gap-3">
-              <ShieldAlert className="mt-0.5 h-5 w-5 text-amber-600" />
-              <div className="space-y-2">
-                <p className="font-black">{t('authTitle')}</p>
-                <p className="text-slate-500 dark:text-slate-400">{t('authDescription')}</p>
-              </div>
-            </div>
-          </Surface>
+          <FeatureGateCard
+            analyticsScope="mystery_box"
+            description={t('authDescription')}
+            eyebrow={t('eyebrow')}
+            icon={<ShieldAlert className="h-6 w-6" />}
+            onPrimaryAction={() => router.push('/auth/sign-in')}
+            onSecondaryAction={() => router.push('/')}
+            primaryLabel={authT('submit')}
+            secondaryLabel={navT('home')}
+            title={t('authTitle')}
+          />
         ) : (
           <>
             <Surface className="space-y-5 rounded-[2rem]" variant="base" padding="lg">

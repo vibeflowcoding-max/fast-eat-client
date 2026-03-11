@@ -223,7 +223,7 @@ describe('HomePage onboarding redesign', () => {
     await user.click(screen.getByRole('button', { name: 'Complete now' }));
 
     await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith('/profile');
+      expect(pushMock).toHaveBeenCalledWith('/onboarding/profile');
       expect(emitHomeEvent).toHaveBeenCalledWith(expect.objectContaining({ name: 'profile_prompt_click' }));
     });
   });

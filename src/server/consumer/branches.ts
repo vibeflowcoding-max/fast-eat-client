@@ -79,7 +79,7 @@ function mapBranchShellRestaurant(branchRecord: any): RestaurantInfo | null {
   }
 
   return {
-    id: String(branchRecord.id),
+    id: String(restaurant.id || branchRecord.restaurant_id || branchRecord.id),
     name: String(restaurant.name || branchRecord.name || 'Restaurante'),
     description: String(restaurant.description || ''),
     category: '',

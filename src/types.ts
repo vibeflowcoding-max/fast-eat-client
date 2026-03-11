@@ -77,6 +77,7 @@ export interface OrderMetadata {
   source?: 'client' | 'virtualMenu' | 'consumer_app' | string;
   address?: string;
   gpsLocation?: string;
+  deliveryNotes?: string;
   customerLatitude?: number;
   customerLongitude?: number;
   locationOverriddenFromProfile?: boolean;

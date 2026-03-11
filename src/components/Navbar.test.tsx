@@ -251,6 +251,43 @@ describe('Navbar action buttons and cart', () => {
     expect(storeState.hydrateClientContext).toHaveBeenNthCalledWith(1, { favorites: ['other-rest', 'rest-1'] });
     expect(storeState.hydrateClientContext).toHaveBeenNthCalledWith(2, { favorites: ['other-rest'] });
   });
+
+  it('turns the favorite heart red after a successful save', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.startsWith('/api/favorites?restaurantId=')) {
+        return {
+          ok: true,
+          json: async () => ({ isFavorite: false }),
+        };
+      }
+
+      return {
+        ok: true,
+        json: async () => ({ success: true, isFavorite: true }),
+      };
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+    getSessionMock.mockResolvedValue({ data: { session: { access_token: 'token-1' } } });
+    storeState.clientContext = { favorites: [] };
+
+    render(<Navbar {...baseProps} />);
+
+    const favoriteButton = await screen.findByRole('button', { name: 'addFavoriteRestaurant' });
+    fireEvent.click(favoriteButton);
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/favorites', expect.objectContaining({ method: 'POST' }));
+    });
+
+    await waitFor(() => {
+      const activeButton = screen.getByRole('button', { name: 'removeFavoriteRestaurant' });
+      expect(activeButton.className).toContain('text-rose-600');
+      expect(activeButton.className).toContain('bg-rose-50');
+    });
+  });
 });
 
 describe('Navbar category filters', () => {

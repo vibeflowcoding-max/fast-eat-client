@@ -1,9 +1,11 @@
 const PROTECTED_ROOT_SEGMENTS = new Set([
+  'address',
   'api',
   'auth',
   'carts',
   'checkout',
   'open-location',
+  'onboarding',
   'orders',
   'profile',
   'reviews',

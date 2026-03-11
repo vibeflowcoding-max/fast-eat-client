@@ -41,6 +41,12 @@ export default function RootLayout({
     return (
         <html lang="en">
             <head>
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <link
+                    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1&display=swap"
+                    rel="stylesheet"
+                />
                 <link rel="apple-touch-icon" sizes="180x180" href="/icons/fasteat-mark-180.png" />
             </head>
             <body className={plusJakartaSans.className}>

@@ -4,6 +4,40 @@ import { ensureCustomerByAuthUser } from '@/app/api/customer/_lib';
 
 export const dynamic = 'force-dynamic';
 
+async function resolveCanonicalRestaurantId(supabaseServer: ReturnType<typeof getSupabaseServer>, rawRestaurantId: string): Promise<string | null> {
+  const normalizedRestaurantId = rawRestaurantId.trim();
+
+  if (!normalizedRestaurantId) {
+    return null;
+  }
+
+  const { data: restaurant, error: restaurantError } = await (supabaseServer as any)
+    .from('restaurants')
+    .select('id')
+    .eq('id', normalizedRestaurantId)
+    .maybeSingle();
+
+  if (restaurantError) {
+    throw new Error(restaurantError.message || 'Could not resolve restaurant');
+  }
+
+  if (restaurant?.id) {
+    return String(restaurant.id);
+  }
+
+  const { data: branch, error: branchError } = await (supabaseServer as any)
+    .from('branches')
+    .select('restaurant_id')
+    .eq('id', normalizedRestaurantId)
+    .maybeSingle();
+
+  if (branchError) {
+    throw new Error(branchError.message || 'Could not resolve branch restaurant');
+  }
+
+  return branch?.restaurant_id ? String(branch.restaurant_id) : null;
+}
+
 function getBearerToken(request: NextRequest): string | null {
   const header = request.headers.get('authorization') || request.headers.get('Authorization');
 
@@ -58,11 +92,17 @@ export async function GET(request: NextRequest) {
     const restaurantId = request.nextUrl.searchParams.get('restaurantId')?.trim() ?? '';
 
     if (restaurantId) {
+      const canonicalRestaurantId = await resolveCanonicalRestaurantId(supabaseServer, restaurantId);
+
+      if (!canonicalRestaurantId) {
+        return NextResponse.json({ error: 'Invalid restaurantId' }, { status: 400 });
+      }
+
       const { data, error } = await (supabaseServer as any)
         .from('customer_favorite_restaurants')
         .select('restaurant_id')
         .eq('customer_id', resolved.customerId)
-        .eq('restaurant_id', restaurantId)
+        .eq('restaurant_id', canonicalRestaurantId)
         .maybeSingle();
 
       if (error) {
@@ -110,12 +150,17 @@ export async function POST(request: NextRequest) {
     }
 
     const supabaseServer = getSupabaseServer();
+    const canonicalRestaurantId = await resolveCanonicalRestaurantId(supabaseServer, restaurantId);
+
+    if (!canonicalRestaurantId) {
+      return NextResponse.json({ error: 'Invalid restaurantId' }, { status: 400 });
+    }
 
     const { data: existing, error: existingError } = await (supabaseServer as any)
       .from('customer_favorite_restaurants')
       .select('restaurant_id')
       .eq('customer_id', resolved.customerId)
-      .eq('restaurant_id', restaurantId)
+      .eq('restaurant_id', canonicalRestaurantId)
       .maybeSingle();
 
     if (existingError) {
@@ -127,7 +172,7 @@ export async function POST(request: NextRequest) {
         .from('customer_favorite_restaurants')
         .insert({
           customer_id: resolved.customerId,
-          restaurant_id: restaurantId,
+          restaurant_id: canonicalRestaurantId,
           updated_at: new Date().toISOString()
         });
 
@@ -159,11 +204,17 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabaseServer = getSupabaseServer();
+    const canonicalRestaurantId = await resolveCanonicalRestaurantId(supabaseServer, restaurantId);
+
+    if (!canonicalRestaurantId) {
+      return NextResponse.json({ error: 'Invalid restaurantId' }, { status: 400 });
+    }
+
     const { error } = await (supabaseServer as any)
       .from('customer_favorite_restaurants')
       .delete()
       .eq('customer_id', resolved.customerId)
-      .eq('restaurant_id', restaurantId);
+      .eq('restaurant_id', canonicalRestaurantId);
 
     if (error) {
       throw new Error(error.message || 'Could not remove favorite');

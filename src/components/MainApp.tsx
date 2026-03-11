@@ -3,7 +3,9 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { MenuItem, OrderMetadata, SelectedModifier } from '@/types';
+import { mapsApi } from '@/services/maps-api';
 import MenuItemCard from '@/components/MenuItemCard';
 import { useCartStore } from '@/store';
 import { CartAction } from '@/services/api';
@@ -43,7 +45,27 @@ interface MainAppProps {
     initialBranchId?: string;
 }
 
+function isGoogleMapsUrlLike(value: string | null | undefined): boolean {
+    const normalized = String(value || '').trim().toLowerCase();
+
+    return normalized.startsWith('http://')
+        || normalized.startsWith('https://')
+        || normalized.includes('google.com/maps');
+}
+
+function getReadableAddress(...values: Array<string | null | undefined>): string {
+    for (const value of values) {
+        const normalized = String(value || '').trim();
+        if (normalized && !isGoogleMapsUrlLike(normalized)) {
+            return normalized;
+        }
+    }
+
+    return '';
+}
+
 export default function MainApp({ initialBranchId }: MainAppProps) {
+    const tCheckoutPage = useTranslations('checkout.page');
     const normalizePhone = useCallback((value: string): string => String(value || '').replace(/\D/g, ''), []);
 
     const isValidPhone = useCallback((value: string): boolean => {
@@ -125,6 +147,11 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [isOrderLocationModalOpen, setIsOrderLocationModalOpen] = useState(false);
     const [orderAddressInitialPosition, setOrderAddressInitialPosition] = useState<{ lat: number; lng: number } | null>(null);
+    const [pendingProfileLocationSave, setPendingProfileLocationSave] = useState<{
+        position: { lat: number; lng: number };
+        mapsUrl: string;
+        formattedAddress: string;
+    } | null>(null);
 
     // Resolution State - Blocks rendering until we know what branch we are on
     const [isResolving, setIsResolving] = useState(true);
@@ -177,9 +204,38 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             googleMapsUrl: canonicalUrl,
             lat: typeof customerAddress?.lat === 'number' ? customerAddress.lat : coords.lat,
             lng: typeof customerAddress?.lng === 'number' ? customerAddress.lng : coords.lng,
-            label: canonicalUrl,
+            label: getReadableAddress(customerAddress?.formattedAddress, canonicalUrl),
         };
     }, [customerAddress]);
+
+    const resolveFormattedAddress = useCallback(async (input: {
+        formattedAddress?: string;
+        lat?: number;
+        lng?: number;
+        fallbackUrl?: string;
+    }): Promise<string> => {
+        const directAddress = getReadableAddress(input.formattedAddress);
+        if (directAddress) {
+            return directAddress;
+        }
+
+        const explicitCoordinates =
+            typeof input.lat === 'number' && typeof input.lng === 'number'
+                ? { lat: input.lat, lng: input.lng }
+                : null;
+        const parsedCoordinates = explicitCoordinates || parseCoordsFromGoogleMapsUrl(input.fallbackUrl || '');
+
+        if (Number.isFinite(parsedCoordinates.lat) && Number.isFinite(parsedCoordinates.lng)) {
+            try {
+                const normalized = await mapsApi.reverseGeocode(Number(parsedCoordinates.lat), Number(parsedCoordinates.lng));
+                return getReadableAddress(normalized.formatted_address);
+            } catch {
+                return '';
+            }
+        }
+
+        return '';
+    }, []);
 
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -391,7 +447,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
 
             return {
                 ...previous,
-                address: nextAddress,
+                address: profileLocation.label || nextAddress,
                 gpsLocation: nextGps,
                 customerLatitude: typeof profileLocation.lat === 'number' ? profileLocation.lat : previous.customerLatitude,
                 customerLongitude: typeof profileLocation.lng === 'number' ? profileLocation.lng : previous.customerLongitude,
@@ -400,6 +456,53 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             };
         });
     }, [profileLocation, setOrderMetadata]);
+
+    useEffect(() => {
+        const currentAddress = String(orderMetadata.address || '').trim();
+        if (!currentAddress || !isGoogleMapsUrlLike(currentAddress)) {
+            return;
+        }
+
+        const currentGps = String(orderMetadata.gpsLocation || '').trim();
+        const coordinates =
+            Number.isFinite(orderMetadata.customerLatitude) && Number.isFinite(orderMetadata.customerLongitude)
+                ? {
+                    lat: Number(orderMetadata.customerLatitude),
+                    lng: Number(orderMetadata.customerLongitude),
+                }
+                : parseCoordsFromGoogleMapsUrl(currentGps || currentAddress);
+
+        if (!Number.isFinite(coordinates.lat) || !Number.isFinite(coordinates.lng)) {
+            return;
+        }
+
+        let cancelled = false;
+
+        resolveFormattedAddress({
+            lat: Number(coordinates.lat),
+            lng: Number(coordinates.lng),
+            fallbackUrl: currentGps || currentAddress,
+        }).then((resolvedAddress) => {
+            if (!resolvedAddress || cancelled) {
+                return;
+            }
+
+            setOrderMetadata((previous) => {
+                if (!isGoogleMapsUrlLike(previous.address) || previous.address === resolvedAddress) {
+                    return previous;
+                }
+
+                return {
+                    ...previous,
+                    address: resolvedAddress,
+                };
+            });
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [orderMetadata.address, orderMetadata.customerLatitude, orderMetadata.customerLongitude, orderMetadata.gpsLocation, resolveFormattedAddress, setOrderMetadata]);
 
     const persistProfileLocation = async (input: {
         position: { lat: number; lng: number };
@@ -437,15 +540,31 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             setCustomerAddress({
                 urlAddress: persistedUrl,
                 buildingType: 'Other',
-                deliveryNotes: 'Meet at door',
+                deliveryNotes: orderMetadata.deliveryNotes || tCheckoutPage('defaultDeliveryNote'),
                 lat: persistedCoords.lat ?? input.position.lat,
                 lng: persistedCoords.lng ?? input.position.lng,
-                formattedAddress: input.formattedAddress || persistedUrl,
+                formattedAddress: getReadableAddress(input.formattedAddress, orderMetadata.address) || persistedUrl,
             });
         } finally {
             setIsAutoSavingProfileLocation(false);
         }
     };
+
+    const handleConfirmProfileLocationSave = useCallback(async () => {
+        if (!pendingProfileLocationSave) {
+            return;
+        }
+
+        const payload = pendingProfileLocationSave;
+        setPendingProfileLocationSave(null);
+
+        try {
+            await persistProfileLocation(payload);
+            setChefNotification({ content: tCheckoutPage('profileLocationSaved') });
+        } catch {
+            setChefNotification({ content: tCheckoutPage('profileLocationSaveFailed') });
+        }
+    }, [pendingProfileLocationSave, persistProfileLocation, setChefNotification, tCheckoutPage]);
 
     const applyProfileLocationToOrder = () => {
         if (!profileLocation) {
@@ -454,7 +573,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
 
         setOrderMetadata((previous) => ({
             ...previous,
-            address: profileLocation.googleMapsUrl || profileLocation.label,
+            address: profileLocation.label,
             gpsLocation: profileLocation.googleMapsUrl || profileLocation.raw,
             customerLatitude: typeof profileLocation.lat === 'number' ? profileLocation.lat : previous.customerLatitude,
             customerLongitude: typeof profileLocation.lng === 'number' ? profileLocation.lng : previous.customerLongitude,
@@ -533,6 +652,32 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         );
     };
 
+    const handleInlineOrderLocationChange = async (value: {
+        urlAddress: string;
+        lat?: number;
+        lng?: number;
+        formattedAddress?: string;
+    }) => {
+        const nextGps = String(value.urlAddress || '').trim();
+        const nextAddress = await resolveFormattedAddress({
+            formattedAddress: value.formattedAddress,
+            lat: value.lat,
+            lng: value.lng,
+            fallbackUrl: nextGps,
+        });
+
+        setOrderMetadata((previous) => ({
+            ...previous,
+            address: nextAddress || previous.address || '',
+            gpsLocation: nextGps,
+            customerLatitude: typeof value.lat === 'number' ? value.lat : previous.customerLatitude,
+            customerLongitude: typeof value.lng === 'number' ? value.lng : previous.customerLongitude,
+            source: 'client',
+            locationOverriddenFromProfile: true,
+            locationDifferenceAcknowledged: false,
+        }));
+    };
+
     const handleSaveOrderLocation = async (value: {
         urlAddress: string;
         buildingType: BuildingType;
@@ -544,9 +689,8 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         placeId?: string;
     }) => {
         const nextGps = String(value.urlAddress || '').trim();
-        const nextAddress = String(value.formattedAddress || value.urlAddress || '').trim();
 
-        const parsedCoordsFromUrl = parseCoordsFromGoogleMapsUrl(nextGps || nextAddress);
+        const parsedCoordsFromUrl = parseCoordsFromGoogleMapsUrl(nextGps);
         const selectedPosition =
             typeof value.lat === 'number' && typeof value.lng === 'number'
                 ? { lat: value.lat, lng: value.lng }
@@ -555,6 +699,12 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                         ? { lat: Number(parsedCoordsFromUrl.lat), lng: Number(parsedCoordsFromUrl.lng) }
                         : null
                 );
+        const nextAddress = await resolveFormattedAddress({
+            formattedAddress: value.formattedAddress,
+            lat: selectedPosition?.lat,
+            lng: selectedPosition?.lng,
+            fallbackUrl: nextGps,
+        });
 
         const equivalentToProfile = profileLocation
             ? areLocationsEquivalent({
@@ -572,6 +722,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                 ...previous,
                 address: nextAddress,
                 gpsLocation: nextGps,
+                deliveryNotes: value.deliveryNotes,
                 customerLatitude: selectedPosition?.lat ?? previous.customerLatitude,
                 customerLongitude: selectedPosition?.lng ?? previous.customerLongitude,
                 source: 'client',
@@ -584,24 +735,11 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             return;
         }
 
-        const shouldPersistAsProfile = typeof window !== 'undefined'
-            ? window.confirm('Do you want to save this location as your new profile location?')
-            : false;
-
-        if (!shouldPersistAsProfile) {
-            return;
-        }
-
-        try {
-            await persistProfileLocation({
-                position: selectedPosition,
-                mapsUrl: nextGps || nextAddress,
-                formattedAddress: nextAddress,
-            });
-            setChefNotification({ content: '✅ Location saved to your profile.' });
-        } catch {
-            setChefNotification({ content: '⚠️ Could not save location to profile. We kept it for this order.' });
-        }
+        setPendingProfileLocationSave({
+            position: selectedPosition,
+            mapsUrl: nextGps || nextAddress,
+            formattedAddress: nextAddress,
+        });
     };
 
     // Update payment/service options when restaurantInfo changes
@@ -933,6 +1071,19 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                 />
             )}
 
+            {pendingProfileLocationSave && (
+                <ConfirmModal
+                    title={tCheckoutPage('saveProfileLocationTitle')}
+                    description={tCheckoutPage('saveProfileLocationConfirm')}
+                    confirmText={tCheckoutPage('saveProfileLocationAction')}
+                    cancelText={tCheckoutPage('saveProfileLocationDismiss')}
+                    icon="📍"
+                    variant="primary"
+                    onConfirm={handleConfirmProfileLocationSave}
+                    onCancel={() => setPendingProfileLocationSave(null)}
+                />
+            )}
+
 
             <Hero restaurantInfo={restaurantInfo} />
 
@@ -1082,6 +1233,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                     onUseSavedProfileLocation={applyProfileLocationToOrder}
                     onUseDifferentLocation={handleUseDifferentOrderLocation}
                     onOpenLocationPicker={handleUseDifferentOrderLocation}
+                    onInlineLocationChange={handleInlineOrderLocationChange}
                     locationPickerLoading={isResolvingOrderLocation}
                     locationServicePrompt={locationServicePrompt}
                     isAutoSavingProfileLocation={isAutoSavingProfileLocation}
@@ -1102,7 +1254,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                 initialValue={{
                     urlAddress: orderMetadata.gpsLocation || '',
                     buildingType: 'Other',
-                    deliveryNotes: '',
+                    deliveryNotes: orderMetadata.deliveryNotes || '',
                     lat: Number.isFinite(orderMetadata.customerLatitude) ? orderMetadata.customerLatitude : undefined,
                     lng: Number.isFinite(orderMetadata.customerLongitude) ? orderMetadata.customerLongitude : undefined,
                     formattedAddress: orderMetadata.address || undefined,

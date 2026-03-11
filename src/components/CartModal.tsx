@@ -12,6 +12,7 @@ import { useCartStore } from '../store';
 import { useTranslations } from 'next-intl';
 import { fetchCheckoutFeeRates } from '@/services/api';
 import { calculateCheckoutPricing } from '@/lib/checkout-pricing';
+import type { MapsGeocodeData } from '@/services/maps-api';
 import { Button, Icon, Surface } from '@/../resources/components';
 
 interface CartModalProps {
@@ -33,6 +34,13 @@ interface CartModalProps {
     onUseSavedProfileLocation?: () => void;
     onUseDifferentLocation?: () => void;
     onOpenLocationPicker?: () => void;
+    onInlineLocationChange?: (value: {
+        urlAddress: string;
+        lat?: number;
+        lng?: number;
+        formattedAddress?: string;
+        normalizedAddress?: MapsGeocodeData;
+    }) => void;
     locationPickerLoading?: boolean;
     locationServicePrompt?: string | null;
     isAutoSavingProfileLocation?: boolean;
@@ -60,6 +68,7 @@ const CartModal: React.FC<CartModalProps> = ({
     onUseSavedProfileLocation,
     onUseDifferentLocation,
     onOpenLocationPicker,
+    onInlineLocationChange,
     locationPickerLoading = false,
     locationServicePrompt = null,
     isAutoSavingProfileLocation = false,
@@ -223,6 +232,7 @@ const CartModal: React.FC<CartModalProps> = ({
                             onUseSavedProfileLocation={onUseSavedProfileLocation}
                             onUseDifferentLocation={onUseDifferentLocation}
                             onOpenLocationPicker={onOpenLocationPicker}
+                            onInlineLocationChange={onInlineLocationChange}
                             locationPickerLoading={locationPickerLoading}
                             locationServicePrompt={locationServicePrompt}
                             isAutoSavingProfileLocation={isAutoSavingProfileLocation}

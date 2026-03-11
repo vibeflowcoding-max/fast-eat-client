@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { MapPin, Phone, UserRound, Heart, ClipboardList, Loader2, ShieldAlert, Sparkles, Gift, ChevronRight, LogOut } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
@@ -11,11 +12,9 @@ import { isSupportedLocale, LOCALE_LABELS, SUPPORTED_LOCALES, type AppLocale } f
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { normalizePhoneWithSinglePlus } from '@/lib/phone';
-import dynamic from 'next/dynamic';
-import type { BuildingType } from '@/components/AddressDetailsModal';
 import { fetchDietaryProfile } from '@/services/api';
 
-const AddressDetailsModal = dynamic(() => import('@/components/AddressDetailsModal'));
+import dynamic from 'next/dynamic';
 const DietaryProfileSettings = dynamic(() => import('@/features/user/components/DietaryProfileSettings'));
 
 type ProfilePayload = {
@@ -40,6 +39,7 @@ function initials(fullName: string | null | undefined) {
 
 export default function ProfilePage() {
   const router = useAppRouter();
+  const searchParams = useSearchParams();
   const {
     fromNumber,
     customerName,
@@ -62,10 +62,7 @@ export default function ProfilePage() {
   const [saveFeedback, setSaveFeedback] = React.useState<string | null>(null);
   const [languageFeedback, setLanguageFeedback] = React.useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = React.useState(false);
-  const [isLocationModalOpen, setIsLocationModalOpen] = React.useState(false);
   const [isDietaryModalOpen, setIsDietaryModalOpen] = React.useState(false);
-  const [isResolvingProfileLocation, setIsResolvingProfileLocation] = React.useState(false);
-  const [locationInitialPosition, setLocationInitialPosition] = React.useState<{ lat: number; lng: number } | null>(null);
 
   const parseCoordsFromGoogleMapsUrl = React.useCallback((url: string): { lat?: number; lng?: number } => {
     const match = String(url || '').match(/q=([-\d.]+),([-\d.]+)/i);
@@ -210,6 +207,13 @@ export default function ProfilePage() {
     );
   }, [isAuthenticated]);
 
+  React.useEffect(() => {
+    if (searchParams.get('addressSaved') === '1') {
+      setSaveFeedback(t('locationUpdated'));
+      setError(null);
+    }
+  }, [searchParams, t]);
+
   const profile = payload?.profile;
   const favoriteRestaurants = payload?.favoriteRestaurants ?? [];
 
@@ -289,104 +293,6 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleOpenLocationEditor = () => {
-    const coords = profile?.urlGoogleMaps ? parseCoordsFromGoogleMapsUrl(profile.urlGoogleMaps) : {};
-    const fallbackPosition =
-      typeof coords.lat === 'number' && typeof coords.lng === 'number'
-        ? { lat: coords.lat, lng: coords.lng }
-        : null;
-
-    if (!navigator.geolocation) {
-      setLocationInitialPosition(fallbackPosition);
-      setIsLocationModalOpen(true);
-      return;
-    }
-
-    setIsResolvingProfileLocation(true);
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocationInitialPosition({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-        setIsResolvingProfileLocation(false);
-        setIsLocationModalOpen(true);
-      },
-      () => {
-        setLocationInitialPosition(fallbackPosition);
-        setIsResolvingProfileLocation(false);
-        setIsLocationModalOpen(true);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
-  };
-
-  const handleSaveProfileLocation = async (value: {
-    urlAddress: string;
-    buildingType: BuildingType;
-    unitDetails?: string;
-    deliveryNotes: string;
-    lat?: number;
-    lng?: number;
-    formattedAddress?: string;
-    placeId?: string;
-  }) => {
-    setSaveFeedback(null);
-    setError(null);
-
-    const urlGoogleMaps = String(value.urlAddress || '').trim();
-    if (!urlGoogleMaps) {
-      throw new Error(t('locationUrlRequired'));
-    }
-
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-
-    if (!accessToken) {
-      throw new Error(t('authRequiredUpdateLocation'));
-    }
-
-    const response = await fetch('/api/profile/me', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        urlGoogleMaps,
-      }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(typeof data?.error === 'string' ? data.error : t('updateLocationError'));
-    }
-
-    setPayload((previous) => ({
-      profile: data.profile,
-      favoriteRestaurants: previous?.favoriteRestaurants ?? [],
-    }));
-
-    const coords = parseCoordsFromGoogleMapsUrl(urlGoogleMaps);
-    hydrateClientContext({
-      customerAddress: {
-        urlAddress: urlGoogleMaps,
-        buildingType: 'Other',
-        deliveryNotes: t('defaultDeliveryNote'),
-        lat: coords.lat,
-        lng: coords.lng,
-        formattedAddress: urlGoogleMaps,
-      },
-    });
-
-    setSaveFeedback(t('locationUpdated'));
   };
 
   const handleLocaleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -478,9 +384,32 @@ export default function ProfilePage() {
         <SectionHeader description={t('subtitle')} title={t('title')} />
 
         {loading && (
-          <Surface className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400" variant="base">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            {t('loading')}
+          <Surface className="relative overflow-hidden space-y-5" variant="raised" padding="lg">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.18),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.16),transparent_38%)]" />
+            <div className="relative flex items-center gap-4">
+              <div className="flex size-14 items-center justify-center rounded-[1.4rem] bg-white/80 text-orange-600 shadow-[0_14px_34px_-22px_rgba(234,88,12,0.8)] ring-1 ring-orange-100 dark:bg-slate-950/60 dark:text-orange-300 dark:ring-orange-900/50">
+                <Loader2 className="h-5 w-5 animate-spin" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-orange-700 dark:text-orange-300">
+                  {t('title')}
+                </p>
+                <p className="text-base font-bold text-slate-900 dark:text-slate-100">{t('loading')}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300">{t('subtitle')}</p>
+              </div>
+            </div>
+
+            <div className="relative grid gap-3 sm:grid-cols-2">
+              <div className="space-y-3 rounded-[1.5rem] bg-white/75 p-4 ring-1 ring-white/70 dark:bg-slate-950/35 dark:ring-slate-800/80">
+                <div className="h-4 w-20 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+                <div className="h-10 w-full animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+                <div className="h-10 w-4/5 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+              </div>
+              <div className="space-y-3 rounded-[1.5rem] bg-white/75 p-4 ring-1 ring-white/70 dark:bg-slate-950/35 dark:ring-slate-800/80">
+                <div className="h-4 w-24 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+                <div className="h-20 w-full animate-pulse rounded-[1.25rem] bg-slate-200 dark:bg-slate-800" />
+              </div>
+            </div>
           </Surface>
         )}
 
@@ -543,9 +472,8 @@ export default function ProfilePage() {
                   className="items-start"
                   icon={<MapPin className="h-5 w-5" />}
                   meta={address ?? undefined}
-                  onClick={handleOpenLocationEditor}
+                  onClick={() => router.push('/address?next=%2Fprofile')}
                   title={address ? t('changeLocation') : t('setLocation')}
-                  trailing={isResolvingProfileLocation ? <Loader2 className="h-4 w-4 animate-spin text-slate-400" /> : undefined}
                 />
               </div>
 
@@ -706,22 +634,6 @@ export default function ProfilePage() {
       </div>
 
       <BottomNav />
-
-      <AddressDetailsModal
-        isOpen={isLocationModalOpen}
-        initialValue={{
-          urlAddress: profile?.urlGoogleMaps || '',
-          buildingType: 'Other',
-          deliveryNotes: t('defaultDeliveryNote'),
-          formattedAddress: profile?.urlGoogleMaps || undefined,
-          lat: locationInitialPosition?.lat,
-          lng: locationInitialPosition?.lng,
-        }}
-        initialPosition={locationInitialPosition}
-        onClose={() => setIsLocationModalOpen(false)}
-        onSave={handleSaveProfileLocation}
-        preferCurrentLocationOnOpen={false}
-      />
 
       <DietaryProfileSettings
         isOpen={isDietaryModalOpen}

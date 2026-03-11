@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
         restaurant_id: String(branchRecord.restaurant_id),
         customer_name: body.customerName,
         customer_phone: body.customerPhone,
+        paymentMethod: body.paymentMethod,
         delivery_address: body.address || null,
         total_amount: body.totalAmount,
         order_type: String(body.orderType || 'pickup').toLowerCase(),

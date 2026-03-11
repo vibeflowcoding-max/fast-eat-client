@@ -1,8 +1,11 @@
 import React from 'react';
+import { MapPinHouse, NotebookPen } from 'lucide-react';
 import { OrderMetadata } from '../types';
 import { useTranslations } from 'next-intl';
+import type { MapsGeocodeData } from '@/services/maps-api';
+import GoogleMapsAddressPicker from '@/components/GoogleMapsAddressPicker';
 import { formatPhoneForDisplay } from '@/lib/phone';
-import { Button, ChoiceCard, Surface } from '@/../resources/components';
+import { Button, Surface } from '@/../resources/components';
 
 const fieldLabelClassName = 'ml-1 text-[8px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400';
 const selectClassName = 'w-full cursor-pointer appearance-none rounded-xl border-2 border-slate-200 bg-white px-5 py-4 text-sm font-black text-slate-900 transition-colors focus:border-orange-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800';
@@ -23,6 +26,13 @@ interface OrderFormProps {
     onUseSavedProfileLocation?: () => void;
     onUseDifferentLocation?: () => void;
     onOpenLocationPicker?: () => void;
+    onInlineLocationChange?: (value: {
+        urlAddress: string;
+        lat?: number;
+        lng?: number;
+        formattedAddress?: string;
+        normalizedAddress?: MapsGeocodeData;
+    }) => void;
     locationPickerLoading?: boolean;
     locationServicePrompt?: string | null;
     isAutoSavingProfileLocation?: boolean;
@@ -34,6 +44,22 @@ interface OrderFormProps {
 
 function toLocalDateTimeValue(date: Date): string {
     return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+}
+
+function extractCoordsFromLocationValue(value: string): { lat: number; lng: number } | null {
+    const match = value.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+    if (!match) {
+        return null;
+    }
+
+    const lat = Number(match[1]);
+    const lng = Number(match[2]);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return null;
+    }
+
+    return { lat, lng };
 }
 
 const OrderForm: React.FC<OrderFormProps> = ({
@@ -50,6 +76,7 @@ const OrderForm: React.FC<OrderFormProps> = ({
     onUseSavedProfileLocation,
     onUseDifferentLocation,
     onOpenLocationPicker,
+    onInlineLocationChange,
     locationPickerLoading = false,
     locationServicePrompt = null,
     isAutoSavingProfileLocation = false,
@@ -60,6 +87,27 @@ const OrderForm: React.FC<OrderFormProps> = ({
 }) => {
     const t = useTranslations('checkout.orderForm');
     const [minimumScheduledDateTime] = React.useState(() => toLocalDateTimeValue(new Date()));
+
+    const profilePreviewPosition = React.useMemo(() => {
+        if (Number.isFinite(orderMetadata.customerLatitude) && Number.isFinite(orderMetadata.customerLongitude)) {
+            return {
+                lat: Number(orderMetadata.customerLatitude),
+                lng: Number(orderMetadata.customerLongitude),
+            };
+        }
+
+        const parsed = extractCoordsFromLocationValue(profileLocationLabel || orderMetadata.gpsLocation || orderMetadata.address || '');
+        if (parsed) {
+            return parsed;
+        }
+
+        return null;
+    }, [orderMetadata.address, orderMetadata.customerLatitude, orderMetadata.customerLongitude, orderMetadata.gpsLocation, profileLocationLabel]);
+
+    const currentOrderLocationText = orderMetadata.address || t('locationNotSelected');
+    const currentOrderDeliveryNotes = String(orderMetadata.deliveryNotes || '').trim();
+    const showInlineEditableMap = orderMetadata.orderType === 'delivery' && (!hasProfileLocation || isUsingDifferentDeliveryLocation);
+    const shouldEmitMapSelection = !hasProfileLocation || isUsingDifferentDeliveryLocation;
 
     return (
         <Surface className="space-y-6" padding="lg" variant="base">
@@ -152,27 +200,6 @@ const OrderForm: React.FC<OrderFormProps> = ({
                 <div className="space-y-1 animate-fadeIn">
                     <label className={fieldLabelClassName}>{t('deliveryAddress')}</label>
 
-                    {hasProfileLocation && (
-                        <Surface className="space-y-2" variant="muted">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('deliveryLocationSource')}</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <ChoiceCard
-                                    checked={!isUsingDifferentDeliveryLocation}
-                                    description={profileLocationLabel || undefined}
-                                    onClick={onUseSavedProfileLocation}
-                                    title={t('useProfileLocation')}
-                                    type="radio"
-                                />
-                                <ChoiceCard
-                                    checked={isUsingDifferentDeliveryLocation}
-                                    onClick={onUseDifferentLocation}
-                                    title={t('useDifferentLocation')}
-                                    type="radio"
-                                />
-                            </div>
-                        </Surface>
-                    )}
-
                     {locationServicePrompt && (
                         <Surface className="inline-block text-[10px] font-bold" variant="raised">
                             {locationServicePrompt}
@@ -185,79 +212,56 @@ const OrderForm: React.FC<OrderFormProps> = ({
                         </Surface>
                     )}
 
-                    {!isUsingDifferentDeliveryLocation && hasProfileLocation ? (
-                        <Surface className="flex items-start gap-2" variant="raised">
-                            <span className="text-sm">📍</span>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-200">{t('profileLocationTag')}</p>
-                                <p className="mt-1 break-words text-xs font-bold text-emerald-800 dark:text-emerald-100">{profileLocationLabel || orderMetadata.gpsLocation || orderMetadata.address}</p>
+                    <div className="space-y-3">
+                        <GoogleMapsAddressPicker
+                            initialUrl={orderMetadata.gpsLocation || orderMetadata.address || ''}
+                            initialPosition={profilePreviewPosition}
+                            onChange={(urlAddress, position, normalizedAddress) => {
+                                onInlineLocationChange?.({
+                                    urlAddress,
+                                    lat: position?.lat,
+                                    lng: position?.lng,
+                                    formattedAddress: normalizedAddress?.formatted_address,
+                                    normalizedAddress,
+                                });
+                            }}
+                            preferCurrentLocationOnLoad={!hasProfileLocation && !profilePreviewPosition}
+                            readOnly
+                            showUrlInput={false}
+                            emitInitialChange={shouldEmitMapSelection}
+                        />
+
+                        {currentOrderDeliveryNotes ? (
+                            <Surface className="flex items-start gap-3" variant="raised">
+                                <NotebookPen className="mt-0.5 h-4 w-4 shrink-0 text-orange-600 dark:text-orange-300" />
+                                <div className="min-w-0">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-200">{t('deliveryNotesSummary')}</p>
+                                    <p className="mt-1 break-words text-xs font-bold text-slate-800 dark:text-slate-100">{currentOrderDeliveryNotes}</p>
+                                </div>
+                            </Surface>
+                        ) : null}
+
+                        <Surface className="flex items-start gap-3" variant="raised">
+                            <MapPinHouse className="mt-0.5 h-4 w-4 shrink-0 text-orange-600 dark:text-orange-300" />
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-200">{t('deliveryAddressSummary')}</p>
+                                <p className="mt-1 break-words text-xs font-bold text-slate-800 dark:text-slate-100">{currentOrderLocationText}</p>
                             </div>
                         </Surface>
-                    ) : (
-                        <>
-                            <Surface className="space-y-2" variant="muted">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('currentOrderLocation')}</p>
-                                <p className="break-words text-xs font-bold text-slate-800 dark:text-slate-100">{orderMetadata.gpsLocation || orderMetadata.address || t('locationNotSelected')}</p>
-                            </Surface>
-                            <div className="flex flex-col gap-2 mt-2">
-                                <Button
-                                    onClick={onOpenLocationPicker}
-                                    disabled={locationPickerLoading}
-                                    type="button"
-                                    variant="outline"
-                                >
-                                    <span aria-hidden="true">🗺️</span>
-                                    {locationPickerLoading ? t('openMapLocationPickerLoading') : t('openMapLocationPicker')}
-                                </Button>
+                    </div>
 
-                                {orderMetadata.gpsLocation && (
-                                    <div className="flex flex-col gap-1 animate-fadeIn mt-1">
-                                        <label className="ml-1 text-[7px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-300">{t('gpsAttached')}</label>
-                                        <Surface className="flex items-center gap-2" variant="raised">
-                                            <span className="text-sm">📍</span>
-                                            <textarea
-                                                readOnly
-                                                value={orderMetadata.gpsLocation}
-                                                rows={2}
-                                                className="w-full resize-none bg-transparent text-xs font-bold leading-relaxed focus:outline-none"
-                                                onFocus={(e) => e.currentTarget.select()}
-                                            />
-                                            <Button
-                                                onClick={() => setOrderMetadata({
-                                                    ...orderMetadata,
-                                                    gpsLocation: undefined,
-                                                    address: '',
-                                                    customerLatitude: undefined,
-                                                    customerLongitude: undefined,
-                                                })}
-                                                size="sm"
-                                                type="button"
-                                                variant="ghost"
-                                            >✕</Button>
-                                        </Surface>
-                                    </div>
-                                )}
-
-                                {(!Number.isFinite(orderMetadata.customerLatitude) || !Number.isFinite(orderMetadata.customerLongitude)) && (
-                                    <Surface className="inline-block text-[10px] font-bold" variant="raised">
-                                        {t('gpsRequired')}
-                                    </Surface>
-                                )}
-
-                                {locationDifferenceWarningVisible && (
-                                    <label className="flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-3 text-xs font-bold text-amber-800 dark:bg-amber-500/15 dark:text-amber-100">
-                                        <input
-                                            type="checkbox"
-                                            checked={locationDifferenceAcknowledged}
-                                            onChange={(event) => onToggleLocationDifferenceAcknowledged?.(event.target.checked)}
-                                            className="mt-0.5"
-                                        />
-                                        <span>{t('differentLocationWarning')}</span>
-                                    </label>
-                                )}
-                            </div>
-                        </>
-                    )}
+                    <div className="flex flex-col gap-2 mt-2">
+                        {onOpenLocationPicker ? (
+                            <Button
+                                onClick={onOpenLocationPicker}
+                                disabled={locationPickerLoading}
+                                type="button"
+                                variant="outline"
+                            >
+                                {locationPickerLoading ? t('openMapLocationPickerLoading') : t('openMapLocationPicker')}
+                            </Button>
+                        ) : null}
+                    </div>
                 </div>
             )}
 

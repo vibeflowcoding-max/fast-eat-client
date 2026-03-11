@@ -78,9 +78,10 @@ const Navbar: React.FC<NavbarProps> = ({
     React.useEffect(() => {
         let mounted = true;
         const cachedFavorites = Array.isArray(clientContext?.favorites) ? clientContext.favorites : [];
+        const hasCachedFavorite = Boolean(restaurantInfo?.id) && cachedFavorites.includes(String(restaurantInfo.id));
 
-        if (restaurantInfo?.id && cachedFavorites.length > 0) {
-            setIsFavorite(cachedFavorites.includes(restaurantInfo.id));
+        if (hasCachedFavorite) {
+            setIsFavorite(true);
         }
 
         async function loadFavoriteState() {
@@ -126,7 +127,7 @@ const Navbar: React.FC<NavbarProps> = ({
             }
         }
 
-        if (!restaurantInfo?.id || cachedFavorites.length === 0) {
+        if (!restaurantInfo?.id || !hasCachedFavorite) {
             loadFavoriteState();
         }
 
@@ -256,7 +257,12 @@ const Navbar: React.FC<NavbarProps> = ({
                         <Button
                             onClick={handleToggleFavorite}
                             disabled={isFavoriteLoading || !restaurantInfo?.id}
-                            className="h-10 w-10 shrink-0 rounded-full md:h-11 md:w-11"
+                            className={cn(
+                                'h-10 w-10 shrink-0 rounded-full md:h-11 md:w-11',
+                                isFavorite
+                                    ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20'
+                                    : '',
+                            )}
                             aria-label={isFavorite ? t('removeFavoriteRestaurant') : t('addFavoriteRestaurant')}
                             size="icon"
                             variant="outline"

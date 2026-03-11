@@ -5,7 +5,7 @@ import { ArrowLeft, Bell, History, Truck } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
-import { AppShell, Button, EmptyState, SectionHeader, StickyHeaderBar } from '@/../resources/components';
+import { AppShell, Button, SectionHeader, StickyHeaderBar, Surface } from '@/../resources/components';
 import NotificationListItem from '@/features/notifications/components/NotificationListItem';
 import { groupNotifications, mapBidNotificationsToItems, type NotificationGroupKey } from '@/features/notifications/notifications-model';
 import { useTranslations } from 'next-intl';
@@ -80,12 +80,36 @@ export default function NotificationsPage() {
     >
       <div className="space-y-6 pt-5">
         {groups.length === 0 ? (
-          <EmptyState
-            action={<Button onClick={() => router.push('/')} size="sm" variant="outline">{t('emptyAction')}</Button>}
-            description={t('emptyDescription')}
-            icon={<Bell className="h-6 w-6" />}
-            title={t('emptyTitle')}
-          />
+          <Surface className="relative overflow-hidden rounded-[2rem]" variant="raised" padding="none">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.2),transparent_48%),radial-gradient(circle_at_bottom_left,rgba(251,191,36,0.18),transparent_40%)]" />
+            <div className="relative space-y-5 px-6 py-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-orange-700 dark:text-orange-300">
+                    {t('groups.today.eyebrow')}
+                  </p>
+                  <h2 className="max-w-[18ch] text-2xl font-black tracking-[-0.03em] text-slate-900 dark:text-slate-100">
+                    {t('emptyTitle')}
+                  </h2>
+                  <p className="max-w-[34ch] text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    {t('emptyDescription')}
+                  </p>
+                </div>
+                <div className="flex size-14 shrink-0 items-center justify-center rounded-[1.25rem] bg-white/85 text-orange-600 shadow-[0_14px_34px_-22px_rgba(234,88,12,0.8)] ring-1 ring-orange-100 dark:bg-slate-950/60 dark:text-orange-300 dark:ring-orange-900/50">
+                  <Bell className="h-6 w-6" />
+                </div>
+              </div>
+
+              <Surface className="space-y-3 rounded-[1.5rem]" variant="base" padding="lg">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
+                  {t('traySubtitle')}
+                </p>
+                <Button onClick={() => router.push('/')} size="md" variant="outline">
+                  {t('emptyAction')}
+                </Button>
+              </Surface>
+            </div>
+          </Surface>
         ) : (
           groups.map((group) => (
             <section key={group.key} className="space-y-3">

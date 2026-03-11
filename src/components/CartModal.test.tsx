@@ -1,9 +1,19 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import CartModal from './CartModal';
 import type { CartItem, OrderMetadata } from '@/types';
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
+}));
+
+vi.mock('@/components/GoogleMapsAddressPicker', () => ({
+  default: ({ readOnly, showUrlInput }: { readOnly?: boolean; showUrlInput?: boolean }) => (
+    <div>
+      <span>{readOnly ? 'inline-map-readonly' : 'inline-map-editable'}</span>
+      {showUrlInput !== false ? <span>google-maps-url-field</span> : null}
+      <button type="button">Permitir ubicación</button>
+    </div>
+  ),
 }));
 
 const baseOrderMetadata: OrderMetadata = {
@@ -14,6 +24,7 @@ const baseOrderMetadata: OrderMetadata = {
   source: 'client',
   address: 'San Jose, Costa Rica',
   gpsLocation: 'https://www.google.com/maps?q=9.9,-84.1',
+  deliveryNotes: '',
 };
 
 const cart: CartItem[] = [
@@ -42,10 +53,28 @@ const baseProps = {
   paymentOptions: [{ id: 'cash', label: 'Cash' }],
   serviceOptions: [{ id: 'delivery', label: 'Delivery' }],
   fromNumber: '50688888888',
+  onOpenLocationPicker: vi.fn(),
   tableQuantity: 0,
 };
 
 describe('CartModal delivery validation', () => {
+  it('renders the embedded preview map when using the saved profile location', () => {
+    render(
+      <CartModal
+        {...baseProps}
+        hasProfileLocation
+        profileLocationLabel="Casa"
+        orderMetadata={{
+          ...baseOrderMetadata,
+          customerLatitude: 9.93,
+          customerLongitude: -84.08,
+        }}
+      />,
+    );
+
+    expect(screen.getByText('inline-map-readonly')).toBeInTheDocument();
+  });
+
   it('renders subtotal and fee breakdown in checkout footer', () => {
     render(
       <CartModal
@@ -101,5 +130,27 @@ describe('CartModal delivery validation', () => {
     );
 
     expect(screen.getByRole('button', { name: /confirmOrder/i })).toBeEnabled();
+  });
+
+  it('renders the modal map as read-only and hides the raw URL field', () => {
+    render(
+      <CartModal
+        {...baseProps}
+        hasProfileLocation
+        profileLocationLabel="Casa"
+        orderMetadata={{
+          ...baseOrderMetadata,
+          locationOverriddenFromProfile: true,
+        }}
+      />,
+    );
+
+    expect(screen.getByText('inline-map-readonly')).toBeInTheDocument();
+    expect(screen.queryByText('google-maps-url-field')).not.toBeInTheDocument();
+    expect(screen.queryByText('differentLocationWarning')).not.toBeInTheDocument();
+    expect(screen.queryByText('gpsRequired')).not.toBeInTheDocument();
+    expect(screen.queryByText('currentOrderLocation')).not.toBeInTheDocument();
+    expect(screen.getByText('deliveryAddressSummary')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'openMapLocationPicker' })).toBeInTheDocument();
   });
 });
