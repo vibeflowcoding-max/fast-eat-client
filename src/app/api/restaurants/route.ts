@@ -101,15 +101,6 @@ function toNumber(value: unknown): number | null {
     return null;
 }
 
-function average(values: Array<number | null | undefined>): number | null {
-    const normalized = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-    if (normalized.length === 0) {
-        return null;
-    }
-
-    return normalized.reduce((sum, value) => sum + value, 0) / normalized.length;
-}
-
 function isDealActiveNow(deal: Pick<DealRow, 'starts_at' | 'ends_at'>): boolean {
     const now = Date.now();
     const startsAt = deal.starts_at ? Date.parse(deal.starts_at) : null;
@@ -277,6 +268,17 @@ export async function GET(request: NextRequest) {
                 .map((rrc) => rrc.restaurant_categories)
                 .filter(Boolean);
 
+            let sumRating = 0;
+            let countRating = 0;
+            let sumReviewCount = 0;
+            let sumEtaMin = 0;
+            let countEtaMin = 0;
+            let sumAvgPrice = 0;
+            let countAvgPrice = 0;
+            let sumFee = 0;
+            let countFee = 0;
+            let derivedPromo: string | null = null;
+
             const branchesWithDerivedMetrics = (restaurant.branches || []).map((branch) => {
                 const promoText = branch.promo_text || dealsByBranch.get(branch.id)?.title || null;
                 const branchFee = feeByBranch.get(branch.id) ?? toNumber(branch.estimated_delivery_fee) ?? null;
@@ -285,6 +287,37 @@ export async function GET(request: NextRequest) {
                 const branchRating = branchReviewStats && branchReviewCount > 0
                     ? Number((branchReviewStats.ratingSum / branchReviewCount).toFixed(2))
                     : null;
+
+                // ⚡ Bolt: Single-pass metric derivation.
+                // Avoids O(N) array mapping, filtering, and reducing for each metric.
+                if (branchRating !== null) {
+                    sumRating += branchRating;
+                    countRating++;
+                }
+
+                sumReviewCount += branchReviewCount;
+
+                const etaNum = toNumber(branch.eta_min);
+                if (etaNum !== null) {
+                    sumEtaMin += etaNum;
+                    countEtaMin++;
+                }
+
+                const avgPriceNum = toNumber(branch.avg_price_estimate);
+                if (avgPriceNum !== null) {
+                    sumAvgPrice += avgPriceNum;
+                    countAvgPrice++;
+                }
+
+                const feeNum = toNumber(branchFee);
+                if (feeNum !== null) {
+                    sumFee += feeNum;
+                    countFee++;
+                }
+
+                if (!derivedPromo && promoText) {
+                    derivedPromo = promoText;
+                }
 
                 return {
                     ...branch,
@@ -295,26 +328,16 @@ export async function GET(request: NextRequest) {
                 };
             });
 
-            const branchRatings = branchesWithDerivedMetrics
-                .map((branch) => toNumber(branch.rating))
-                .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-            const branchReviewCounts = branchesWithDerivedMetrics
-                .map((branch) => toNumber(branch.review_count))
-                .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-            const branchEta = branchesWithDerivedMetrics.map((branch) => toNumber(branch.eta_min));
-            const branchAvgPrice = branchesWithDerivedMetrics.map((branch) => toNumber(branch.avg_price_estimate));
-            const branchFees = branchesWithDerivedMetrics.map((branch) => toNumber(branch.estimated_delivery_fee));
-
-            const derivedRating = branchRatings.length > 0 ? Number(average(branchRatings)?.toFixed(2)) : null;
-            const derivedReviewCount = branchReviewCounts.reduce((sum, value) => sum + value, 0);
+            const derivedRating = countRating > 0 ? Number((sumRating / countRating).toFixed(2)) : null;
+            const derivedReviewCount = sumReviewCount;
             const restaurantRating = toNumber(restaurant.rating);
             const restaurantReviewCount = toNumber(restaurant.review_count);
             const resolvedRating = derivedRating ?? restaurantRating;
             const resolvedReviewCount = derivedReviewCount > 0 ? derivedReviewCount : (restaurantReviewCount ?? 0);
-            const derivedEta = average(branchEta);
-            const derivedAvgPrice = average(branchAvgPrice);
-            const derivedFee = average(branchFees);
-            const derivedPromo = branchesWithDerivedMetrics.find((branch) => branch.promo_text)?.promo_text ?? null;
+
+            const derivedEta = countEtaMin > 0 ? sumEtaMin / countEtaMin : null;
+            const derivedAvgPrice = countAvgPrice > 0 ? sumAvgPrice / countAvgPrice : null;
+            const derivedFee = countFee > 0 ? sumFee / countFee : null;
 
             return {
                 id: restaurant.id,
