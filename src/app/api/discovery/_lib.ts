@@ -118,15 +118,6 @@ function toNumber(value: unknown): number | null {
     return null;
 }
 
-function average(values: Array<number | null | undefined>) {
-    const normalized = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-    if (normalized.length === 0) {
-        return null;
-    }
-
-    return normalized.reduce((sum, value) => sum + value, 0) / normalized.length;
-}
-
 function isDealActiveNow(deal: Pick<DealRow, 'starts_at' | 'ends_at'>) {
     const now = Date.now();
     const startsAt = deal.starts_at ? Date.parse(deal.starts_at) : null;
@@ -558,17 +549,62 @@ export async function getRestaurantRows() {
             };
         });
 
-        const rating = restaurant.rating ?? average(branches.map((branch) => toNumber(branch.rating)));
-        const reviewCount = restaurant.review_count ?? branches
-            .map((branch) => toNumber(branch.review_count))
-            .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
-            .reduce((sum, value) => sum + value, 0);
-        const etaMinAvg = restaurant.eta_min ?? average(branches.map((branch) => toNumber(branch.eta_min)));
-        const avgPriceEstimate = restaurant.avg_price_estimate ?? average(branches.map((branch) => toNumber(branch.avg_price_estimate)));
-        const estimatedDeliveryFee = average(branches.map((branch) => toNumber(branch.estimated_delivery_fee)))
-            ?? toNumber(restaurant.estimated_delivery_fee);
+        let ratingSum = 0;
+        let ratingCount = 0;
+        let derivedReviewCount = 0;
+        let etaMinSum = 0;
+        let etaMinCount = 0;
+        let avgPriceEstimateSum = 0;
+        let avgPriceEstimateCount = 0;
+        let estimatedDeliveryFeeSum = 0;
+        let estimatedDeliveryFeeCount = 0;
+        let firstPromoBranch: typeof branches[0] | undefined;
 
-        const firstPromoBranch = branches.find((branch) => Boolean(branch.promo_text));
+        // ⚡ Bolt: Consolidated multiple O(N) chained array methods (.map, .filter, .reduce, .find)
+        // into a single O(N) for...of loop over the branches array.
+        // Impact: Eliminates 5+ intermediate array allocations per restaurant,
+        // reducing garbage collection pressure and CPU overhead for large datasets.
+        for (const branch of branches) {
+            const branchRating = toNumber(branch.rating);
+            if (branchRating !== null) {
+                ratingSum += branchRating;
+                ratingCount++;
+            }
+
+            const branchReviewCount = toNumber(branch.review_count);
+            if (branchReviewCount !== null) {
+                derivedReviewCount += branchReviewCount;
+            }
+
+            const branchEtaMin = toNumber(branch.eta_min);
+            if (branchEtaMin !== null) {
+                etaMinSum += branchEtaMin;
+                etaMinCount++;
+            }
+
+            const branchAvgPriceEstimate = toNumber(branch.avg_price_estimate);
+            if (branchAvgPriceEstimate !== null) {
+                avgPriceEstimateSum += branchAvgPriceEstimate;
+                avgPriceEstimateCount++;
+            }
+
+            const branchEstimatedDeliveryFee = toNumber(branch.estimated_delivery_fee);
+            if (branchEstimatedDeliveryFee !== null) {
+                estimatedDeliveryFeeSum += branchEstimatedDeliveryFee;
+                estimatedDeliveryFeeCount++;
+            }
+
+            if (!firstPromoBranch && Boolean(branch.promo_text)) {
+                firstPromoBranch = branch;
+            }
+        }
+
+        const rating = restaurant.rating ?? (ratingCount > 0 ? ratingSum / ratingCount : null);
+        const reviewCount = restaurant.review_count ?? derivedReviewCount;
+        const etaMinAvg = restaurant.eta_min ?? (etaMinCount > 0 ? etaMinSum / etaMinCount : null);
+        const avgPriceEstimate = restaurant.avg_price_estimate ?? (avgPriceEstimateCount > 0 ? avgPriceEstimateSum / avgPriceEstimateCount : null);
+        const estimatedDeliveryFee = (estimatedDeliveryFeeCount > 0 ? estimatedDeliveryFeeSum / estimatedDeliveryFeeCount : null) ?? toNumber(restaurant.estimated_delivery_fee);
+
         const promoDeal = firstPromoBranch ? dealsByBranch.get(firstPromoBranch.id) : undefined;
 
         return {
