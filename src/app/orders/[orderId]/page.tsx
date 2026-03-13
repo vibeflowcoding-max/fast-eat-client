@@ -45,6 +45,7 @@ type OrderDetail = {
   items: unknown[];
   deliveryAddress: string | null;
   notes: string | null;
+  cancellationReason?: string | null;
   estimatedTime: number | null;
   paymentMethod: string | null;
   branchId: string | null;
@@ -247,6 +248,19 @@ export default function OrderDetailPage() {
     };
   }, [order?.subtotal, order?.customerTotal, order?.total, order?.deliveryFee, order?.feesTotal]);
 
+  const isCancelledOrder = React.useMemo(() => {
+    return String(order?.statusCode || '').toUpperCase() === 'CANCELLED';
+  }, [order?.statusCode]);
+
+  const cancellationReason = React.useMemo(() => {
+    if (!isCancelledOrder || typeof order?.cancellationReason !== 'string') {
+      return null;
+    }
+
+    const trimmedReason = order.cancellationReason.trim();
+    return trimmedReason.length > 0 ? trimmedReason : null;
+  }, [isCancelledOrder, order?.cancellationReason]);
+
   const restaurantReason = eligibility?.reasons.restaurant?.[0] ?? null;
   const deliveryReason = eligibility?.reasons.delivery?.[0] ?? null;
   const trackingProgress = React.useMemo(() => {
@@ -366,7 +380,14 @@ export default function OrderDetailPage() {
                 {order.deliveryAddress ?? t('noAddress')}
               </p>
 
-              {order.notes ? <p className="text-sm text-slate-500 dark:text-slate-400">{t('notes')}: {order.notes}</p> : null}
+              {cancellationReason ? (
+                <div className="rounded-[1.35rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-100">
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-red-700 dark:text-red-200">{t('cancellationReason')}</p>
+                  <p className="mt-1 font-medium">{cancellationReason}</p>
+                </div>
+              ) : null}
+
+              {!cancellationReason && order.notes ? <p className="text-sm text-slate-500 dark:text-slate-400">{t('notes')}: {order.notes}</p> : null}
             </Surface>
 
             <Surface className="space-y-4 rounded-[1.9rem]" variant="base">

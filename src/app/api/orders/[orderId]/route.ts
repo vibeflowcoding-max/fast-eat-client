@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ord
     }
 
     const supabaseServer = getSupabaseServer();
-    const selectOrderFields = 'id,order_number,branch_id,restaurant_id,status_id,delivery_address,notes,estimated_time,payment_method,total,customer_total,delivery_fee,delivery_final_price,created_at';
+    const selectOrderFields = 'id,order_number,branch_id,restaurant_id,status_id,delivery_address,notes,cancellation_reason,estimated_time,payment_method,total,customer_total,delivery_fee,delivery_final_price,created_at';
 
     let { data: orderRaw, error: orderByIdError } = await (supabaseServer as any)
       .from('orders')
@@ -142,6 +142,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ord
         branchId: orderRaw?.branch_id ? String(orderRaw.branch_id) : null,
         deliveryAddress: typeof orderRaw?.delivery_address === 'string' ? orderRaw.delivery_address : null,
         notes: typeof orderRaw?.notes === 'string' ? orderRaw.notes : null,
+        cancellationReason: typeof orderRaw?.cancellation_reason === 'string' ? orderRaw.cancellation_reason : null,
         estimatedTime: typeof orderRaw?.estimated_time === 'number' ? orderRaw.estimated_time : null,
         paymentMethod: orderRaw?.payment_method ? String(orderRaw.payment_method) : null,
         restaurant: restaurant

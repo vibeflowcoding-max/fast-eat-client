@@ -452,6 +452,7 @@
       "restaurantFallback": "Restaurante",
       "paymentUnavailable": "Método no disponible",
       "noAddress": "Sin dirección registrada",
+      "cancellationReason": "Motivo de cancelación",
       "notes": "Notas",
       "products": "Productos del pedido",
       "productsEmpty": "No hay detalle de productos para este pedido.",

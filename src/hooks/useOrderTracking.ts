@@ -362,7 +362,10 @@ export function useOrderTracking(branchId: string, phone: string, customerId?: s
                 confirmedByDelivery: Boolean(data.confirmedByDelivery ?? data.confirmed_by_delivery),
                 acceptedByUser: Boolean(data.acceptedByUser ?? data.accepted_by_user),
                 prepTimeEstimate: data.prepTimeEstimate,
-                cancellationReason: data.cancellationReason
+                cancellationReason:
+                  data.cancellationReason ??
+                  data.cancellation_reason ??
+                  data.statusNote
             };
             addActiveOrder(orderUpdate);
 

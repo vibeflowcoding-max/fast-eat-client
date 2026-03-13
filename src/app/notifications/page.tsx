@@ -6,8 +6,8 @@ import BottomNav from '@/components/BottomNav';
 import { useAppRouter } from '@/hooks/useAppRouter';
 import { useCartStore } from '@/store';
 import { AppShell, Button, Surface } from '@/../resources/components';
-import NotificationListItem from '@/features/notifications/components/NotificationListItem';
 import { groupNotifications, mapBidNotificationsToItems, type NotificationGroupKey } from '@/features/notifications/notifications-model';
+import NotificationListItem from '@/features/notifications/components/NotificationListItem';
 import { useTranslations } from 'next-intl';
 
 const groupIconByKey: Record<NotificationGroupKey, React.ReactNode> = {
@@ -20,12 +20,17 @@ export default function NotificationsPage() {
   const router = useAppRouter();
   const t = useTranslations('notifications');
   const bidNotifications = useCartStore((state) => state.bidNotifications);
+  const activeOrders = useCartStore((state) => state.activeOrders);
   const markBidNotificationRead = useCartStore((state) => state.markBidNotificationRead);
   const setDeepLinkTarget = useCartStore((state) => state.setDeepLinkTarget);
 
+  const orderNumbersById = React.useMemo(() => Object.fromEntries(
+    Object.entries(activeOrders).map(([orderId, order]) => [orderId, order.orderNumber])
+  ), [activeOrders]);
+
   const groups = React.useMemo(() => {
-    return groupNotifications(mapBidNotificationsToItems(bidNotifications));
-  }, [bidNotifications]);
+    return groupNotifications(mapBidNotificationsToItems(bidNotifications, { orderNumbersById }));
+  }, [bidNotifications, orderNumbersById]);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') {
@@ -131,13 +136,12 @@ export default function NotificationsPage() {
                 {group.items.map((item) => (
                   <NotificationListItem
                     key={`${item.orderId}-${item.id}`}
-                    compact
                     item={{
                       ...item,
                       title: t('offerTitle'),
                       body: t('offerBody', {
                         amount: Math.round(bidNotifications.find((entry) => entry.id === item.bidId)?.bid.bidAmount || 0).toLocaleString(),
-                        orderId: item.orderId.slice(0, 8),
+                        orderId: item.orderNumber,
                       }),
                       timestampLabel: item.groupKey === 'today'
                         ? item.timestampLabel === 'now'
@@ -147,6 +151,7 @@ export default function NotificationsPage() {
                           ? t('time.yesterday')
                           : item.timestampLabel,
                     }}
+                    variant="tray"
                     onClick={() => handleNotificationClick(item.orderId, item.bidId)}
                     timestampClassName="text-[11px] font-black uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500"
                   />

@@ -1,10 +1,13 @@
 import type { BidNotification } from '@/types';
 
+type OrderDisplayLookup = Record<string, string | null | undefined>;
+
 export type NotificationGroupKey = 'today' | 'yesterday' | 'earlier';
 
 export type AppNotificationItem = {
   id: string;
   orderId: string;
+  orderNumber: string;
   bidId: string;
   title: string;
   body: string;
@@ -66,10 +69,11 @@ function getTimestampLabel(receivedAt: string, groupKey: NotificationGroupKey, n
 
 export function mapBidNotificationsToItems(
   notifications: BidNotification[],
-  options?: { locale?: string; now?: Date },
+  options?: { locale?: string; now?: Date; orderNumbersById?: OrderDisplayLookup },
 ): AppNotificationItem[] {
   const locale = options?.locale ?? 'en-US';
   const now = options?.now ?? new Date();
+  const orderNumbersById = options?.orderNumbersById ?? {};
 
   return [...notifications]
     .sort((left, right) => new Date(right.receivedAt).getTime() - new Date(left.receivedAt).getTime())
@@ -80,8 +84,9 @@ export function mapBidNotificationsToItems(
         ? notification.bid.driverRating.toFixed(1)
         : null;
       const eta = notification.bid.estimatedTimeMinutes;
+      const resolvedOrderNumber = orderNumbersById[notification.orderId]?.trim() || notification.orderId.slice(0, 8);
       const bodySegments = [
-        `A courier offer of ₡${amount} is ready for order ${notification.orderId.slice(0, 8)}.`,
+        `A courier offer of ₡${amount} is ready for order ${resolvedOrderNumber}.`,
         rating ? `Rating ${rating}.` : null,
         typeof eta === 'number' ? `${eta} min estimated.` : null,
       ].filter(Boolean);
@@ -89,6 +94,7 @@ export function mapBidNotificationsToItems(
       return {
         id: notification.id,
         orderId: notification.orderId,
+        orderNumber: resolvedOrderNumber,
         bidId: notification.id,
         title: 'Delivery offer received',
         body: bodySegments.join(' '),
