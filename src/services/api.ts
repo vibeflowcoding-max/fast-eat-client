@@ -6,6 +6,16 @@ import { getLocalSavedCart, listLocalSavedCarts, upsertLocalSavedCart, archiveLo
 export type InteractionType = 'chat' | 'carrito' | 'generar_orden' | 'get_carrito' | 'delete_cart';
 export type CartAction = 'add' | 'increment' | 'reduce' | 'remove' | 'details' | 'clear' | 'none' | 'recommendation' | 'add-to-cart';
 
+function normalizeOrderPaymentMethod(paymentMethod: OrderMetadata['paymentMethod'] | undefined): 'CASH' | 'CARD' | 'SINPE' | 'TRANSFER' {
+  const normalized = String(paymentMethod || 'cash').trim().toUpperCase();
+
+  if (normalized === 'CARD' || normalized === 'SINPE' || normalized === 'TRANSFER') {
+    return normalized;
+  }
+
+  return 'CASH';
+}
+
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
 }
@@ -608,7 +618,7 @@ export const submitOrderToMCP = async (
     customerName: normalizedCustomerName,
     customerPhone: normalizedCustomerPhone,
     fromNumber: normalizedCustomerPhone,
-    paymentMethod: orderMetadata.paymentMethod,
+    paymentMethod: normalizeOrderPaymentMethod(orderMetadata.paymentMethod),
     orderType: orderMetadata.orderType,
     source: 'client',
     address: orderMetadata.address,

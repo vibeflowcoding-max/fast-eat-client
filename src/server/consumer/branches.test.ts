@@ -100,6 +100,7 @@ describe('getBranchCheckoutContextPayload', () => {
     const payload = await getBranchCheckoutContextPayload('branch-1');
 
     expect(payload?.restaurant).toMatchObject({
+      id: 'restaurant-1',
       payment_methods: ['cash', 'card', 'sinpe'],
       service_modes: ['pickup', 'delivery', 'dine_in'],
       google_maps_url: 'https://maps.google.com/?q=branch',
@@ -149,6 +150,7 @@ describe('getBranchCheckoutContextPayload', () => {
     const payload = await getBranchCheckoutContextPayload('branch-1');
 
     expect(payload?.restaurant).toMatchObject({
+      id: 'restaurant-1',
       payment_methods: ['cash'],
       service_modes: ['pickup'],
       google_maps_url: 'https://maps.google.com/?q=restaurant',

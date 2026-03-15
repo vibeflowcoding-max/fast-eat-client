@@ -215,6 +215,59 @@
     "resolvingLocation": "Getting current location...",
     "locationUpdated": "Location updated successfully."
   },
+  "planner": {
+    "eyebrow": "AI Planner",
+    "title": "Suggested meals for this moment",
+    "description": "Use your dietary profile, budget, and service mode to find combinations that are closer to what you actually want to order.",
+    "adjustProfile": "Adjust profile",
+    "authTitle": "You need to sign in to use personalized recommendations.",
+    "authDescription": "The planner uses your synced dietary profile to filter ideas more accurately.",
+    "filtersEyebrow": "Filters",
+    "filtersTitle": "Tune the search",
+    "filtersDescription": "Every change updates the recommendation mix the planner prioritizes for you.",
+    "budgetLabel": "Max budget",
+    "budgetDescription": "The planner tries to stay within this range.",
+    "moodLabel": "Mood",
+    "moodDescription": "Define the type of food you want to prioritize in this search.",
+    "serviceModeLabel": "Mode",
+    "serviceModeDescription": "Switching it changes suggested restaurants, timing, and order formats.",
+    "dietLabel": "Diet",
+    "noFilter": "No filter",
+    "generate": "Generate recommendations",
+    "loadError": "Could not generate recommendations.",
+    "empty": "We could not find options with those filters. Try a higher budget or switch the mode.",
+    "itemFallbackDescription": "Recommendation adjusted to your current profile.",
+    "score": "Score {value}",
+    "viewRestaurant": "View restaurant",
+    "serviceModes": {
+      "delivery": {
+        "title": "Delivery",
+        "description": "Prioritize options ready to order and receive without moving."
+      },
+      "pickup": {
+        "title": "Pickup",
+        "description": "Look for ideas that make more sense to collect in store."
+      }
+    },
+    "moods": {
+      "comfort": {
+        "title": "Comfort",
+        "description": "Warm food and a reliable craving fix."
+      },
+      "healthy": {
+        "title": "Healthy",
+        "description": "Lighter and more balanced options."
+      },
+      "fast": {
+        "title": "Fast",
+        "description": "Quick decisions when you need to move fast."
+      },
+      "protein": {
+        "title": "Protein boost",
+        "description": "More protein for high-performance meals."
+      }
+    }
+  },
   "common": {
     "languageUpdated": "Language updated",
     "save": "Save",
@@ -399,6 +452,7 @@
       "restaurantFallback": "Restaurant",
       "paymentUnavailable": "Method unavailable",
       "noAddress": "No saved address",
+      "cancellationReason": "Cancellation reason",
       "notes": "Notes",
       "products": "Order products",
       "productsEmpty": "No product details available for this order.",
@@ -516,7 +570,12 @@
       "useDifferentLocation": "Use a different location for this order",
       "profileLocationTag": "Saved profile location",
       "currentOrderLocation": "Current order location",
+      "locationMapPreviewHint": "If you want to move the pin for this order, switch to a different location.",
+      "locationMapEditHint": "Drag the pin or tap the map to adjust the exact delivery point.",
+      "locationMapFallback": "We could not render the embedded map, but the current location is still selected.",
       "locationNotSelected": "No location selected for this order.",
+      "deliveryNotesSummary": "Delivery notes",
+      "deliveryAddressSummary": "Delivery address",
       "savingProfileLocation": "Saving the current location to your profile...",
       "openMapLocationPicker": "Pick location on map",
       "openMapLocationPickerLoading": "Getting current location...",
@@ -540,7 +599,10 @@
       "locationServicesDisabled": "Location services are disabled. We will open the map with a default location.",
       "locationPermissionPrompt": "Please allow location access to center the map on your current location.",
       "locationPermissionDenied": "We could not access your location. We will open the map with a default location.",
+      "saveProfileLocationTitle": "Save new location",
       "saveProfileLocationConfirm": "Do you want to save this location as your new profile location?",
+      "saveProfileLocationAction": "Yes, save it",
+      "saveProfileLocationDismiss": "Only for this order",
       "profileLocationSaved": "✅ Location saved to your profile.",
       "profileLocationSaveFailed": "⚠️ Could not save the location to your profile. We kept it only for this order.",
       "browserGeolocationUnsupported": "Your browser does not support geolocation. 🏮",
@@ -587,6 +649,56 @@
     "saveError": "Could not save address. Please retry.",
     "saving": "Saving...",
     "save": "Save address"
+  },
+  "addressPage": {
+    "title": "Address",
+    "subtitle": "Set your primary delivery point.",
+    "back": "Back",
+    "savedEyebrow": "Saved point",
+    "savedTitle": "Your primary delivery point",
+    "savedDescription": "Adjust the pin, reference, and delivery context from a dedicated destination.",
+    "noSavedAddress": "You do not have a saved address yet.",
+    "useCurrentLocation": "Use current location",
+    "locating": "Locating...",
+    "loadError": "Could not load the saved address.",
+    "geolocationUnavailable": "Geolocation is unavailable. You can place the pin manually.",
+    "permissionDenied": "We could not use your current location. Adjust the pin manually.",
+    "profileRequired": "Complete your name and phone in profile before saving an address.",
+    "authRequired": "You must sign in again to save your address.",
+    "savedCoordinates": "Saved pin: {lat}, {lng}"
+  },
+  "onboardingProfile": {
+    "pageTitle": "Foodie profile",
+    "pageSubtitle": "Complete the essentials before you keep exploring.",
+    "back": "Back",
+    "eyebrow": "Onboarding",
+    "heroTitle": "Your profile helps FastEat respond better",
+    "heroDescription": "Save your core identity and decide whether to continue to the address step or go back to discovery with your account ready.",
+    "identityEyebrow": "Identity",
+    "identityTitle": "Confirm who is ordering",
+    "identityDescription": "These details are reused across orders, tracking, and address saving.",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "Your name",
+    "phone": "Phone",
+    "phonePlaceholder": "88887777",
+    "addressEyebrow": "Address",
+    "addressTitle": "Recommended next step",
+    "addressReady": "You already have a saved address. You can adjust it or continue to home.",
+    "addressMissing": "You have not configured your primary delivery point yet.",
+    "addressFallback": "No saved address yet.",
+    "addressAction": "Set up address now",
+    "addressAdjust": "Adjust address",
+    "continueAddress": "Save and continue to address",
+    "continueHome": "Save and continue to home",
+    "later": "Later",
+    "saving": "Saving...",
+    "errors": {
+      "fullNameRequired": "Full name is required.",
+      "phoneRequired": "Phone number is required.",
+      "phoneInvalid": "Please enter a valid phone number.",
+      "authRequired": "You must sign in again to save your profile.",
+      "saveFailed": "Could not save profile data."
+    }
   },
   "mysteryBox": {
     "eyebrow": "Mystery Box",

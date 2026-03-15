@@ -35,7 +35,7 @@ export default function NotificationTrayTrigger({
   );
 
   const [isTrayOpen, setIsTrayOpen] = useState(false);
-  const [trayStyle, setTrayStyle] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [trayStyle, setTrayStyle] = useState<{ top: number; left: number; width: number; centered: boolean } | null>(null);
   const trayContainerRef = useRef<HTMLDivElement | null>(null);
   const trayTriggerRef = useRef<HTMLDivElement | null>(null);
   const trayRestoreFocusRef = useRef(false);
@@ -117,19 +117,23 @@ export default function NotificationTrayTrigger({
 
       const rect = trigger.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
       const horizontalPadding = 16;
-      const trayWidth = Math.min(392, viewportWidth - horizontalPadding * 2);
+      const trayWidth = Math.min(360, viewportWidth - horizontalPadding * 2);
       const isMobileViewport = viewportWidth < 768;
       const centeredLeft = Math.max(horizontalPadding, Math.round((viewportWidth - trayWidth) / 2));
       const anchoredLeft = Math.min(
         Math.max(horizontalPadding, Math.round(rect.right - trayWidth)),
         Math.max(horizontalPadding, viewportWidth - trayWidth - horizontalPadding),
       );
+      const centeredTop = Math.round(viewportHeight / 2);
+      const anchoredTop = Math.round(Math.min(rect.bottom + 12, viewportHeight - 24));
 
       setTrayStyle({
-        top: Math.round(rect.bottom + 14),
+        top: isMobileViewport ? centeredTop : anchoredTop,
         left: isMobileViewport ? centeredLeft : anchoredLeft,
         width: trayWidth,
+        centered: isMobileViewport,
       });
     };
 
@@ -176,12 +180,12 @@ export default function NotificationTrayTrigger({
         ? createPortal(
             <>
               <div
-                className="fixed inset-0 z-[110] bg-[#221610]/46 backdrop-blur-md"
+                className="fixed inset-0 z-[110] bg-[#221610]/42 backdrop-blur-[3px]"
                 aria-hidden="true"
               />
               <div
                 ref={trayContainerRef}
-                className="fixed z-[120]"
+                className={`fixed z-[120] ${trayStyle.centered ? '-translate-y-1/2' : ''}`}
                 tabIndex={-1}
                 role="dialog"
                 aria-modal="true"

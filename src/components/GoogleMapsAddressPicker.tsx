@@ -29,6 +29,9 @@ interface GoogleMapsAddressPickerProps {
   onPermissionRequested?: () => void;
   apiKey?: string;
   mapId?: string;
+  readOnly?: boolean;
+  showUrlInput?: boolean;
+  emitInitialChange?: boolean;
 }
 
 const DEFAULT_CENTER: LatLng = { lat: 9.935, lng: -84.091 };
@@ -87,7 +90,10 @@ export default function GoogleMapsAddressPicker({
   onPermissionGranted,
   onPermissionRequested,
   apiKey: propsApiKey,
-  mapId: propsMapId
+  mapId: propsMapId,
+  readOnly = false,
+  showUrlInput = true,
+  emitInitialChange = true,
 }: GoogleMapsAddressPickerProps) {
   const mapRef = React.useRef<any>(null);
   const markerRef = React.useRef<any>(null);
@@ -284,49 +290,58 @@ export default function GoogleMapsAddressPicker({
           ? new AdvancedMarkerElement({
             position: basePosition,
             map,
-            gmpDraggable: true
+            gmpDraggable: !readOnly
           })
           : new google.maps.Marker({
             position: basePosition,
             map,
-            draggable: true
+            draggable: !readOnly
           });
 
         mapRef.current = map;
         markerRef.current = marker;
 
-        map.addListener('click', (event: any) => {
-          if (!event?.latLng) {
-            return;
+        if (!readOnly) {
+          map.addListener('click', (event: any) => {
+            if (!event?.latLng) {
+              return;
+            }
+
+            const next = {
+              lat: event.latLng.lat(),
+              lng: event.latLng.lng()
+            };
+
+            if (typeof marker.setPosition === 'function') {
+              marker.setPosition(next);
+            } else {
+              marker.position = next;
+            }
+            emitPositionChange(next);
+          });
+
+          marker.addListener('dragend', (event: any) => {
+            const markerPosition =
+              toLatLngLiteral(event?.latLng)
+              || (typeof marker.getPosition === 'function' ? toLatLngLiteral(marker.getPosition()) : null)
+              || toLatLngLiteral(marker.position);
+
+            if (!markerPosition) {
+              return;
+            }
+
+            emitPositionChange(markerPosition);
+          });
+        }
+
+        if (emitInitialChange) {
+          emitPositionChange(basePosition);
+        } else {
+          setPosition(basePosition);
+          if (!initialUrl) {
+            setUrlAddress(buildMapsQueryUrl(basePosition));
           }
-
-          const next = {
-            lat: event.latLng.lat(),
-            lng: event.latLng.lng()
-          };
-
-          if (typeof marker.setPosition === 'function') {
-            marker.setPosition(next);
-          } else {
-            marker.position = next;
-          }
-          emitPositionChange(next);
-        });
-
-        marker.addListener('dragend', (event: any) => {
-          const markerPosition =
-            toLatLngLiteral(event?.latLng)
-            || (typeof marker.getPosition === 'function' ? toLatLngLiteral(marker.getPosition()) : null)
-            || toLatLngLiteral(marker.position);
-
-          if (!markerPosition) {
-            return;
-          }
-
-          emitPositionChange(markerPosition);
-        });
-
-        emitPositionChange(basePosition);
+        }
 
         if ((preferCurrentLocationOnLoad || !hasExplicitInitialSelection) && navigator.geolocation) {
           onPermissionRequestedRef.current?.();
@@ -375,7 +390,7 @@ export default function GoogleMapsAddressPicker({
     return () => {
       cancelled = true;
     };
-  }, [emitPositionChange, initialPosition, initialUrl, mapId, moveMapToPosition, position, preferCurrentLocationOnLoad, propsApiKey]);
+  }, [emitInitialChange, emitPositionChange, initialPosition, initialUrl, mapId, moveMapToPosition, position, preferCurrentLocationOnLoad, propsApiKey, readOnly]);
 
   const handleUseMyLocation = React.useCallback(() => {
     if (!navigator.geolocation) {
@@ -451,19 +466,21 @@ export default function GoogleMapsAddressPicker({
         {isLocating ? 'Requesting location...' : 'Permitir ubicación'}
       </button>
 
-      <div>
-        <label htmlFor="address-map-url" className="mb-1 block text-xs text-gray-600">
-          Google Maps URL
-        </label>
-        <input
-          id="address-map-url"
-          type="url"
-          value={urlAddress}
-          onChange={(event) => handleUrlChange(event.target.value)}
-          placeholder="https://www.google.com/maps/search/?api=1&query=..."
-          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500"
-        />
-      </div>
+      {showUrlInput && (
+        <div>
+          <label htmlFor="address-map-url" className="mb-1 block text-xs text-gray-600">
+            Google Maps URL
+          </label>
+          <input
+            id="address-map-url"
+            type="url"
+            value={urlAddress}
+            onChange={(event) => handleUrlChange(event.target.value)}
+            placeholder="https://www.google.com/maps/search/?api=1&query=..."
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+          />
+        </div>
+      )}
 
       {locationError && (
         <p className="text-xs text-amber-700" aria-live="polite">

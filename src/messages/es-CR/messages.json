@@ -215,6 +215,59 @@
     "resolvingLocation": "Obteniendo ubicación actual...",
     "locationUpdated": "Ubicación actualizada correctamente."
   },
+  "planner": {
+    "eyebrow": "Planner IA",
+    "title": "Comidas sugeridas para este momento",
+    "description": "Usa tu perfil alimenticio, presupuesto y modo de servicio para encontrar combinaciones más cercanas a lo que realmente quieres pedir.",
+    "adjustProfile": "Ajustar perfil",
+    "authTitle": "Necesitas iniciar sesión para usar recomendaciones personalizadas.",
+    "authDescription": "El planner usa tu perfil alimenticio sincronizado para filtrar ideas con más precisión.",
+    "filtersEyebrow": "Filtros",
+    "filtersTitle": "Ajusta la búsqueda",
+    "filtersDescription": "Cada cambio actualiza el tipo de recomendaciones que el planner prioriza para ti.",
+    "budgetLabel": "Presupuesto máximo",
+    "budgetDescription": "El planner intentará mantenerse dentro de este rango.",
+    "moodLabel": "Mood",
+    "moodDescription": "Define el tipo de comida que quieres priorizar en esta búsqueda.",
+    "serviceModeLabel": "Modalidad",
+    "serviceModeDescription": "Cambiarla altera restaurantes, tiempos y formatos sugeridos.",
+    "dietLabel": "Dieta",
+    "noFilter": "Sin filtro",
+    "generate": "Generar recomendaciones",
+    "loadError": "No se pudieron generar recomendaciones.",
+    "empty": "No encontramos opciones con esos filtros. Prueba con un mayor presupuesto o cambia la modalidad.",
+    "itemFallbackDescription": "Recomendación ajustada a tu perfil actual.",
+    "score": "Score {value}",
+    "viewRestaurant": "Ver restaurante",
+    "serviceModes": {
+      "delivery": {
+        "title": "Delivery",
+        "description": "Prioriza opciones listas para pedir y recibir sin moverte."
+      },
+      "pickup": {
+        "title": "Pickup",
+        "description": "Busca ideas que tengan más sentido para recoger en tienda."
+      }
+    },
+    "moods": {
+      "comfort": {
+        "title": "Comfort",
+        "description": "Comida cálida y antojo seguro."
+      },
+      "healthy": {
+        "title": "Healthy",
+        "description": "Opciones más ligeras y balanceadas."
+      },
+      "fast": {
+        "title": "Fast",
+        "description": "Decisiones rápidas para salir del paso."
+      },
+      "protein": {
+        "title": "Protein boost",
+        "description": "Más proteína para comidas de alto rendimiento."
+      }
+    }
+  },
   "common": {
     "languageUpdated": "Idioma actualizado",
     "save": "Guardar",
@@ -399,6 +452,7 @@
       "restaurantFallback": "Restaurante",
       "paymentUnavailable": "Método no disponible",
       "noAddress": "Sin dirección registrada",
+      "cancellationReason": "Motivo de cancelación",
       "notes": "Notas",
       "products": "Productos del pedido",
       "productsEmpty": "No hay detalle de productos para este pedido.",
@@ -516,7 +570,12 @@
       "useDifferentLocation": "Usar una ubicación diferente para este pedido",
       "profileLocationTag": "Ubicación guardada del perfil",
       "currentOrderLocation": "Ubicación actual del pedido",
+      "locationMapPreviewHint": "Si quieres mover el pin para este pedido, cambia a una ubicación diferente.",
+      "locationMapEditHint": "Mueve el pin o toca el mapa para ajustar el punto exacto de entrega.",
+      "locationMapFallback": "No pudimos mostrar el mapa embebido, pero la ubicación actual sigue seleccionada.",
       "locationNotSelected": "No hay ubicación seleccionada para este pedido.",
+      "deliveryNotesSummary": "Notas de entrega",
+      "deliveryAddressSummary": "Dirección de envío",
       "savingProfileLocation": "Guardando la ubicación actual en tu perfil...",
       "openMapLocationPicker": "Elegir ubicación en mapa",
       "openMapLocationPickerLoading": "Obteniendo ubicación actual...",
@@ -540,7 +599,10 @@
       "locationServicesDisabled": "Los servicios de ubicación están desactivados. Abriremos el mapa con una ubicación predeterminada.",
       "locationPermissionPrompt": "Permite el acceso a tu ubicación para centrar el mapa en tu posición actual.",
       "locationPermissionDenied": "No pudimos acceder a tu ubicación. Abriremos el mapa con una ubicación predeterminada.",
+      "saveProfileLocationTitle": "Guardar nueva ubicación",
       "saveProfileLocationConfirm": "¿Quieres guardar esta ubicación como tu nueva ubicación de perfil?",
+      "saveProfileLocationAction": "Sí, guardarla",
+      "saveProfileLocationDismiss": "Solo para este pedido",
       "profileLocationSaved": "✅ Ubicación guardada en tu perfil.",
       "profileLocationSaveFailed": "⚠️ No se pudo guardar la ubicación en tu perfil. La mantuvimos solo para este pedido.",
       "browserGeolocationUnsupported": "Tu navegador no soporta geolocalización. 🏮",
@@ -587,6 +649,56 @@
     "saveError": "No se pudo guardar la dirección. Inténtalo de nuevo.",
     "saving": "Guardando...",
     "save": "Guardar dirección"
+  },
+  "addressPage": {
+    "title": "Dirección",
+    "subtitle": "Define tu punto principal de entrega.",
+    "back": "Volver",
+    "savedEyebrow": "Punto guardado",
+    "savedTitle": "Tu punto de entrega principal",
+    "savedDescription": "Ajusta el pin, la referencia y el contexto de entrega desde una vista dedicada.",
+    "noSavedAddress": "Todavía no tienes una dirección guardada.",
+    "useCurrentLocation": "Usar ubicación actual",
+    "locating": "Ubicando...",
+    "loadError": "No se pudo cargar la dirección guardada.",
+    "geolocationUnavailable": "La geolocalización no está disponible. Puedes colocar el pin manualmente.",
+    "permissionDenied": "No se pudo usar tu ubicación actual. Ajusta el pin manualmente.",
+    "profileRequired": "Completa tu nombre y teléfono en perfil antes de guardar una dirección.",
+    "authRequired": "Debes iniciar sesión otra vez para guardar tu dirección.",
+    "savedCoordinates": "Punto guardado: {lat}, {lng}"
+  },
+  "onboardingProfile": {
+    "pageTitle": "Perfil Foodie",
+    "pageSubtitle": "Completa lo básico antes de seguir explorando.",
+    "back": "Volver",
+    "eyebrow": "Onboarding",
+    "heroTitle": "Tu perfil hace que FastEat responda mejor",
+    "heroDescription": "Guarda tu identidad base y define si quieres continuar al paso de dirección o volver a explorar con tu cuenta lista.",
+    "identityEyebrow": "Identidad",
+    "identityTitle": "Confirma quién está pidiendo",
+    "identityDescription": "Estos datos se reutilizan en pedidos, seguimiento y guardado de dirección.",
+    "fullName": "Nombre completo",
+    "fullNamePlaceholder": "Tu nombre",
+    "phone": "Teléfono",
+    "phonePlaceholder": "88887777",
+    "addressEyebrow": "Dirección",
+    "addressTitle": "Siguiente paso recomendado",
+    "addressReady": "Ya tienes una dirección guardada. Puedes ajustarla o seguir al inicio.",
+    "addressMissing": "Todavía no has configurado tu punto principal de entrega.",
+    "addressFallback": "Sin dirección guardada todavía.",
+    "addressAction": "Configurar dirección ahora",
+    "addressAdjust": "Ajustar dirección",
+    "continueAddress": "Guardar y continuar a dirección",
+    "continueHome": "Guardar y seguir al inicio",
+    "later": "Luego",
+    "saving": "Guardando...",
+    "errors": {
+      "fullNameRequired": "El nombre completo es obligatorio.",
+      "phoneRequired": "El número de teléfono es obligatorio.",
+      "phoneInvalid": "Ingresa un número de teléfono válido.",
+      "authRequired": "Debes iniciar sesión otra vez para guardar tu perfil.",
+      "saveFailed": "No se pudo guardar la información del perfil."
+    }
   },
   "mysteryBox": {
     "eyebrow": "Mystery Box",

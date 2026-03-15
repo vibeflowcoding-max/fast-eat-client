@@ -70,6 +70,7 @@ export async function GET(req: NextRequest) {
               deliveryId: order.deliveryId,
               confirmedByDelivery: order.confirmedByDelivery,
               acceptedByUser: order.acceptedByUser,
+              cancellationReason: order.cancellationReason,
               total: order.total,
             });
 
@@ -90,6 +91,7 @@ export async function GET(req: NextRequest) {
                 deliveryId: order.deliveryId,
                 confirmedByDelivery: order.confirmedByDelivery,
                 acceptedByUser: order.acceptedByUser,
+                cancellationReason: order.cancellationReason,
               });
             }
 

@@ -459,7 +459,7 @@ export async function loadTrackedOrdersLocal(params: {
   const admin = getSupabaseServer() as any;
   let orderQuery = admin
     .from('orders')
-    .select('id, order_number, status_id, total, customer_total, delivery_fee, delivery_final_price, updated_at, created_at, security_code, delivery_id, confirmed_by_delivery, accepted_by_user, branch_id')
+    .select('id, order_number, status_id, total, customer_total, delivery_fee, delivery_final_price, updated_at, created_at, security_code, delivery_id, confirmed_by_delivery, accepted_by_user, branch_id, cancellation_reason')
     .eq('customer_id', params.customerId)
     .order('updated_at', { ascending: false })
     .limit(12);
@@ -507,6 +507,10 @@ export async function loadTrackedOrdersLocal(params: {
     const customerTotal = toNumber(order.customer_total ?? order.total);
     const deliveryFee = toNumber(order.delivery_final_price ?? order.delivery_fee);
     const feesTotal = Math.max(0, customerTotal - subtotal - deliveryFee);
+    const cancellationReason =
+      String(statusRecord?.code || '').toUpperCase() === 'CANCELLED' && typeof order.cancellation_reason === 'string' && order.cancellation_reason.trim().length > 0
+        ? order.cancellation_reason.trim()
+        : null;
 
     return {
       orderId: String(order.id),
@@ -527,6 +531,7 @@ export async function loadTrackedOrdersLocal(params: {
       deliveryId: order.delivery_id ? String(order.delivery_id) : null,
       confirmedByDelivery: Boolean(order.confirmed_by_delivery),
       acceptedByUser: Boolean(order.accepted_by_user),
+      cancellationReason,
       bids: orderBids.map((bid: any) => ({
         id: String(bid.id),
         bidAmount: toNumber(bid.driver_offer ?? bid.base_price),

@@ -161,4 +161,21 @@ describe('OrderDetailPage', () => {
       expect(fetchOrderTracking).toHaveBeenCalledTimes(2);
     });
   });
+
+  it('renders a dedicated cancellation reason for cancelled orders', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => createFetchResponse({
+      order: {
+        ...orderPayload.order,
+        statusCode: 'CANCELLED',
+        statusLabel: 'Cancelled',
+        cancellationReason: 'Restaurant had an unexpected kitchen issue',
+        notes: 'Llamar al llegar',
+      },
+    })) as unknown as typeof fetch);
+
+    render(<OrderDetailPage />);
+
+    expect(await screen.findByText('cancellationReason')).toBeInTheDocument();
+    expect(screen.getByText('Restaurant had an unexpected kitchen issue')).toBeInTheDocument();
+  });
 });

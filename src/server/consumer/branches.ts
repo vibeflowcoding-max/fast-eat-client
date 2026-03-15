@@ -33,7 +33,7 @@ async function getBranchRestaurantRecord(branchId: string): Promise<any | null> 
       opening_hours,
       payment_methods,
       service_modes,
-      restaurants (
+      restaurants!branches_restaurant_id_fkey (
         id,
         name,
         description,
@@ -79,7 +79,7 @@ function mapBranchShellRestaurant(branchRecord: any): RestaurantInfo | null {
   }
 
   return {
-    id: String(branchRecord.id),
+    id: String(restaurant.id || branchRecord.restaurant_id || branchRecord.id),
     name: String(restaurant.name || branchRecord.name || 'Restaurante'),
     description: String(restaurant.description || ''),
     category: '',

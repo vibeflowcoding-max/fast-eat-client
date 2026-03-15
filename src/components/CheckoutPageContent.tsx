@@ -313,6 +313,15 @@ export default function CheckoutPageContent() {
 
   const handleUseDifferentOrderLocation = React.useCallback(() => {
     setLocationServicePrompt(null);
+    setCheckoutDraft((previous) => ({
+      ...previous,
+      locationOverriddenFromProfile: true,
+      locationDifferenceAcknowledged: false,
+    }));
+  }, [setCheckoutDraft]);
+
+  const openOrderLocationEditor = React.useCallback(() => {
+    setLocationServicePrompt(null);
 
     const openContext = resolveOrderLocationOpenContext({
       hasProfileLocation: Boolean(profileLocation?.googleMapsUrl),
@@ -367,6 +376,42 @@ export default function CheckoutPageContent() {
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   }, [orderMetadata.customerLatitude, orderMetadata.customerLongitude, profileLocation, setCheckoutDraft, tPage]);
+
+  const handleInlineOrderLocationChange = React.useCallback((value: {
+    urlAddress: string;
+    lat?: number;
+    lng?: number;
+    formattedAddress?: string;
+  }) => {
+    const nextGps = String(value.urlAddress || '').trim();
+    const nextAddress = String(value.formattedAddress || value.urlAddress || '').trim();
+    const selectedPosition =
+      typeof value.lat === 'number' && typeof value.lng === 'number'
+        ? { lat: value.lat, lng: value.lng }
+        : null;
+
+    const equivalentToProfile = profileLocation
+      ? areLocationsEquivalent({
+        aUrl: nextGps || nextAddress,
+        aLat: selectedPosition?.lat,
+        aLng: selectedPosition?.lng,
+        bUrl: profileLocation.googleMapsUrl || profileLocation.raw,
+        bLat: profileLocation.lat,
+        bLng: profileLocation.lng,
+      })
+      : false;
+
+    setCheckoutDraft((previous) => ({
+      ...previous,
+      address: nextAddress,
+      gpsLocation: nextGps,
+      customerLatitude: selectedPosition?.lat ?? previous.customerLatitude,
+      customerLongitude: selectedPosition?.lng ?? previous.customerLongitude,
+      source: 'client',
+      locationOverriddenFromProfile: profileLocation ? !equivalentToProfile : false,
+      locationDifferenceAcknowledged: profileLocation && !equivalentToProfile ? false : previous.locationDifferenceAcknowledged,
+    }));
+  }, [profileLocation, setCheckoutDraft]);
 
   const handleSaveOrderLocation = React.useCallback(async (value: {
     urlAddress: string;
@@ -621,7 +666,8 @@ export default function CheckoutPageContent() {
               isUsingDifferentDeliveryLocation={Boolean(orderMetadata.locationOverriddenFromProfile)}
               onUseSavedProfileLocation={applyProfileLocationToOrder}
               onUseDifferentLocation={handleUseDifferentOrderLocation}
-              onOpenLocationPicker={handleUseDifferentOrderLocation}
+              onOpenLocationPicker={openOrderLocationEditor}
+              onInlineLocationChange={handleInlineOrderLocationChange}
               locationPickerLoading={isResolvingOrderLocation}
               locationServicePrompt={locationServicePrompt}
               isAutoSavingProfileLocation={isAutoSavingProfileLocation}

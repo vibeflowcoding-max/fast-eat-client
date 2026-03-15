@@ -37,7 +37,7 @@
 ## Verification Rule (Mandatory)
 
 - Whenever you implement a new API endpoint, or any new/updated visual UI component (buttons, views, forms, fields, banners, cards, modals, or similar), you must verify behavior after implementation.
-- For visual/UI work, validate with `chrome-devtools-mcp` that the component renders and behaves according to what was defined during planning.
+- For visual/UI work, validate with `chrome-devtools-mcp` that the component renders and behaves according to what was defined during planning. If you need to to login to the app for the test, ask the user for testing credentials so you can continue.
 - For endpoint work, use Supabase MCP tools to confirm either:
 	- The endpoint writes/reads the expected data in the database, or
 	- The database already contains enough realistic data to test the endpoint flow.

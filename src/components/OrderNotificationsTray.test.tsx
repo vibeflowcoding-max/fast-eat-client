@@ -6,7 +6,21 @@ import { useCartStore } from '@/store';
 const pushMock = vi.fn();
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: () => (key: string, values?: Record<string, string>) => {
+    if (key === 'offerTitle') {
+      return 'Oferta de entrega recibida';
+    }
+
+    if (key === 'offerBody') {
+      return `Tienes una oferta de entrega por ₡${values?.amount} para la orden ${values?.orderId}.`;
+    }
+
+    if (key === 'time.now') {
+      return 'Ahora';
+    }
+
+    return key;
+  },
 }));
 
 vi.mock('@/hooks/useAppRouter', () => ({
@@ -17,6 +31,15 @@ describe('OrderNotificationsTray', () => {
   beforeEach(() => {
     pushMock.mockReset();
     useCartStore.setState({
+      activeOrders: {
+        'order-1': {
+          orderId: 'order-1',
+          orderNumber: 'ORDER_120',
+          previousStatus: { code: 'PENDING', label: 'Pending' },
+          newStatus: { code: 'AUCTION_ACTIVE', label: 'Auction active' },
+          updatedAt: '2026-01-01T10:00:00.000Z',
+        },
+      },
       bidNotifications: [
         {
           id: 'bid-1',
@@ -46,13 +69,20 @@ describe('OrderNotificationsTray', () => {
 
     render(<OrderNotificationsTray onOpenTracking={onOpenTracking} />);
 
-    await user.click(screen.getByRole('button', { name: 'offerTitle' }));
+    await user.click(screen.getByRole('button', { name: 'Oferta de entrega recibida' }));
 
     expect(onOpenTracking).toHaveBeenCalledTimes(1);
 
     const state = useCartStore.getState();
     expect(state.bidNotifications[0].read).toBe(true);
     expect(state.deepLinkTarget).toEqual({ orderId: 'order-1', bidId: 'bid-1' });
+  });
+
+  it('renders the order number instead of the raw order id', () => {
+    render(<OrderNotificationsTray onOpenTracking={vi.fn()} />);
+
+    expect(screen.getByText(/ORDER_120/)).toBeInTheDocument();
+    expect(screen.queryByText(/para la orden order-1\./i)).not.toBeInTheDocument();
   });
 
   it('opens the full notifications page from the tray footer', async () => {

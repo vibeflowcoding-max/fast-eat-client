@@ -1,6 +1,40 @@
 import { randomUUID } from 'crypto';
 import { getSupabaseServer } from '@/lib/supabase-server';
 
+type OrderPaymentMethodCode = 'CASH' | 'CARD' | 'SINPE' | 'TRANSFER';
+
+function normalizeOrderPaymentMethod(paymentMethod?: string | null): OrderPaymentMethodCode {
+  const normalized = String(paymentMethod || 'CASH').trim().toUpperCase();
+
+  if (normalized === 'CARD' || normalized === 'SINPE' || normalized === 'TRANSFER') {
+    return normalized;
+  }
+
+  return 'CASH';
+}
+
+async function resolvePaymentMethodId(admin: any, paymentMethodCode?: OrderPaymentMethodCode | null): Promise<number | null> {
+  if (!paymentMethodCode) {
+    return null;
+  }
+
+  const { data, error } = await admin
+    .from('payment_methods')
+    .select('id, code')
+    .eq('code', paymentMethodCode)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message || `Could not resolve payment method ${paymentMethodCode}`);
+  }
+
+  if (!data?.id) {
+    throw new Error(`Payment method ${paymentMethodCode} is not configured`);
+  }
+
+  return Number(data.id);
+}
+
 function isPricePeriodActive(periodRaw: unknown, referenceDate: Date = new Date()): boolean {
   if (typeof periodRaw !== 'string' || periodRaw.length < 2) {
     return true;
@@ -232,6 +266,7 @@ export async function createConsumerOrderLocal(orderData: {
   restaurant_id: string;
   customer_name: string;
   customer_phone: string;
+  paymentMethod?: string;
   delivery_address?: string | null;
   items: Array<{ item_id: string; variant_id?: string; quantity: number; notes?: string; modifiers?: Array<{ modifier_item_id: string; quantity?: number }> }>;
   total_amount: number;
@@ -409,6 +444,10 @@ export async function createConsumerOrderLocal(orderData: {
   }
 
   const source = orderData.source || 'client';
+  const normalizedPaymentMethod = normalizeOrderPaymentMethod(orderData.paymentMethod);
+  const resolvedPaymentMethodId = orderData.paymentMethod
+    ? await resolvePaymentMethodId(admin, normalizedPaymentMethod)
+    : null;
   const metadata = orderData.metadata || {};
   const scheduledForRaw = orderData.scheduledFor || metadata.scheduledFor;
   const optOutCutlery = Boolean(orderData.optOutCutlery ?? metadata.optOutCutlery ?? false);
@@ -429,7 +468,8 @@ export async function createConsumerOrderLocal(orderData: {
     restaurant_id: orderData.restaurant_id,
     customer_id: customerRecord.id,
     status_id: pendingStatus.id,
-    payment_method: 'CASH',
+    payment_method: normalizedPaymentMethod,
+    payment_method_id: resolvedPaymentMethodId,
     delivery_address: orderData.delivery_address || null,
     customer_latitude: Number.isFinite(orderData.customerLatitude) ? Number(orderData.customerLatitude) : null,
     customer_longitude: Number.isFinite(orderData.customerLongitude) ? Number(orderData.customerLongitude) : null,
@@ -454,7 +494,7 @@ export async function createConsumerOrderLocal(orderData: {
   const { data: order, error } = await admin
     .from('orders')
     .insert(orderPayload)
-    .select('id, status_id, source, delivery_enabled, delivery_distance_km, delivery_base_price, prep_time_estimate')
+    .select('id, order_number, status_id, source, delivery_enabled, delivery_distance_km, delivery_base_price, prep_time_estimate, workflow_code')
     .single();
 
   if (error) {
@@ -488,6 +528,8 @@ export async function createConsumerOrderLocal(orderData: {
 
   return {
     ...order,
+    orderNumber: order.order_number,
+    workflowCode: order.workflow_code,
     deliveryEnabled: order.delivery_enabled,
     deliveryDistanceKm: order.delivery_distance_km,
     deliveryBasePrice: order.delivery_base_price,

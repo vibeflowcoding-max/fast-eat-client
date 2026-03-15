@@ -8,6 +8,7 @@ export const DEFAULT_ORDER_METADATA: OrderMetadata = {
   source: 'client',
   address: '',
   gpsLocation: '',
+  deliveryNotes: '',
   locationOverriddenFromProfile: false,
   locationDifferenceAcknowledged: false,
 };

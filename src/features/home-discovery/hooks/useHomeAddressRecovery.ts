@@ -104,7 +104,7 @@ export function useHomeAddressRecovery({
   }, [customerAddress, isAuthenticated, setCustomerAddress]);
 
   const handleOpenProfileCompletion = useCallback(() => {
-    router.push('/profile');
+    router.push('/onboarding/profile');
     emitHomeEvent({ name: 'profile_prompt_click' });
   }, [router]);
 

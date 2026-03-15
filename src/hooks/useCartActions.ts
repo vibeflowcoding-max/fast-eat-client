@@ -214,14 +214,17 @@ export const useCartActions = () => {
         orderResult?.data?.order?.customerId ||
         nestedOrder?.customer_id ||
         nestedOrder?.customerId;
-      const orderNumber =
+      const rawOrderNumber =
         orderResult?.order_number ||
         orderResult?.orderNumber ||
         orderResult?.data?.order_number ||
         orderResult?.data?.orderNumber ||
         nestedOrder?.order_number ||
         nestedOrder?.orderNumber ||
-        `ORD-${Date.now().toString().slice(-4)}`;
+        null;
+      const orderNumber = typeof rawOrderNumber === 'string' && rawOrderNumber.trim() && rawOrderNumber !== '0'
+        ? rawOrderNumber
+        : 'PENDING';
       const resolvedCustomerTotal =
         orderResult?.customer_total ||
         orderResult?.customerTotal ||

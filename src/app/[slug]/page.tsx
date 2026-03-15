@@ -55,7 +55,7 @@ export default async function BranchPage({ params }: { params: Promise<{ slug: s
                 .from('restaurants')
                 .select(`
                     id,
-                    branches (
+                    branches!branches_restaurant_id_fkey (
                         id,
                         is_active,
                         is_main
