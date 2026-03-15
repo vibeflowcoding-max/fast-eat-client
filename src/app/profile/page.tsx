@@ -37,7 +37,7 @@ function initials(fullName: string | null | undefined) {
   return parts.slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('') || 'U';
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const router = useAppRouter();
   const searchParams = useSearchParams();
   const {
@@ -640,5 +640,13 @@ export default function ProfilePage() {
         onClose={() => setIsDietaryModalOpen(false)}
       />
     </AppShell>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <React.Suspense>
+      <ProfilePageContent />
+    </React.Suspense>
   );
 }

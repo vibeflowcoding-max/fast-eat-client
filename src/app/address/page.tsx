@@ -61,7 +61,7 @@ function normalizeStoredAddress(payload: any): StoredAddress {
   };
 }
 
-export default function AddressPage() {
+function AddressPageContent() {
   const router = useAppRouter();
   const searchParams = useSearchParams();
   const pageT = useTranslations('addressPage');
@@ -361,5 +361,13 @@ export default function AddressPage() {
         </Surface>
       </div>
     </AppShell>
+  );
+}
+
+export default function AddressPage() {
+  return (
+    <React.Suspense>
+      <AddressPageContent />
+    </React.Suspense>
   );
 }
