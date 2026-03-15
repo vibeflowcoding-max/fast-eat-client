@@ -118,15 +118,6 @@ function toNumber(value: unknown): number | null {
     return null;
 }
 
-function average(values: Array<number | null | undefined>) {
-    const normalized = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-    if (normalized.length === 0) {
-        return null;
-    }
-
-    return normalized.reduce((sum, value) => sum + value, 0) / normalized.length;
-}
-
 function isDealActiveNow(deal: Pick<DealRow, 'starts_at' | 'ends_at'>) {
     const now = Date.now();
     const startsAt = deal.starts_at ? Date.parse(deal.starts_at) : null;
@@ -558,17 +549,59 @@ export async function getRestaurantRows() {
             };
         });
 
-        const rating = restaurant.rating ?? average(branches.map((branch) => toNumber(branch.rating)));
-        const reviewCount = restaurant.review_count ?? branches
-            .map((branch) => toNumber(branch.review_count))
-            .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
-            .reduce((sum, value) => sum + value, 0);
-        const etaMinAvg = restaurant.eta_min ?? average(branches.map((branch) => toNumber(branch.eta_min)));
-        const avgPriceEstimate = restaurant.avg_price_estimate ?? average(branches.map((branch) => toNumber(branch.avg_price_estimate)));
-        const estimatedDeliveryFee = average(branches.map((branch) => toNumber(branch.estimated_delivery_fee)))
+        let sumRating = 0;
+        let countRating = 0;
+        let sumReviewCount = 0;
+        let sumEta = 0;
+        let countEta = 0;
+        let sumPrice = 0;
+        let countPrice = 0;
+        let sumFee = 0;
+        let countFee = 0;
+        let firstPromoBranch: typeof branches[0] | undefined;
+
+        for (const branch of branches) {
+            const bRating = toNumber(branch.rating);
+            if (bRating !== null) {
+                sumRating += bRating;
+                countRating++;
+            }
+
+            const bReviewCount = toNumber(branch.review_count);
+            if (bReviewCount !== null) {
+                sumReviewCount += bReviewCount;
+            }
+
+            const bEta = toNumber(branch.eta_min);
+            if (bEta !== null) {
+                sumEta += bEta;
+                countEta++;
+            }
+
+            const bPrice = toNumber(branch.avg_price_estimate);
+            if (bPrice !== null) {
+                sumPrice += bPrice;
+                countPrice++;
+            }
+
+            const bFee = toNumber(branch.estimated_delivery_fee);
+            if (bFee !== null) {
+                sumFee += bFee;
+                countFee++;
+            }
+
+            if (!firstPromoBranch && Boolean(branch.promo_text)) {
+                firstPromoBranch = branch;
+            }
+        }
+
+        const rating = restaurant.rating ?? (countRating > 0 ? sumRating / countRating : null);
+        const reviewCount = restaurant.review_count ?? sumReviewCount;
+        const etaMinAvg = restaurant.eta_min ?? (countEta > 0 ? sumEta / countEta : null);
+        const avgPriceEstimate = restaurant.avg_price_estimate ?? (countPrice > 0 ? sumPrice / countPrice : null);
+        const estimatedDeliveryFee = (countFee > 0 ? sumFee / countFee : null)
             ?? toNumber(restaurant.estimated_delivery_fee);
 
-        const firstPromoBranch = branches.find((branch) => Boolean(branch.promo_text));
         const promoDeal = firstPromoBranch ? dealsByBranch.get(firstPromoBranch.id) : undefined;
 
         return {
