@@ -37,7 +37,28 @@ function initials(fullName: string | null | undefined) {
   return parts.slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('') || 'U';
 }
 
-export default function ProfilePage() {
+function ProfilePageFallback() {
+  return (
+    <AppShell
+      chromeInset="bottom-nav"
+      footer={<BottomNav />}
+      header={<SectionHeader eyebrow="Profile" title="Loading profile" description="Preparing your account details" />}
+    >
+      <div className="space-y-5 pt-5">
+        <Surface className="rounded-[2rem]" variant="base" padding="lg">
+          <div className="space-y-3">
+            <div className="h-6 w-40 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+            <div className="h-24 w-full animate-pulse rounded-[1.5rem] bg-slate-200 dark:bg-slate-800" />
+            <div className="h-12 w-full animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+            <div className="h-12 w-full animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+          </div>
+        </Surface>
+      </div>
+    </AppShell>
+  );
+}
+
+function ProfilePageContent() {
   const router = useAppRouter();
   const searchParams = useSearchParams();
   const {
@@ -640,5 +661,13 @@ export default function ProfilePage() {
         onClose={() => setIsDietaryModalOpen(false)}
       />
     </AppShell>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <React.Suspense fallback={<ProfilePageFallback />}>
+      <ProfilePageContent />
+    </React.Suspense>
   );
 }

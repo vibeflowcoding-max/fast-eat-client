@@ -61,7 +61,28 @@ function normalizeStoredAddress(payload: any): StoredAddress {
   };
 }
 
-export default function AddressPage() {
+function AddressPageFallback() {
+  return (
+    <AppShell
+      chromeInset="bottom-nav"
+      footer={<BottomNav />}
+      header={<StickyHeaderBar title="Address" subtitle="Loading address details" />}
+    >
+      <div className="space-y-5 pt-5">
+        <Surface className="rounded-[2rem]" variant="base" padding="lg">
+          <div className="space-y-3">
+            <div className="h-6 w-40 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+            <div className="h-56 w-full animate-pulse rounded-[1.5rem] bg-slate-200 dark:bg-slate-800" />
+            <div className="h-12 w-full animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+            <div className="h-12 w-full animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+          </div>
+        </Surface>
+      </div>
+    </AppShell>
+  );
+}
+
+function AddressPageContent() {
   const router = useAppRouter();
   const searchParams = useSearchParams();
   const pageT = useTranslations('addressPage');
@@ -361,5 +382,13 @@ export default function AddressPage() {
         </Surface>
       </div>
     </AppShell>
+  );
+}
+
+export default function AddressPage() {
+  return (
+    <React.Suspense fallback={<AddressPageFallback />}>
+      <AddressPageContent />
+    </React.Suspense>
   );
 }
