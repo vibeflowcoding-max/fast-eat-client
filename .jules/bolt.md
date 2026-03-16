@@ -4,3 +4,7 @@
 ## 2024-05-18 - Pre-compute Sets for large loop structures
 **Learning:** In V8 and JavaScript engines, computing a regex string replacement and allocating a new `Set` on every cycle of an O(N*M) loop (like querying a multi-column dataset returned from Supabase limit queries) causes significant micro-performance degradation. Reusing the input object reference drops execution time effectively in half.
 **Action:** Always hoist invariant string normalization and object allocations (Sets, Maps) outside of `.find()`, `.map()`, or `.filter()` block chains when matching against multiple columns of raw backend data arrays.
+
+## 2024-03-16 - [Optimize multi-metric calculations from array loops]
+**Learning:** Chaining array methods like `.map().filter().reduce()` for multiple independent derived metrics (rating, review count, eta, price, etc) over the same source array causes extensive redundant iterations and intermediate array allocations. In hot paths like API response formatting (`api/discovery`, `api/restaurants`), this drastically increases O(N) overhead and garbage collection pressure.
+**Action:** Always combine the calculation of multiple derived metrics into a single-pass `for...of` loop when extracting data from arrays like `branches`, reducing O(N*M) passes and allocations to a single O(N) iteration.

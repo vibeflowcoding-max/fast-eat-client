@@ -101,15 +101,6 @@ function toNumber(value: unknown): number | null {
     return null;
 }
 
-function average(values: Array<number | null | undefined>): number | null {
-    const normalized = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-    if (normalized.length === 0) {
-        return null;
-    }
-
-    return normalized.reduce((sum, value) => sum + value, 0) / normalized.length;
-}
-
 function isDealActiveNow(deal: Pick<DealRow, 'starts_at' | 'ends_at'>): boolean {
     const now = Date.now();
     const startsAt = deal.starts_at ? Date.parse(deal.starts_at) : null;
@@ -295,26 +286,45 @@ export async function GET(request: NextRequest) {
                 };
             });
 
-            const branchRatings = branchesWithDerivedMetrics
-                .map((branch) => toNumber(branch.rating))
-                .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-            const branchReviewCounts = branchesWithDerivedMetrics
-                .map((branch) => toNumber(branch.review_count))
-                .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-            const branchEta = branchesWithDerivedMetrics.map((branch) => toNumber(branch.eta_min));
-            const branchAvgPrice = branchesWithDerivedMetrics.map((branch) => toNumber(branch.avg_price_estimate));
-            const branchFees = branchesWithDerivedMetrics.map((branch) => toNumber(branch.estimated_delivery_fee));
+            // ⚡ Bolt: Single-pass loop optimization.
+            // Eliminated multiple redundant .map() and .filter() array allocations.
+            // We now gather sums and counts for rating, review count, eta, price, fee, and promos
+            // in one pass over branchesWithDerivedMetrics.
+            let branchRatingSum = 0, branchRatingCount = 0;
+            let branchReviewCountSum = 0;
+            let branchEtaSum = 0, branchEtaCount = 0;
+            let branchAvgPriceSum = 0, branchAvgPriceCount = 0;
+            let branchFeeSum = 0, branchFeeCount = 0;
+            let derivedPromo: string | null = null;
 
-            const derivedRating = branchRatings.length > 0 ? Number(average(branchRatings)?.toFixed(2)) : null;
-            const derivedReviewCount = branchReviewCounts.reduce((sum, value) => sum + value, 0);
+            for (const branch of branchesWithDerivedMetrics) {
+                const bRating = toNumber(branch.rating);
+                if (bRating !== null && Number.isFinite(bRating)) { branchRatingSum += bRating; branchRatingCount++; }
+
+                const bReview = toNumber(branch.review_count);
+                if (bReview !== null && Number.isFinite(bReview)) { branchReviewCountSum += bReview; }
+
+                const bEta = toNumber(branch.eta_min);
+                if (bEta !== null && Number.isFinite(bEta)) { branchEtaSum += bEta; branchEtaCount++; }
+
+                const bPrice = toNumber(branch.avg_price_estimate);
+                if (bPrice !== null && Number.isFinite(bPrice)) { branchAvgPriceSum += bPrice; branchAvgPriceCount++; }
+
+                const bFee = toNumber(branch.estimated_delivery_fee);
+                if (bFee !== null && Number.isFinite(bFee)) { branchFeeSum += bFee; branchFeeCount++; }
+
+                if (!derivedPromo && branch.promo_text) { derivedPromo = branch.promo_text; }
+            }
+
+            const derivedRating = branchRatingCount > 0 ? Number((branchRatingSum / branchRatingCount).toFixed(2)) : null;
+            const derivedReviewCount = branchReviewCountSum;
             const restaurantRating = toNumber(restaurant.rating);
             const restaurantReviewCount = toNumber(restaurant.review_count);
             const resolvedRating = derivedRating ?? restaurantRating;
             const resolvedReviewCount = derivedReviewCount > 0 ? derivedReviewCount : (restaurantReviewCount ?? 0);
-            const derivedEta = average(branchEta);
-            const derivedAvgPrice = average(branchAvgPrice);
-            const derivedFee = average(branchFees);
-            const derivedPromo = branchesWithDerivedMetrics.find((branch) => branch.promo_text)?.promo_text ?? null;
+            const derivedEta = branchEtaCount > 0 ? branchEtaSum / branchEtaCount : null;
+            const derivedAvgPrice = branchAvgPriceCount > 0 ? branchAvgPriceSum / branchAvgPriceCount : null;
+            const derivedFee = branchFeeCount > 0 ? branchFeeSum / branchFeeCount : null;
 
             return {
                 id: restaurant.id,
