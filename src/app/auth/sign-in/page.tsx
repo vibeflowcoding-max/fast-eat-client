@@ -1,8 +1,9 @@
 "use client";
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { FormEvent, Suspense, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { FormEvent, Suspense, useState } from 'react';
+import { buildAuthCallbackUrl, DEFAULT_POST_AUTH_PATH } from '@/lib/auth-redirect';
 import { supabase } from '@/lib/supabase';
 import { AuthShell, FieldMessage, Icon, SocialAuthButton, TextField, Button } from '@/../resources/components';
 import { useTranslations } from 'next-intl';
@@ -13,11 +14,6 @@ function SignInPageContent() {
   const router = useRouter();
   const t = useTranslations('auth.signIn');
   const tCommon = useTranslations('auth.common');
-  const searchParams = useSearchParams();
-  const nextPath = useMemo(() => {
-    const value = searchParams.get('next') || '/';
-    return value.startsWith('/') ? value : '/';
-  }, [searchParams]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,7 +48,7 @@ function SignInPageContent() {
         throw sessionError;
       }
 
-      router.replace(nextPath);
+      router.replace(DEFAULT_POST_AUTH_PATH);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('genericError'));
     } finally {
@@ -68,7 +64,7 @@ function SignInPageContent() {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+          redirectTo: buildAuthCallbackUrl(window.location.origin),
         },
       });
 

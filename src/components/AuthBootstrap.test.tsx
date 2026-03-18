@@ -96,11 +96,11 @@ describe('AuthBootstrap', () => {
     });
   });
 
-  it('redirects authenticated auth-route sessions to the requested next path', async () => {
+  it('redirects authenticated auth-route sessions to Home', async () => {
     render(<AuthBootstrap />);
 
     await waitFor(() => {
-      expect(replace).toHaveBeenCalledWith('/checkout');
+      expect(replace).toHaveBeenCalledWith('/');
     });
 
     expect(storeState.setAuthSession).toHaveBeenCalledWith({
@@ -125,6 +125,21 @@ describe('AuthBootstrap', () => {
 
     await waitFor(() => {
       expect(getSession).toHaveBeenCalledTimes(initialCallCount);
+    });
+  });
+
+  it('sends unauthenticated protected routes to sign-in without preserving next', async () => {
+    getSession.mockResolvedValueOnce({
+      data: {
+        session: null,
+      },
+    });
+    mockPathname = '/carts';
+
+    render(<AuthBootstrap />);
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith('/auth/sign-in');
     });
   });
 });

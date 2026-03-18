@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { resolvePostAuthRedirect } from '@/lib/auth-redirect';
 import { supabase } from '@/lib/supabase';
 import { isPublicAnonymousPath } from '@/lib/public-routes';
 import { fetchClientBootstrap } from '@/services/api';
@@ -11,15 +12,6 @@ import { extractGoogleMapsUrl, parseCoordsFromGoogleMapsUrl } from '@/lib/locati
 import type { ReadonlyURLSearchParams } from 'next/navigation';
 
 const AUTH_ROUTES = new Set(['/auth/sign-in', '/auth/sign-up', '/auth/callback']);
-
-function resolvePostAuthRedirect(pathname: string, searchParams: URLSearchParams | ReadonlyURLSearchParams | null) {
-  if (!AUTH_ROUTES.has(pathname)) {
-    return null;
-  }
-
-  const nextValue = searchParams?.get('next') || '/';
-  return nextValue.startsWith('/') ? nextValue : '/';
-}
 
 export default function AuthBootstrap() {
   const router = useRouter();
@@ -117,15 +109,14 @@ export default function AuthBootstrap() {
       const currentPathname = pathnameRef.current;
 
       if (!AUTH_ROUTES.has(currentPathname) && !isPublicAnonymousPath(currentPathname)) {
-        const nextParam = encodeURIComponent(currentPathname || '/');
-        replaceRef.current(`/auth/sign-in?next=${nextParam}`);
+        replaceRef.current('/auth/sign-in');
       }
     }
 
     async function initialize() {
       const { data } = await supabase.auth.getSession();
       const session = data.session;
-      const redirectPath = resolvePostAuthRedirect(pathnameRef.current, searchParamsRef.current);
+      const redirectPath = resolvePostAuthRedirect(pathnameRef.current);
 
       if (!isMounted) {
         return;
@@ -222,7 +213,7 @@ export default function AuthBootstrap() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const redirectPath = resolvePostAuthRedirect(pathnameRef.current, searchParamsRef.current);
+      const redirectPath = resolvePostAuthRedirect(pathnameRef.current);
 
       if (!isMounted) {
         return;
@@ -247,8 +238,7 @@ export default function AuthBootstrap() {
         const currentPathname = pathnameRef.current;
 
         if (!AUTH_ROUTES.has(currentPathname) && !isPublicAnonymousPath(currentPathname)) {
-          const nextParam = encodeURIComponent(currentPathname || '/');
-          replaceRef.current(`/auth/sign-in?next=${nextParam}`);
+          replaceRef.current('/auth/sign-in');
         }
       }
     });
