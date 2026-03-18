@@ -16,7 +16,10 @@ interface OrderTrackingModalProps {
 
 const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchId, phone, customerId, onClose }) => {
     const t = useTranslations('tracking');
-    const { orders, isConnected } = useOrderTracking(branchId, phone, customerId);
+    const trackingBranchId = isOpen ? branchId : '';
+    const trackingPhone = isOpen ? phone : '';
+    const trackingCustomerId = isOpen ? customerId : undefined;
+    const { orders, isConnected } = useOrderTracking(trackingBranchId, trackingPhone, trackingCustomerId);
     const bidsByOrderId = useCartStore((state) => state.bidsByOrderId);
     const deepLinkTarget = useCartStore((state) => state.deepLinkTarget);
     const setDeepLinkTarget = useCartStore((state) => state.setDeepLinkTarget);

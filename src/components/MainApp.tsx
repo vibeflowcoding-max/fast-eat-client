@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { MenuItem, OrderMetadata, SelectedModifier } from '@/types';
 import { mapsApi } from '@/services/maps-api';
 import MenuItemCard from '@/components/MenuItemCard';
+import ComboOfferCard from '@/components/ComboOfferCard';
 import { useCartStore } from '@/store';
 import { CartAction } from '@/services/api';
 import { normalizePhoneWithSinglePlus } from '@/lib/phone';
@@ -103,6 +104,7 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     const {
         menuItems,
         categories,
+        combos,
         loading,
         activeCategory,
         setActiveCategory,
@@ -188,6 +190,27 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         [addToCart, orderMetadata]
     );
 
+    const handleAddComboToCart = useCallback(async (combo: import('@/types').OfferCombo, nextQuantity: number) => {
+        const comboCartItem: import('@/types').CartItem = {
+            id: `combo:${combo.id}`,
+            comboId: combo.id,
+            comboTitle: combo.title,
+            sourceType: 'combo',
+            name: combo.title,
+            description: combo.description || combo.items.map((item) => item.name).join(', '),
+            price: combo.comboPrice,
+            basePrice: combo.basePrice,
+            savingsAmount: combo.savingsAmount,
+            category: 'Combos',
+            image: combo.image || combo.items[0]?.image || '',
+            quantity: nextQuantity,
+            notes: '',
+            comboItems: combo.items,
+        };
+
+        return addToCart(comboCartItem, orderMetadata);
+    }, [addToCart, orderMetadata]);
+
     const profileLocation = useMemo(() => {
         const canonicalUrl = extractGoogleMapsUrl(customerAddress?.urlAddress)
             || extractGoogleMapsUrl(customerAddress?.formattedAddress)
@@ -238,6 +261,23 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
     }, []);
 
     const router = useRouter();
+        const filteredCombos = useMemo(() => {
+            const normalizedQuery = searchQuery.trim().toLowerCase();
+            if (!normalizedQuery) {
+                return combos;
+            }
+
+            return combos.filter((combo) => {
+                const searchHaystack = [
+                    combo.title,
+                    combo.description || '',
+                    ...combo.items.map((item) => item.name),
+                ].join(' ').toLowerCase();
+
+                return searchHaystack.includes(normalizedQuery);
+            });
+        }, [combos, searchQuery]);
+
     const searchParams = useSearchParams();
     const pathname = usePathname();
 
@@ -1146,28 +1186,16 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                             </button>
                         </div>
                     ) : searchQuery.trim() ? (
-                        filteredItems.map(item => (
-                            <MenuItemCard
-                                key={item.id}
-                                item={item}
-                                onAddToCart={handleAddToCart}
-                                currentQuantity={itemQuantities[item.id] || 0}
-                                isHighlighted={highlightedItemId === String(item.id)}
-                                onOpenDetails={handleOpenItemModal}
-                            />
-                        ))
-                    ) : (
-                        categorySections.flatMap((section) => [
-                            <div
-                                key={`heading-${section.category}`}
-                                ref={(element) => {
-                                    categorySectionRefs.current[section.category] = element;
-                                }}
-                                className="col-span-full pt-2"
-                            >
-                                <h2 className="text-lg md:text-xl font-black">{section.category}</h2>
-                            </div>,
-                            ...section.items.map((item) => (
+                        [
+                            ...filteredCombos.map((combo) => (
+                                <ComboOfferCard
+                                    key={`combo-${combo.id}`}
+                                    combo={combo}
+                                    currentQuantity={itemQuantities[`combo:${combo.id}`] || 0}
+                                    onAddCombo={handleAddComboToCart}
+                                />
+                            )),
+                            ...filteredItems.map(item => (
                                 <MenuItemCard
                                     key={item.id}
                                     item={item}
@@ -1176,8 +1204,45 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
                                     isHighlighted={highlightedItemId === String(item.id)}
                                     onOpenDetails={handleOpenItemModal}
                                 />
-                            ))
-                        ])
+                            )),
+                        ]
+                    ) : (
+                        [
+                            ...(combos.length > 0 ? [
+                                <div key="heading-combos" className="col-span-full pt-2">
+                                    <h2 className="text-lg md:text-xl font-black">Combos</h2>
+                                </div>,
+                                ...combos.map((combo) => (
+                                    <ComboOfferCard
+                                        key={`combo-${combo.id}`}
+                                        combo={combo}
+                                        currentQuantity={itemQuantities[`combo:${combo.id}`] || 0}
+                                        onAddCombo={handleAddComboToCart}
+                                    />
+                                )),
+                            ] : []),
+                            ...categorySections.flatMap((section) => [
+                                <div
+                                    key={`heading-${section.category}`}
+                                    ref={(element) => {
+                                        categorySectionRefs.current[section.category] = element;
+                                    }}
+                                    className="col-span-full pt-2"
+                                >
+                                    <h2 className="text-lg md:text-xl font-black">{section.category}</h2>
+                                </div>,
+                                ...section.items.map((item) => (
+                                    <MenuItemCard
+                                        key={item.id}
+                                        item={item}
+                                        onAddToCart={handleAddToCart}
+                                        currentQuantity={itemQuantities[item.id] || 0}
+                                        isHighlighted={highlightedItemId === String(item.id)}
+                                        onOpenDetails={handleOpenItemModal}
+                                    />
+                                ))
+                            ])
+                        ]
                     )}
                 </div>
             </main>

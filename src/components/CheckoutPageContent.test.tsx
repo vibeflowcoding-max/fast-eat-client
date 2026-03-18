@@ -16,6 +16,19 @@ const mockState = {
     gpsLocation: 'https://maps.google.com/?q=1,1',
     locationOverriddenFromProfile: false,
     locationDifferenceAcknowledged: false,
+    promoCode: 'LUNCH10',
+    appliedDiscount: {
+      sourceType: 'deal',
+      dealId: 'deal-1',
+      comboId: null,
+      title: 'Lunch 10%',
+      discountType: 'percentage',
+      discountValue: 10,
+      discountAmount: 500,
+      subtotal: 5000,
+      promoCode: 'LUNCH10',
+      applicationMode: 'code',
+    },
   },
   customerAddress: null,
   customerName: 'Test User',
@@ -60,6 +73,9 @@ vi.mock('@/services/api', () => ({
     tableQuantity: 0,
     isTableAvailable: false,
   })),
+  fetchOrderOfferPreview: vi.fn(async () => ({
+    appliedDiscount: mockState.checkoutDraft.appliedDiscount,
+  })),
 }));
 
 vi.mock('@/components/AddressDetailsModal', () => ({
@@ -92,6 +108,19 @@ describe('CheckoutPageContent', () => {
     mockState.branchId = 'branch-1';
     mockState.groupParticipants = [];
     mockState.groupSessionId = null;
+    mockState.checkoutDraft.promoCode = 'LUNCH10';
+    mockState.checkoutDraft.appliedDiscount = {
+      sourceType: 'deal',
+      dealId: 'deal-1',
+      comboId: null,
+      title: 'Lunch 10%',
+      discountType: 'percentage',
+      discountValue: 10,
+      discountAmount: 500,
+      subtotal: 5000,
+      promoCode: 'LUNCH10',
+      applicationMode: 'code',
+    };
   });
 
   it('renders empty state when there are no checkout items', async () => {
@@ -124,6 +153,16 @@ describe('CheckoutPageContent', () => {
 
     expect(await screen.findByRole('button', { name: 'Dividir cuenta' })).toBeInTheDocument();
     expect(await screen.findByText('order-form')).toBeInTheDocument();
+  });
+
+  it('renders promo controls and discount summary for populated carts', async () => {
+    mockState.items = [{ id: '1', name: 'Burger', description: '', image: '', price: 5000, category: 'Food', quantity: 1, notes: '' }];
+
+    render(<CheckoutPageContent />);
+
+    expect(await screen.findByDisplayValue('LUNCH10')).toBeInTheDocument();
+    expect(await screen.findByText('Descuento Lunch 10%')).toBeInTheDocument();
+    expect(await screen.findByText('-₡500')).toBeInTheDocument();
   });
 
   it('shows recovery actions when checkout has no branch context', async () => {

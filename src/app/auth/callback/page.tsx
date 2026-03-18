@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthShell, FieldMessage, Icon, Surface } from '@/../resources/components';
+import { DEFAULT_POST_AUTH_PATH } from '@/lib/auth-redirect';
 import { supabase } from '@/lib/supabase';
 import { useTranslations } from 'next-intl';
 
@@ -22,8 +23,6 @@ function AuthCallbackContent() {
     async function resolveCallback() {
       try {
         const code = searchParams.get('code');
-        const nextValue = searchParams.get('next') || '/';
-        const nextPath = nextValue.startsWith('/') ? nextValue : '/';
 
         if (!code) {
           throw new Error(t('missingCode'));
@@ -48,7 +47,7 @@ function AuthCallbackContent() {
         }
 
         if (!cancelled) {
-          router.replace(nextPath);
+          router.replace(DEFAULT_POST_AUTH_PATH);
         }
       } catch (err) {
         if (!cancelled) {

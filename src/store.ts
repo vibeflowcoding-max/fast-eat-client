@@ -472,14 +472,37 @@ export const useCartStore = create<CartState>()(
     {
       name: 'fasteat-storage',
       partialize: (state) => ({
+        items: state.items,
+        branchId: state.branchId,
+        fromNumber: state.fromNumber,
+        customerId: state.customerId,
+        customerName: state.customerName,
+        isOnboarded: state.isOnboarded,
+        customerAddress: state.customerAddress,
+        dietaryProfile: state.dietaryProfile,
+        restaurantInfo: state.restaurantInfo,
+        checkoutDraft: state.checkoutDraft,
         locale: state.locale,
         shareActivity: state.shareActivity,
       }),
-      version: 2,
+      version: 3,
       migrate: (persistedState) => {
         const state = (persistedState || {}) as Partial<CartState>;
 
         return {
+          items: Array.isArray(state.items) ? state.items : [],
+          branchId: typeof state.branchId === 'string' ? state.branchId : '',
+          fromNumber: normalizePhoneWithSinglePlus(state.fromNumber) || '',
+          customerId: typeof state.customerId === 'string' ? state.customerId : '',
+          customerName: typeof state.customerName === 'string' ? state.customerName : '',
+          isOnboarded: Boolean(state.isOnboarded),
+          customerAddress: state.customerAddress ?? null,
+          dietaryProfile: state.dietaryProfile ?? null,
+          restaurantInfo: state.restaurantInfo ?? null,
+          checkoutDraft: {
+            ...DEFAULT_ORDER_METADATA,
+            ...(state.checkoutDraft ?? {}),
+          },
           locale: normalizeLocale(state.locale ?? DEFAULT_LOCALE),
           shareActivity: Boolean(state.shareActivity),
         };

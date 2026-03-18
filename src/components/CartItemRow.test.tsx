@@ -18,6 +18,10 @@ vi.mock('next-intl', () => ({
         return `Aumentar cantidad de ${values?.itemName}`;
       case 'removeItem':
         return `Quitar ${values?.itemName}`;
+      case 'comboLabel':
+        return 'Combo';
+      case 'comboIncludes':
+        return `Incluye: ${values?.items}`;
       default:
         return key;
     }
@@ -67,5 +71,23 @@ describe('CartItemRow', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Quitar Tonkotsu Ramen' }));
 
     expect(onSyncCartAction).toHaveBeenCalledWith(item, 'remove', 0);
+  });
+
+  it('shows combo metadata when the row represents a combo line', () => {
+    const onSyncCartAction = vi.fn();
+    const comboItem: CartItem = {
+      ...item,
+      id: 'combo:lunch-set',
+      sourceType: 'combo',
+      comboItems: [
+        { itemId: 'item-1', name: 'California Roll', quantity: 1 },
+        { itemId: 'item-2', name: 'Té frío', quantity: 1 },
+      ],
+    };
+
+    render(<CartItemRow isSyncing={false} item={comboItem} onSyncCartAction={onSyncCartAction} />);
+
+    expect(screen.getByText('Combo')).toBeInTheDocument();
+    expect(screen.getByText('Incluye: California Roll, Té frío')).toBeInTheDocument();
   });
 });

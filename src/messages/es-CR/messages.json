@@ -283,7 +283,9 @@
     "unitPrice": "₡{price} c/u",
     "decrementQuantity": "Reducir cantidad de {itemName}",
     "incrementQuantity": "Aumentar cantidad de {itemName}",
-    "removeItem": "Quitar {itemName}"
+    "removeItem": "Quitar {itemName}",
+    "comboLabel": "Combo",
+    "comboIncludes": "Incluye: {items}"
   },
   "itemDetailModal": {
     "closeAria": "Cerrar",
@@ -319,6 +321,18 @@
     "saving": "Guardando...",
     "confirm": "Confirmar",
     "removeFromOrder": "Quitar del pedido"
+  },
+  "comboOfferCard": {
+    "badge": "Combo",
+    "inCart": "{count} en el carrito",
+    "fallbackDescription": "Selección lista para pedir con precio especial.",
+    "comboPrice": "Precio combo",
+    "saveAmount": "Ahorras ₡{amount}",
+    "includes": "Incluye",
+    "basePrice": "Precio original",
+    "adding": "Agregando...",
+    "addAnother": "Agregar otro",
+    "addCombo": "Agregar combo"
   },
   "userOnboardingModal": {
     "title": "¡Bienvenido! 👋",
@@ -528,6 +542,16 @@
     "cart": {
       "title": "Finalizar pedido",
       "empty": "Tu pedido está vacío",
+      "promoCodePlaceholder": "Código promocional",
+      "applyPromo": "Aplicar",
+      "clearPromo": "Limpiar",
+      "promoLoading": "Validando...",
+      "promoApplied": "Promoción aplicada: {title}",
+      "autoDiscountApplied": "Descuento aplicado automáticamente: {title}",
+      "promoInvalid": "Este código no aplica a tu carrito actual.",
+      "promoMinimumNotReached": "Aún no alcanzas el mínimo requerido para esta promoción.",
+      "promoPreviewError": "No se pudo validar la promoción en este momento.",
+      "discountLine": "Descuento {title}",
       "splitBill": "Dividir cuenta",
       "openCheckoutPage": "Abrir checkout completo",
       "openCartsPage": "Ver mis carritos",

@@ -33,9 +33,12 @@ const clientConsumerOrderSchema = z.object({
   customerLongitude: z.number().optional(),
   scheduledFor: z.string().trim().nullable().optional(),
   optOutCutlery: z.boolean().optional(),
+  promoCode: z.string().trim().optional(),
+  dealId: z.string().trim().optional(),
   tableNumber: z.string().trim().optional(),
   items: z.array(z.object({
     item_id: z.string().trim().optional(),
+    combo_id: z.string().trim().optional(),
     productId: z.string().trim().optional(),
     id: z.string().trim().optional(),
     variantId: z.string().trim().nullable().optional(),
@@ -118,6 +121,8 @@ export async function POST(req: NextRequest) {
         total_amount: body.totalAmount,
         order_type: String(body.orderType || 'pickup').toLowerCase(),
         source: (body.source || 'client') as 'client' | 'virtualMenu' | 'bot',
+        deal_id: body.dealId || undefined,
+        promo_code: body.promoCode ? body.promoCode.trim().toUpperCase() : undefined,
         customerLatitude: body.customerLatitude,
         customerLongitude: body.customerLongitude,
         scheduledFor: body.scheduledFor || undefined,
@@ -125,9 +130,11 @@ export async function POST(req: NextRequest) {
         metadata: {
           branchId: body.branchId,
           tableNumber: body.tableNumber || null,
+          promoCode: body.promoCode ? body.promoCode.trim().toUpperCase() : null,
         },
         items: body.items.map((item) => ({
           item_id: item.item_id || item.productId || item.id || '',
+          combo_id: item.combo_id || undefined,
           variant_id: item.variantId || item.variant_id || undefined,
           quantity: item.quantity,
           notes: item.notes || undefined,

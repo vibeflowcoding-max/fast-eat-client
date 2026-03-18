@@ -25,10 +25,13 @@ const {
   },
 }));
 
+let mockPathname = '/auth/sign-in';
+let mockSearchParams = new URLSearchParams('next=%2Fcheckout');
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace }),
-  usePathname: () => '/auth/sign-in',
-  useSearchParams: () => new URLSearchParams('next=%2Fcheckout'),
+  usePathname: () => mockPathname,
+  useSearchParams: () => mockSearchParams,
 }));
 
 vi.mock('@/lib/supabase', () => ({
@@ -63,6 +66,8 @@ vi.mock('@/lib/location', () => ({
 
 describe('AuthBootstrap', () => {
   beforeEach(() => {
+    mockPathname = '/auth/sign-in';
+    mockSearchParams = new URLSearchParams('next=%2Fcheckout');
     replace.mockReset();
     unsubscribe.mockReset();
     getSession.mockReset();
@@ -91,11 +96,11 @@ describe('AuthBootstrap', () => {
     });
   });
 
-  it('redirects authenticated auth-route sessions to the requested next path', async () => {
+  it('redirects authenticated auth-route sessions to Home', async () => {
     render(<AuthBootstrap />);
 
     await waitFor(() => {
-      expect(replace).toHaveBeenCalledWith('/checkout');
+      expect(replace).toHaveBeenCalledWith('/');
     });
 
     expect(storeState.setAuthSession).toHaveBeenCalledWith({
@@ -103,5 +108,38 @@ describe('AuthBootstrap', () => {
       email: 'user@example.com',
     });
     expect(fetchClientBootstrap).toHaveBeenCalled();
+  });
+
+  it('does not rerun session bootstrap when the route changes', async () => {
+    const { rerender } = render(<AuthBootstrap />);
+
+    await waitFor(() => {
+      expect(getSession).toHaveBeenCalled();
+    });
+
+    const initialCallCount = getSession.mock.calls.length;
+
+    mockPathname = '/checkout';
+    mockSearchParams = new URLSearchParams('next=%2Fcarts');
+    rerender(<AuthBootstrap />);
+
+    await waitFor(() => {
+      expect(getSession).toHaveBeenCalledTimes(initialCallCount);
+    });
+  });
+
+  it('sends unauthenticated protected routes to sign-in without preserving next', async () => {
+    getSession.mockResolvedValueOnce({
+      data: {
+        session: null,
+      },
+    });
+    mockPathname = '/carts';
+
+    render(<AuthBootstrap />);
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith('/auth/sign-in');
+    });
   });
 });

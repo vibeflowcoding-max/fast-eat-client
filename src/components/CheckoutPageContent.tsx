@@ -23,7 +23,7 @@ import { DEFAULT_ORDER_METADATA } from '@/lib/order-metadata';
 import { formatPhoneForDisplay, normalizePhoneWithSinglePlus } from '@/lib/phone';
 import { supabase } from '@/lib/supabase';
 import { useCartActions } from '@/hooks/useCartActions';
-import { fetchCheckoutContext } from '@/services/api';
+import { fetchCheckoutContext, fetchOrderOfferPreview } from '@/services/api';
 import { useCartStore } from '@/store';
 
 function mapPaymentOptions(methods: string[], tOrderForm: ReturnType<typeof useTranslations>) {
@@ -87,6 +87,9 @@ export default function CheckoutPageContent() {
   const [orderAddressInitialPosition, setOrderAddressInitialPosition] = React.useState<{ lat: number; lng: number } | null>(null);
   const [showBillSplitter, setShowBillSplitter] = React.useState(false);
   const [sinpeResults, setSinpeResults] = React.useState<import('@/features/payments/utils/splitStrategies').SplitResult[] | null>(null);
+  const [promoDraft, setPromoDraft] = React.useState(orderMetadata.promoCode || '');
+  const [offerFeedback, setOfferFeedback] = React.useState<{ tone: 'success' | 'error'; message: string } | null>(null);
+  const [isOfferLoading, setIsOfferLoading] = React.useState(false);
 
   const profileLocation = React.useMemo(() => {
     const canonicalUrl = extractGoogleMapsUrl(customerAddress?.urlAddress)
@@ -107,6 +110,10 @@ export default function CheckoutPageContent() {
       label: canonicalUrl,
     };
   }, [customerAddress]);
+
+  React.useEffect(() => {
+    setPromoDraft(orderMetadata.promoCode || '');
+  }, [orderMetadata.promoCode]);
 
   React.useEffect(() => {
     if (!orderMetadata.customerPhone && typeof window !== 'undefined') {
@@ -218,7 +225,15 @@ export default function CheckoutPageContent() {
     () => effectiveCart.reduce((sum, item) => sum + item.price * item.quantity, 0),
     [effectiveCart],
   );
-  const pricing = React.useMemo(() => calculateCheckoutPricing(subtotal, feeRates), [feeRates, subtotal]);
+  const appliedDiscountAmount = React.useMemo(
+    () => Number(orderMetadata.appliedDiscount?.discountAmount || 0),
+    [orderMetadata.appliedDiscount?.discountAmount],
+  );
+  const discountedSubtotal = React.useMemo(
+    () => Math.max(subtotal - appliedDiscountAmount, 0),
+    [appliedDiscountAmount, subtotal],
+  );
+  const pricing = React.useMemo(() => calculateCheckoutPricing(discountedSubtotal, feeRates), [discountedSubtotal, feeRates]);
   const taxesAndFees = pricing.serviceFeeAmount + pricing.platformFeeAmount;
   const total = pricing.totalBeforeDelivery;
   const continueHref = branchId ? `/?branch_id=${encodeURIComponent(branchId)}` : '/';
@@ -249,6 +264,79 @@ export default function CheckoutPageContent() {
 
   const formatCurrency = React.useCallback((value: number) => `₡${Math.round(value).toLocaleString('es-CR')}`, []);
   const formatRate = React.useCallback((rate: number) => `${(rate * 100).toFixed(rate * 100 % 1 === 0 ? 0 : 1)}%`, []);
+
+  React.useEffect(() => {
+    let active = true;
+
+    if (!branchId || effectiveCart.length === 0) {
+      setOfferFeedback(null);
+      setCheckoutDraft((previous) => previous.appliedDiscount ? { ...previous, appliedDiscount: null } : previous);
+      return () => {
+        active = false;
+      };
+    }
+
+    const timer = window.setTimeout(async () => {
+      try {
+        setIsOfferLoading(true);
+        const preview = await fetchOrderOfferPreview(branchId, effectiveCart, orderMetadata.promoCode);
+
+        if (!active) {
+          return;
+        }
+
+        setCheckoutDraft((previous) => {
+          const currentDiscount = previous.appliedDiscount;
+          const nextDiscount = preview.appliedDiscount;
+          const unchanged = JSON.stringify(currentDiscount) === JSON.stringify(nextDiscount);
+          if (unchanged) {
+            return previous;
+          }
+
+          return {
+            ...previous,
+            appliedDiscount: nextDiscount,
+          };
+        });
+
+        if (preview.appliedDiscount) {
+          setOfferFeedback({
+            tone: 'success',
+            message: preview.appliedDiscount.applicationMode === 'auto'
+              ? tCart('autoDiscountApplied', { title: preview.appliedDiscount.title })
+              : tCart('promoApplied', { title: preview.appliedDiscount.title }),
+          });
+          return;
+        }
+
+        if (orderMetadata.promoCode?.trim()) {
+          const reason = preview.reason;
+          setOfferFeedback({
+            tone: 'error',
+            message: reason === 'minimum_not_reached'
+              ? tCart('promoMinimumNotReached')
+              : tCart('promoInvalid'),
+          });
+          return;
+        }
+
+        setOfferFeedback(null);
+      } catch {
+        if (active) {
+          setOfferFeedback({ tone: 'error', message: tCart('promoPreviewError') });
+        }
+      } finally {
+        if (active) {
+          setIsOfferLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [branchId, effectiveCart, orderMetadata.promoCode, setCheckoutDraft, tCart]);
 
   const persistProfileLocation = React.useCallback(async (input: {
     position: { lat: number; lng: number };
@@ -682,11 +770,54 @@ export default function CheckoutPageContent() {
 
             <Surface className="space-y-4" variant="base">
               <SectionHeader eyebrow={tPage('summaryEyebrow')} title={tPage('summaryTitle')} />
+              <Surface className="space-y-3" variant="raised">
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition-colors focus:border-orange-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    onChange={(event) => setPromoDraft(event.target.value.toUpperCase())}
+                    placeholder={tCart('promoCodePlaceholder')}
+                    value={promoDraft}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setCheckoutDraft((previous) => ({ ...previous, promoCode: promoDraft.trim().toUpperCase() }))}
+                      type="button"
+                      variant="outline"
+                    >
+                      {isOfferLoading ? tCart('promoLoading') : tCart('applyPromo')}
+                    </Button>
+                    {(orderMetadata.promoCode || orderMetadata.appliedDiscount) ? (
+                      <Button
+                        onClick={() => {
+                          setPromoDraft('');
+                          setOfferFeedback(null);
+                          setCheckoutDraft((previous) => ({ ...previous, promoCode: '', appliedDiscount: null }));
+                        }}
+                        type="button"
+                        variant="ghost"
+                      >
+                        {tCart('clearPromo')}
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+                {offerFeedback ? (
+                  <p className={`text-xs font-bold ${offerFeedback.tone === 'success' ? 'text-emerald-700 dark:text-emerald-300' : 'text-orange-600 dark:text-orange-300'}`}>
+                    {offerFeedback.message}
+                  </p>
+                ) : null}
+              </Surface>
               <Surface className="space-y-2" variant="muted">
                 <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest">
                   <span className="text-slate-500 dark:text-slate-400">{tCart('subtotal')}</span>
-                  <span>{formatCurrency(pricing.subtotal)}</span>
+                  <span>{formatCurrency(subtotal)}</span>
                 </div>
+                {orderMetadata.appliedDiscount ? (
+                  <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
+                    <span>{tCart('discountLine', { title: orderMetadata.appliedDiscount.title })}</span>
+                    <span>-{formatCurrency(orderMetadata.appliedDiscount.discountAmount)}</span>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest">
                   <span className="text-slate-500 dark:text-slate-400">{tCart('serviceFee', { rate: formatRate(pricing.serviceFeeRate) })}</span>
                   <span>{formatCurrency(pricing.serviceFeeAmount)}</span>

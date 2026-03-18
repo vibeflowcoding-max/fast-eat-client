@@ -50,6 +50,47 @@ export interface MenuItem {
   hasStructuredCustomization?: boolean;
 }
 
+export interface ComboMenuItem {
+  itemId: string;
+  name: string;
+  quantity: number;
+  description?: string | null;
+  image?: string | null;
+}
+
+export interface OfferCombo {
+  id: string;
+  branchId: string;
+  title: string;
+  description?: string | null;
+  image?: string | null;
+  active: boolean;
+  availableFrom?: string | null;
+  availableTo?: string | null;
+  basePrice: number;
+  comboPrice: number;
+  savingsAmount: number;
+  items: ComboMenuItem[];
+}
+
+export interface AppliedDiscountSummary {
+  sourceType: 'combo' | 'deal';
+  comboId?: string | null;
+  dealId?: string | null;
+  title: string;
+  discountType: 'combo' | 'percentage' | 'fixed';
+  discountValue: number;
+  discountAmount: number;
+  subtotal: number;
+  promoCode?: string | null;
+  applicationMode?: 'auto' | 'code';
+}
+
+export interface OrderOfferPreview {
+  appliedDiscount: AppliedDiscountSummary | null;
+  reason?: string;
+}
+
 export interface RecommendedItem {
   id: string;
   qt: string | number;
@@ -62,6 +103,13 @@ export interface CartItem extends MenuItem {
   variantName?: string | null;
   selectedModifiers?: SelectedModifier[];
   lineTotal?: number;
+  sourceType?: 'item' | 'combo';
+  menuItemId?: string;
+  comboId?: string;
+  comboTitle?: string;
+  comboItems?: ComboMenuItem[];
+  basePrice?: number;
+  savingsAmount?: number;
 }
 
 export interface ChatMessage {
@@ -86,6 +134,8 @@ export interface OrderMetadata {
   scheduledFor?: string | null;
   optOutCutlery?: boolean;
   splitDraft?: SavedOrderSplitDraft | null;
+  promoCode?: string;
+  appliedDiscount?: AppliedDiscountSummary | null;
 }
 
 export interface OrderHistoryItem {
@@ -149,6 +199,19 @@ export interface BranchMenuCategoryItemsPayload {
   items: MenuItem[];
   nextCursor: string | null;
   total: number;
+}
+
+export interface BranchMenuPayload {
+  menu: {
+    id: string;
+    name: string;
+  };
+  categories: Array<{
+    id: string;
+    name: string;
+    items: MenuItem[];
+  }>;
+  combos: OfferCombo[];
 }
 
 export interface ClientBootstrapPayload {

@@ -283,7 +283,9 @@
     "unitPrice": "₡{price} each",
     "decrementQuantity": "Decrease quantity of {itemName}",
     "incrementQuantity": "Increase quantity of {itemName}",
-    "removeItem": "Remove {itemName}"
+    "removeItem": "Remove {itemName}",
+    "comboLabel": "Combo",
+    "comboIncludes": "Includes: {items}"
   },
   "itemDetailModal": {
     "closeAria": "Close",
@@ -319,6 +321,18 @@
     "saving": "Saving...",
     "confirm": "Confirm",
     "removeFromOrder": "Remove from order"
+  },
+  "comboOfferCard": {
+    "badge": "Combo",
+    "inCart": "{count} in cart",
+    "fallbackDescription": "Ready-to-order selection with special pricing.",
+    "comboPrice": "Combo price",
+    "saveAmount": "You save ₡{amount}",
+    "includes": "Includes",
+    "basePrice": "Original price",
+    "adding": "Adding...",
+    "addAnother": "Add another",
+    "addCombo": "Add combo"
   },
   "userOnboardingModal": {
     "title": "Welcome! 👋",
@@ -528,6 +542,16 @@
     "cart": {
       "title": "Checkout",
       "empty": "Your cart is empty",
+      "promoCodePlaceholder": "Promo code",
+      "applyPromo": "Apply",
+      "clearPromo": "Clear",
+      "promoLoading": "Checking...",
+      "promoApplied": "Promotion applied: {title}",
+      "autoDiscountApplied": "Automatic discount applied: {title}",
+      "promoInvalid": "This code does not apply to your current cart.",
+      "promoMinimumNotReached": "You have not reached the minimum required for this promotion yet.",
+      "promoPreviewError": "Could not validate the promotion right now.",
+      "discountLine": "Discount {title}",
       "splitBill": "Split bill",
       "openCheckoutPage": "Open full checkout",
       "openCartsPage": "View my carts",

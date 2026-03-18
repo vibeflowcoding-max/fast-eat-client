@@ -98,4 +98,36 @@ describe('orders route validation', () => {
       }),
     );
   });
+
+  it('forwards combo and promo data to local consumer order creation', async () => {
+    const response = await POST(new NextRequest('http://localhost/api/orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        branchId: 'branch-1',
+        totalAmount: 4900,
+        customerName: 'jalisco12100',
+        customerPhone: '+50662528729',
+        paymentMethod: 'cash',
+        orderType: 'pickup',
+        promoCode: 'LUNCH10',
+        dealId: 'deal-1',
+        items: [
+          {
+            combo_id: 'combo-1',
+            quantity: 1,
+          },
+        ],
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    }));
+
+    expect(response.status).toBe(201);
+    expect(createConsumerOrderLocalMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deal_id: 'deal-1',
+        promo_code: 'LUNCH10',
+        items: [expect.objectContaining({ combo_id: 'combo-1' })],
+      }),
+    );
+  });
 });

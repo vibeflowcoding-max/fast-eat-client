@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { getSupabaseServer } from '@/lib/supabase-server';
+import { expandComboSelections, getActiveCombosByIds, validateDealForCart, type AppliedDiscountRecord } from '@/server/offers/order-offers';
 
 type OrderPaymentMethodCode = 'CASH' | 'CARD' | 'SINPE' | 'TRANSFER';
 
@@ -160,7 +161,7 @@ async function loadModifierCatalogForItems(menuItemIds: string[]) {
 }
 
 function buildOrderLinePayloads(args: {
-  items: Array<{ item_id: string; variant_id: string; variant_name: string; quantity: number; notes?: string; modifiers?: Array<{ modifier_item_id: string; quantity?: number }> }>;
+  items: Array<{ item_id: string; variant_id: string; variant_name: string; quantity: number; notes?: string; modifiers?: Array<{ modifier_item_id: string; quantity?: number }>; name_override?: string }>;
   menuItemMap: Map<string, any>;
   prices: any[];
   serviceMode: string;
@@ -224,9 +225,9 @@ function buildOrderLinePayloads(args: {
     orderLinePayloads.push({
       id: lineId,
       menu_item_id: String(item.item_id),
-      name: item.variant_name && item.variant_name !== 'Default'
+      name: item.name_override || (item.variant_name && item.variant_name !== 'Default'
         ? `${menuItem.name} - ${item.variant_name}`
-        : menuItem.name,
+        : menuItem.name),
       price: unitPrice,
       quantity,
       subtotal: Number((unitPrice * quantity).toFixed(2)),
@@ -268,7 +269,9 @@ export async function createConsumerOrderLocal(orderData: {
   customer_phone: string;
   paymentMethod?: string;
   delivery_address?: string | null;
-  items: Array<{ item_id: string; variant_id?: string; quantity: number; notes?: string; modifiers?: Array<{ modifier_item_id: string; quantity?: number }> }>;
+  items: Array<{ item_id?: string; combo_id?: string; variant_id?: string; quantity: number; notes?: string; modifiers?: Array<{ modifier_item_id: string; quantity?: number }> }>;
+  deal_id?: string;
+  promo_code?: string;
   total_amount: number;
   order_type: string;
   source?: 'client' | 'virtualMenu' | 'bot';
@@ -281,7 +284,7 @@ export async function createConsumerOrderLocal(orderData: {
   const admin = getSupabaseServer() as any;
 
   const [restaurantResult, pendingStatusResult] = await Promise.all([
-    admin.from('restaurants').select('id, latitude, longitude, delivery_enabled').eq('id', orderData.restaurant_id).single(),
+    admin.from('restaurants').select('id, latitude, longitude, delivery_enabled, smart_stock_enabled').eq('id', orderData.restaurant_id).single(),
     admin.from('order_statuses').select('id, code').eq('code', 'PENDING').single(),
   ]);
 
@@ -294,7 +297,46 @@ export async function createConsumerOrderLocal(orderData: {
 
   const restaurant = restaurantResult.data as any;
   const pendingStatus = pendingStatusResult.data as any;
-  const menuItemIds = Array.from(new Set(orderData.items.map((item) => item.item_id).filter(Boolean)));
+  const normalizedRequestedItems = (orderData.items || []).map((item) => ({
+    item_id: item.item_id ? String(item.item_id) : undefined,
+    combo_id: item.combo_id ? String(item.combo_id) : undefined,
+    variant_id: item.variant_id ? String(item.variant_id) : undefined,
+    quantity: Math.max(1, Number(item.quantity || 1)),
+    notes: item.notes,
+    modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
+  }));
+  const comboRequests = normalizedRequestedItems
+    .filter((item) => Boolean(item.combo_id))
+    .map((item) => ({
+      combo_id: String(item.combo_id),
+      quantity: item.quantity,
+      notes: item.notes,
+    }));
+  const standardItems = normalizedRequestedItems
+    .filter((item) => Boolean(item.item_id))
+    .map((item) => ({
+      item_id: String(item.item_id),
+      combo_id: item.combo_id,
+      variant_id: item.variant_id,
+      quantity: item.quantity,
+      notes: item.notes,
+      modifiers: item.modifiers,
+      source_type: 'item' as const,
+    }));
+
+  const comboDefinitions = comboRequests.length > 0
+    ? await getActiveCombosByIds(comboRequests.map((combo) => combo.combo_id))
+    : [];
+  const comboDefinitionIds = new Set(comboDefinitions.map((combo) => combo.id));
+  for (const comboRequest of comboRequests) {
+    if (!comboDefinitionIds.has(comboRequest.combo_id)) {
+      throw new Error(`Combo ${comboRequest.combo_id} is unavailable`);
+    }
+  }
+
+  const { expandedItems: comboExpandedItems, comboDiscounts, comboSelections } = expandComboSelections(comboRequests, comboDefinitions);
+  const requestedItems = [...standardItems, ...comboExpandedItems];
+  const menuItemIds = Array.from(new Set(requestedItems.map((item) => item.item_id).filter(Boolean)));
 
   const { data: variants, error: variantsError } = menuItemIds.length > 0
     ? await admin.from('menu_item_variants').select('id, menu_item_id, name, is_default, is_active, display_order').in('menu_item_id', menuItemIds).eq('is_active', true)
@@ -313,7 +355,7 @@ export async function createConsumerOrderLocal(orderData: {
     variantsById.set(variant.id, variant);
   }
 
-  const resolvedItems = orderData.items.map((item) => {
+  const resolvedItems = requestedItems.map((item) => {
     const availableVariants = variantsByItem.get(item.item_id) || [];
     const explicitVariant = item.variant_id ? variantsById.get(item.variant_id) : null;
     const resolvedVariant = explicitVariant || availableVariants.find((variant: any) => variant.is_default) || availableVariants[0] || null;
@@ -347,7 +389,14 @@ export async function createConsumerOrderLocal(orderData: {
     const prep = menuItem ? Number(menuItem.prep_time || 0) : 0;
     return acc + prep * Math.max(1, item.quantity || 1);
   }, 0);
-  const resolvedBranchId = (menuItems || []).map((menuItem: any) => menuItem.branch_id).find(Boolean) || null;
+  const resolvedBranchCandidates = Array.from(new Set([
+    ...(menuItems || []).map((menuItem: any) => menuItem.branch_id).filter(Boolean),
+    ...comboDefinitions.map((combo) => combo.branch_id).filter(Boolean),
+  ]));
+  if (resolvedBranchCandidates.length > 1) {
+    throw new Error('All order items and combos must belong to the same branch');
+  }
+  const resolvedBranchId = resolvedBranchCandidates[0] || null;
 
   const { data: priceData, error: priceError } = variantIds.length > 0
     ? await admin.from('prices').select('variant_id, channel, service_mode, amount, period, created_at').in('variant_id', variantIds)
@@ -369,6 +418,10 @@ export async function createConsumerOrderLocal(orderData: {
     modifierCatalogByItem,
     modifierOptionsById,
   });
+  const itemsSubtotal = Number(orderLinePayloads.reduce((sum, line) => sum + Number(line.subtotal || 0), 0).toFixed(2));
+  const comboDiscountAmount = Number(comboDiscounts.reduce((sum, discount) => sum + Number(discount.discount_amount || 0), 0).toFixed(2));
+  const subtotalAfterCombos = Number(Math.max(itemsSubtotal - comboDiscountAmount, 0).toFixed(2));
+  const appliedDiscounts: AppliedDiscountRecord[] = [...comboDiscounts];
 
   const normalizedCustomerPhone = String(orderData.customer_phone || '').trim();
   if (!normalizedCustomerPhone) {
@@ -449,6 +502,46 @@ export async function createConsumerOrderLocal(orderData: {
     ? await resolvePaymentMethodId(admin, normalizedPaymentMethod)
     : null;
   const metadata = orderData.metadata || {};
+
+  if (orderData.deal_id || orderData.promo_code) {
+    if (!resolvedBranchId) {
+      throw new Error('A branch-scoped deal requires a resolved branch');
+    }
+
+    const dealValidation = await validateDealForCart({
+      branchId: resolvedBranchId,
+      subtotal: subtotalAfterCombos,
+      dealId: orderData.deal_id,
+      promoCode: orderData.promo_code,
+      customerPhone: normalizedCustomerPhone,
+      customerId: customerRecord.id,
+      cartItems: normalizedRequestedItems.map((item) => ({
+        item_id: item.item_id,
+        combo_id: item.combo_id,
+        quantity: item.quantity,
+      })),
+    });
+
+    if (!dealValidation.applied || !dealValidation.deal) {
+      throw new Error(`The selected deal is not applicable: ${dealValidation.reason || 'invalid'}`);
+    }
+
+    appliedDiscounts.push({
+      source_type: 'deal',
+      combo_id: null,
+      deal_id: dealValidation.deal.id,
+      title_snapshot: dealValidation.deal.title,
+      discount_type_snapshot: dealValidation.deal.discount_type,
+      discount_value_snapshot: Number(dealValidation.deal.discount_value || 0),
+      discount_amount: Number(dealValidation.discountAmount || 0),
+      subtotal_snapshot: subtotalAfterCombos,
+      promo_code_snapshot: dealValidation.deal.promo_code || (orderData.promo_code ? orderData.promo_code.trim().toUpperCase() : null),
+      application_mode: dealValidation.deal.application_mode,
+    });
+  }
+
+  const totalDiscountAmount = Number(appliedDiscounts.reduce((sum, discount) => sum + Number(discount.discount_amount || 0), 0).toFixed(2));
+  const discountedSubtotal = Number(Math.max(itemsSubtotal - totalDiscountAmount, 0).toFixed(2));
   const scheduledForRaw = orderData.scheduledFor || metadata.scheduledFor;
   const optOutCutlery = Boolean(orderData.optOutCutlery ?? metadata.optOutCutlery ?? false);
   let scheduledFor: string | null = null;
@@ -480,6 +573,8 @@ export async function createConsumerOrderLocal(orderData: {
     prep_time_estimate: prepTimeEstimate,
     delivery_distance_km: deliveryDistanceKm,
     delivery_base_price: deliveryBasePrice,
+    smart_stock_enabled_at_creation: Boolean(restaurant.smart_stock_enabled),
+    customer_total: Number(orderData.total_amount),
     total: Number(orderData.total_amount),
     scheduled_for: scheduledFor,
     opt_out_cutlery: optOutCutlery,
@@ -487,6 +582,13 @@ export async function createConsumerOrderLocal(orderData: {
       ...metadata,
       scheduledFor,
       optOutCutlery,
+      comboSelections,
+      appliedDiscounts,
+      pricing: {
+        itemsSubtotal,
+        discountedSubtotal,
+        discountAmount: totalDiscountAmount,
+      },
     },
     created_at: new Date().toISOString(),
   };
@@ -526,6 +628,48 @@ export async function createConsumerOrderLocal(orderData: {
     }
   }
 
+  if (appliedDiscounts.length > 0) {
+    const { error: appliedDiscountsError } = await admin
+      .from('applied_order_discounts')
+      .insert(
+        appliedDiscounts.map((discount) => ({
+          order_id: order.id,
+          deal_id: discount.deal_id,
+          combo_id: discount.combo_id,
+          source_type: discount.source_type,
+          title_snapshot: discount.title_snapshot,
+          discount_type_snapshot: discount.discount_type_snapshot,
+          discount_value_snapshot: discount.discount_value_snapshot,
+          discount_amount: discount.discount_amount,
+          subtotal_snapshot: discount.subtotal_snapshot,
+          promo_code_snapshot: discount.promo_code_snapshot,
+        })),
+      );
+
+    if (appliedDiscountsError) {
+      throw new Error(appliedDiscountsError.message || 'Error creating applied order discounts');
+    }
+
+    const dealDiscounts = appliedDiscounts.filter((discount) => discount.source_type === 'deal' && discount.deal_id);
+    if (dealDiscounts.length > 0) {
+      const { error: dealRedemptionsError } = await admin
+        .from('deal_redemptions')
+        .insert(
+          dealDiscounts.map((discount) => ({
+            deal_id: discount.deal_id,
+            order_id: order.id,
+            customer_id: customerRecord.id,
+            branch_id: resolvedBranchId,
+            discount_amount: discount.discount_amount,
+          })),
+        );
+
+      if (dealRedemptionsError) {
+        throw new Error(dealRedemptionsError.message || 'Error creating deal redemptions');
+      }
+    }
+  }
+
   return {
     ...order,
     orderNumber: order.order_number,
@@ -535,6 +679,7 @@ export async function createConsumerOrderLocal(orderData: {
     deliveryBasePrice: order.delivery_base_price,
     prepTimeEstimate: order.prep_time_estimate,
     customer_id: customerRecord.id,
+    applied_discounts: appliedDiscounts,
     items: orderLinePayloads.map((line) => ({
       id: line.id,
       menu_item_id: line.menu_item_id,
