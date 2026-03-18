@@ -265,7 +265,6 @@ export async function validateDealForCart(args: {
   for (const deal of eligibleDeals) {
     const evaluation = await evaluateDealCandidate(deal, {
       ...args,
-      branchId: normalizedBranchId,
       promoCode: normalizedPromoCode || undefined,
     });
 
