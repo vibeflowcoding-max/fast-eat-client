@@ -17,6 +17,16 @@ const CartItemRow: React.FC<CartItemRowProps> = ({ item, isSyncing, onSyncCartAc
             <div className="min-w-0 space-y-1">
                 <span className="line-clamp-1 text-xs font-black uppercase text-slate-900 dark:text-slate-100">{item.name}</span>
                 <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">{t('unitPrice', { price: item.price.toLocaleString() })}</span>
+                {item.sourceType === 'combo' ? (
+                    <>
+                        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-600 dark:text-orange-300">{t('comboLabel')}</span>
+                        {item.comboItems?.length ? (
+                            <span className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                {t('comboIncludes', { items: item.comboItems.map((comboItem) => `${comboItem.quantity > 1 ? `${comboItem.quantity}x ` : ''}${comboItem.name}`).join(', ') })}
+                            </span>
+                        ) : null}
+                    </>
+                ) : null}
             </div>
 
             <div className="flex items-center gap-3">

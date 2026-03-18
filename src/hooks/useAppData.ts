@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useCartStore } from '../store';
-import { fetchBranchMenuCategories, fetchBranchMenuItems, fetchBranchShell, getCartFromN8N } from '../services/api';
-import { MenuItem, CartItem } from '../types';
+import { fetchBranchMenuCategories, fetchBranchMenuCombos, fetchBranchMenuItems, fetchBranchShell, getCartFromN8N } from '../services/api';
+import { MenuItem, CartItem, OfferCombo } from '../types';
 import { APP_CONSTANTS } from '../constants';
 
 const isAbortError = (error: unknown) => {
@@ -19,6 +19,7 @@ export const useAppData = () => {
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [combos, setCombos] = useState<OfferCombo[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +120,7 @@ export const useAppData = () => {
     setError(null);
     setMenuItems([]);
     setCategories([]);
+    setCombos([]);
     setActiveCategory('');
     setTableQuantity(0);
     categoryIdByNameRef.current = {};
@@ -127,9 +129,10 @@ export const useAppData = () => {
     inFlightCategoryIdsRef.current = new Set();
 
     try {
-      const [shellResult, categoriesResult] = await Promise.allSettled([
+      const [shellResult, categoriesResult, combosResult] = await Promise.allSettled([
         fetchBranchShell(branchId, signal),
         fetchBranchMenuCategories(branchId, signal),
+        fetchBranchMenuCombos(branchId, signal),
       ]);
 
       if (shellResult.status === 'fulfilled' && shellResult.value && isCurrentCycle()) {
@@ -142,8 +145,12 @@ export const useAppData = () => {
       }
 
       const categorySummaries = categoriesResult.status === 'fulfilled' ? categoriesResult.value : [];
+      const comboSummaries = combosResult.status === 'fulfilled' ? combosResult.value : [];
       if (categoriesResult.status === 'rejected' && !isAbortError(categoriesResult.reason)) {
         console.error('Failed to fetch menu categories', categoriesResult.reason);
+      }
+      if (combosResult.status === 'rejected' && !isAbortError(combosResult.reason)) {
+        console.error('Failed to fetch combos', combosResult.reason);
       }
 
       const nextCategories = Array.isArray(categorySummaries)
@@ -160,6 +167,7 @@ export const useAppData = () => {
 
       if (isCurrentCycle()) {
         setCategories(nextCategories);
+        setCombos(Array.isArray(comboSummaries) ? comboSummaries : []);
       }
 
       if (nextCategories.length === 0) {
@@ -216,6 +224,12 @@ export const useAppData = () => {
         getCartFromN8N(branchId, fromNumber, isTestMode)
           .then((serverItems) => {
             if (!serverItems || !Array.isArray(serverItems) || !isCurrentCycle()) return;
+
+            const localCart = useCartStore.getState().items;
+            if (localCart.length > 0) {
+              return;
+            }
+
             const syncedCart: CartItem[] = serverItems.map((sItem: any) => {
               const itemId = sItem.item_id || sItem.id;
               const itemName = sItem.nombre || sItem.name;
@@ -294,6 +308,7 @@ export const useAppData = () => {
   return {
     menuItems,
     categories,
+    combos,
     loading,
     activeCategory,
     setActiveCategory,

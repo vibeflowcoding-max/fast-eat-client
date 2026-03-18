@@ -1,4 +1,4 @@
-import { BranchCheckoutContextPayload, BranchMenuCategoryItemsPayload, BranchMenuCategorySummary, BranchShellPayload, CartItem, ClientBootstrapPayload, DeliveryBid, DeliveryTrackingPayload, DietaryOptionsCatalog, DietaryProfile, MenuItem, MysteryBoxOffersResponse, OrderMetadata, PersistedCartRecord, PlannerRecommendationsResponse, RestaurantInfo, SavedOrderSplitDraft } from '../types';
+import { AppliedDiscountSummary, BranchCheckoutContextPayload, BranchMenuCategoryItemsPayload, BranchMenuCategorySummary, BranchMenuPayload, BranchShellPayload, CartItem, ClientBootstrapPayload, DeliveryBid, DeliveryTrackingPayload, DietaryOptionsCatalog, DietaryProfile, MenuItem, MysteryBoxOffersResponse, OfferCombo, OrderMetadata, OrderOfferPreview, PersistedCartRecord, PlannerRecommendationsResponse, RestaurantInfo, SavedOrderSplitDraft } from '../types';
 import { APP_CONSTANTS } from '../constants';
 import { supabase } from '@/lib/supabase';
 import { getLocalSavedCart, listLocalSavedCarts, upsertLocalSavedCart, archiveLocalSavedCart } from '@/lib/saved-carts-storage';
@@ -145,6 +145,31 @@ function mapMenuItem(rawItem: any, categoryName?: string): MenuItem {
           }))
         : [],
     hasStructuredCustomization: hasStructuredMenuCustomization(rawItem),
+  };
+}
+
+function mapOfferCombo(rawCombo: any): OfferCombo {
+  return {
+    id: String(rawCombo?.id || ''),
+    branchId: String(rawCombo?.branch_id || rawCombo?.branchId || ''),
+    title: String(rawCombo?.title || 'Combo'),
+    description: rawCombo?.description ? String(rawCombo.description) : null,
+    image: rawCombo?.image_url ? String(rawCombo.image_url) : rawCombo?.image ? String(rawCombo.image) : null,
+    active: rawCombo?.active !== false,
+    availableFrom: rawCombo?.available_from || rawCombo?.availableFrom || null,
+    availableTo: rawCombo?.available_to || rawCombo?.availableTo || null,
+    basePrice: Number(rawCombo?.base_price || rawCombo?.basePrice || 0),
+    comboPrice: Number(rawCombo?.combo_price || rawCombo?.comboPrice || 0),
+    savingsAmount: Number(rawCombo?.savings_amount || rawCombo?.savingsAmount || rawCombo?.savings || 0),
+    items: Array.isArray(rawCombo?.items)
+      ? rawCombo.items.map((item: any) => ({
+          itemId: String(item?.item_id || item?.itemId || item?.menu_item?.id || ''),
+          name: String(item?.menu_item?.name || item?.name || 'Item'),
+          quantity: Math.max(1, Number(item?.quantity || 1)),
+          description: item?.menu_item?.description ?? item?.description ?? null,
+          image: item?.menu_item?.image_url ?? item?.image ?? null,
+        }))
+      : [],
   };
 }
 
@@ -426,6 +451,94 @@ export const fetchCheckoutContext = async (
   }
 };
 
+export const fetchBranchMenuCombos = async (
+  branchId: string,
+  signal?: AbortSignal,
+): Promise<OfferCombo[]> => {
+  try {
+    const normalizedBranchId = String(branchId || '').trim();
+    if (!normalizedBranchId) {
+      return [];
+    }
+
+    const response = await fetch(`/api/menu/branch/${encodeURIComponent(normalizedBranchId)}`, {
+      cache: 'no-store',
+      signal,
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data?.error || 'Could not load branch combos');
+    }
+
+    const payload = (data?.data || data) as Partial<BranchMenuPayload>;
+    return Array.isArray(payload?.combos) ? payload.combos.map((combo) => mapOfferCombo(combo)) : [];
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+
+    console.error('Error fetching branch combos:', error);
+    return [];
+  }
+};
+
+export const fetchOrderOfferPreview = async (
+  branchId: string,
+  items: CartItem[],
+  promoCode?: string,
+): Promise<OrderOfferPreview> => {
+  const normalizedBranchId = String(branchId || '').trim();
+  if (!normalizedBranchId || items.length === 0) {
+    return { appliedDiscount: null };
+  }
+
+  const response = await fetch('/api/offers/preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      branchId: normalizedBranchId,
+      promoCode: String(promoCode || '').trim().toUpperCase() || undefined,
+      subtotal: items.reduce((sum, item) => sum + (Number(item.price || 0) * Math.max(1, Number(item.quantity || 1))), 0),
+      items: items.map((item) => ({
+        item_id: item.sourceType === 'combo' ? undefined : (item.menuItemId || item.id),
+        combo_id: item.comboId,
+        quantity: item.quantity,
+        combo_items: item.comboItems?.map((comboItem) => ({
+          item_id: comboItem.itemId,
+          quantity: comboItem.quantity,
+        })),
+      })),
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || 'Could not preview offers');
+  }
+
+  const payload = data?.data || data;
+  const appliedDiscount = payload?.appliedDiscount
+    ? {
+        sourceType: payload.appliedDiscount.sourceType,
+        comboId: payload.appliedDiscount.comboId ?? null,
+        dealId: payload.appliedDiscount.dealId ?? null,
+        title: String(payload.appliedDiscount.title || 'Promo'),
+        discountType: payload.appliedDiscount.discountType,
+        discountValue: Number(payload.appliedDiscount.discountValue || 0),
+        discountAmount: Number(payload.appliedDiscount.discountAmount || 0),
+        subtotal: Number(payload.appliedDiscount.subtotal || 0),
+        promoCode: payload.appliedDiscount.promoCode ?? null,
+        applicationMode: payload.appliedDiscount.applicationMode,
+      } satisfies AppliedDiscountSummary
+    : null;
+
+  return {
+    appliedDiscount,
+    reason: typeof payload?.reason === 'string' ? payload.reason : undefined,
+  };
+};
+
 export const fetchBranchMenuCategories = async (
   branchId: string,
   signal?: AbortSignal,
@@ -607,8 +720,12 @@ export const submitOrderToMCP = async (
   orderMetadata: OrderMetadata,
   branchId: string,
   fallbackPhone?: string,
+  totalAmountOverride?: number,
 ) => {
-  const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const baseSubtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const total = Number.isFinite(Number(totalAmountOverride))
+    ? Number(totalAmountOverride)
+    : Math.max(baseSubtotal - Number(orderMetadata.appliedDiscount?.discountAmount || 0), 0);
   const normalizedCustomerName = String(orderMetadata.customerName || '').trim();
   const normalizedCustomerPhone = String(orderMetadata.customerPhone || fallbackPhone || '').trim();
 
@@ -626,10 +743,13 @@ export const submitOrderToMCP = async (
     customerLongitude: orderMetadata.customerLongitude,
     scheduledFor: orderMetadata.scheduledFor,
     optOutCutlery: Boolean(orderMetadata.optOutCutlery),
+    promoCode: String(orderMetadata.promoCode || '').trim().toUpperCase() || undefined,
+    dealId: orderMetadata.appliedDiscount?.dealId || undefined,
     ...(orderMetadata.tableNumber ? { tableNumber: orderMetadata.tableNumber } : {}),
     items: cart.map(item => ({
-      item_id: item.id,
-      productId: item.id,
+      item_id: item.sourceType === 'combo' ? undefined : (item.menuItemId || item.id),
+      combo_id: item.comboId || undefined,
+      productId: item.sourceType === 'combo' ? undefined : (item.menuItemId || item.id),
       variantId: item.variantId || item.defaultVariantId || null,
       name: item.name,
       quantity: item.quantity,

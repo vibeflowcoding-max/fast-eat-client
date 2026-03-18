@@ -29,10 +29,21 @@ export const useCartActions = () => {
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
   const syncCartAction = async (item: CartItem, action: CartAction, newQuantity: number, orderMetadata: OrderMetadata) => {
+    const isComboLine = item.sourceType === 'combo' || Boolean(item.comboId);
+
     if (action === 'remove' || newQuantity <= 0) {
       removeItem(item.id);
     } else {
       updateItem({ ...item, quantity: newQuantity });
+    }
+
+    if (isComboLine) {
+      setChefNotification({
+        content: action === 'remove' || newQuantity <= 0
+          ? 'Combo eliminado del carrito.'
+          : 'Combo actualizado en tu carrito.',
+      });
+      return true;
     }
 
     if (debounceTimers.current[item.id]) {
@@ -66,6 +77,7 @@ export const useCartActions = () => {
   };
 
   const addToCart = async (newItem: CartItem, orderMetadata: OrderMetadata): Promise<boolean> => {
+    const isComboLine = newItem.sourceType === 'combo' || Boolean(newItem.comboId);
     let action: CartAction = 'add';
     let message = '';
     const existing = cart.find(i => i.id === newItem.id);
@@ -91,6 +103,13 @@ export const useCartActions = () => {
         updateItem(newItem);
       }
       else return true;
+    }
+
+    if (isComboLine) {
+      setChefNotification({
+        content: existing ? 'Combo actualizado en tu carrito.' : 'Combo agregado al carrito.',
+      });
+      return true;
     }
 
     setIsSyncing(true);
@@ -199,7 +218,7 @@ export const useCartActions = () => {
         }
       }
 
-      const orderResult = await submitOrderToMCP(effectiveCart, finalMetadata, branchId, fromNumber);
+      const orderResult = await submitOrderToMCP(effectiveCart, finalMetadata, branchId, fromNumber, cartTotal);
       const orderId = orderResult?.order_id || orderResult?.orderId || orderResult?.data?.order_id || orderResult?.data?.orderId;
       const nestedOrder = orderResult?.data?.order || orderResult?.order || null;
       const resolvedOrderId = orderId || nestedOrder?.id || null;

@@ -11,4 +11,6 @@ export const DEFAULT_ORDER_METADATA: OrderMetadata = {
   deliveryNotes: '',
   locationOverriddenFromProfile: false,
   locationDifferenceAcknowledged: false,
+  promoCode: '',
+  appliedDiscount: null,
 };

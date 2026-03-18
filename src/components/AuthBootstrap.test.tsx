@@ -25,10 +25,13 @@ const {
   },
 }));
 
+let mockPathname = '/auth/sign-in';
+let mockSearchParams = new URLSearchParams('next=%2Fcheckout');
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace }),
-  usePathname: () => '/auth/sign-in',
-  useSearchParams: () => new URLSearchParams('next=%2Fcheckout'),
+  usePathname: () => mockPathname,
+  useSearchParams: () => mockSearchParams,
 }));
 
 vi.mock('@/lib/supabase', () => ({
@@ -63,6 +66,8 @@ vi.mock('@/lib/location', () => ({
 
 describe('AuthBootstrap', () => {
   beforeEach(() => {
+    mockPathname = '/auth/sign-in';
+    mockSearchParams = new URLSearchParams('next=%2Fcheckout');
     replace.mockReset();
     unsubscribe.mockReset();
     getSession.mockReset();
@@ -103,5 +108,23 @@ describe('AuthBootstrap', () => {
       email: 'user@example.com',
     });
     expect(fetchClientBootstrap).toHaveBeenCalled();
+  });
+
+  it('does not rerun session bootstrap when the route changes', async () => {
+    const { rerender } = render(<AuthBootstrap />);
+
+    await waitFor(() => {
+      expect(getSession).toHaveBeenCalled();
+    });
+
+    const initialCallCount = getSession.mock.calls.length;
+
+    mockPathname = '/checkout';
+    mockSearchParams = new URLSearchParams('next=%2Fcarts');
+    rerender(<AuthBootstrap />);
+
+    await waitFor(() => {
+      expect(getSession).toHaveBeenCalledTimes(initialCallCount);
+    });
   });
 });

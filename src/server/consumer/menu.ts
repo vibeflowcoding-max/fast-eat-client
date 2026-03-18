@@ -1,4 +1,5 @@
 import { getSupabaseServer } from '@/lib/supabase-server';
+import { loadConsumerCombos } from '@/server/offers/order-offers';
 
 type ModifierGroupRecord = {
   id: string | number;
@@ -78,7 +79,7 @@ export async function loadBranchMenuFromSupabase(branchId: string) {
   }
 
   if (!branchRecord?.restaurant_id) {
-    return { menu: { id: branchId, name: 'Menu' }, categories: [] };
+    return { menu: { id: branchId, name: 'Menu' }, categories: [], combos: [] };
   }
 
   const { data: menuItems, error: menuError } = await client
@@ -93,8 +94,10 @@ export async function loadBranchMenuFromSupabase(branchId: string) {
     throw new Error(menuError.message || 'Could not load branch menu');
   }
 
+  const combos = await loadConsumerCombos(branchId);
+
   if (!Array.isArray(menuItems) || menuItems.length === 0) {
-    return { menu: { id: String(branchRecord.restaurant_id), name: 'Menu' }, categories: [] };
+    return { menu: { id: String(branchRecord.restaurant_id), name: 'Menu' }, categories: [], combos };
   }
 
   const itemIds = menuItems.map((item: any) => item.id);
@@ -282,6 +285,7 @@ export async function loadBranchMenuFromSupabase(branchId: string) {
   return {
     menu: { id: String(branchRecord.restaurant_id), name: 'Menu' },
     categories,
+    combos,
   };
 }
 

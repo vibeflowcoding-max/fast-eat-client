@@ -10,7 +10,7 @@ import SinpeRequestUI from '../features/payments/components/SinpeRequestUI';
 import { SplitResult } from '../features/payments/utils/splitStrategies';
 import { useCartStore } from '../store';
 import { useTranslations } from 'next-intl';
-import { fetchCheckoutFeeRates } from '@/services/api';
+import { fetchCheckoutFeeRates, fetchOrderOfferPreview } from '@/services/api';
 import { calculateCheckoutPricing } from '@/lib/checkout-pricing';
 import type { MapsGeocodeData } from '@/services/maps-api';
 import { Button, Icon, Surface } from '@/../resources/components';
@@ -86,6 +86,13 @@ const CartModal: React.FC<CartModalProps> = ({
     const [sinpeResults, setSinpeResults] = useState<SplitResult[] | null>(null);
     const [feeRates, setFeeRates] = useState({ serviceFeeRate: 0, platformFeeRate: 0 });
     const [isPricingUnavailable, setIsPricingUnavailable] = useState(false);
+    const [promoDraft, setPromoDraft] = useState(orderMetadata.promoCode || '');
+    const [isOfferLoading, setIsOfferLoading] = useState(false);
+    const [offerFeedback, setOfferFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
+
+    useEffect(() => {
+        setPromoDraft(orderMetadata.promoCode || '');
+    }, [orderMetadata.promoCode]);
 
     useEffect(() => {
         let active = true;
@@ -115,9 +122,76 @@ const CartModal: React.FC<CartModalProps> = ({
     }, [branchId]);
 
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const pricing = calculateCheckoutPricing(subtotal, feeRates);
+    const appliedDiscountAmount = Number(orderMetadata.appliedDiscount?.discountAmount || 0);
+    const discountedSubtotal = Math.max(subtotal - appliedDiscountAmount, 0);
+    const pricing = calculateCheckoutPricing(discountedSubtotal, feeRates);
     const taxesAndFees = pricing.serviceFeeAmount + pricing.platformFeeAmount;
     const total = pricing.totalBeforeDelivery;
+
+    useEffect(() => {
+        let active = true;
+
+        if (!branchId || cart.length === 0) {
+            setOfferFeedback(null);
+            if (orderMetadata.appliedDiscount) {
+                setOrderMetadata({
+                    ...orderMetadata,
+                    appliedDiscount: null,
+                });
+            }
+            return () => {
+                active = false;
+            };
+        }
+
+        const timer = window.setTimeout(async () => {
+            try {
+                setIsOfferLoading(true);
+                const preview = await fetchOrderOfferPreview(branchId, cart, orderMetadata.promoCode);
+                if (!active) {
+                    return;
+                }
+
+                if (JSON.stringify(preview.appliedDiscount) !== JSON.stringify(orderMetadata.appliedDiscount)) {
+                    setOrderMetadata({
+                        ...orderMetadata,
+                        appliedDiscount: preview.appliedDiscount,
+                    });
+                }
+
+                if (preview.appliedDiscount) {
+                    setOfferFeedback({
+                        tone: 'success',
+                        message: preview.appliedDiscount.applicationMode === 'auto'
+                            ? t('autoDiscountApplied', { title: preview.appliedDiscount.title })
+                            : t('promoApplied', { title: preview.appliedDiscount.title }),
+                    });
+                } else if (orderMetadata.promoCode?.trim()) {
+                    setOfferFeedback({
+                        tone: 'error',
+                        message: preview.reason === 'minimum_not_reached'
+                            ? t('promoMinimumNotReached')
+                            : t('promoInvalid'),
+                    });
+                } else {
+                    setOfferFeedback(null);
+                }
+            } catch {
+                if (active) {
+                    setOfferFeedback({ tone: 'error', message: t('promoPreviewError') });
+                }
+            } finally {
+                if (active) {
+                    setIsOfferLoading(false);
+                }
+            }
+        }, 250);
+
+        return () => {
+            active = false;
+            window.clearTimeout(timer);
+        };
+    }, [branchId, cart, orderMetadata, setOrderMetadata, t]);
 
     const formatCurrency = (value: number) => `₡${Math.round(value).toLocaleString()}`;
     const formatRate = (rate: number) => `${(rate * 100).toFixed(rate * 100 % 1 === 0 ? 0 : 1)}%`;
@@ -248,10 +322,53 @@ const CartModal: React.FC<CartModalProps> = ({
                     <Surface className="mt-2 space-y-3 rounded-[1.75rem] border border-slate-200/80 p-5 md:p-8 dark:border-slate-800/80" variant="muted">
                         {cart.length > 0 && (
                             <Surface className="space-y-2 border border-orange-100 dark:border-[#4b2f21]" variant="raised">
+                                <div className="flex flex-col gap-2 pb-2">
+                                    <div className="flex flex-col gap-2 sm:flex-row">
+                                        <input
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none transition-colors focus:border-orange-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                                            onChange={(event) => setPromoDraft(event.target.value.toUpperCase())}
+                                            placeholder={t('promoCodePlaceholder')}
+                                            value={promoDraft}
+                                        />
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={() => setOrderMetadata({ ...orderMetadata, promoCode: promoDraft.trim().toUpperCase() })}
+                                                type="button"
+                                                variant="outline"
+                                            >
+                                                {isOfferLoading ? t('promoLoading') : t('applyPromo')}
+                                            </Button>
+                                            {(orderMetadata.promoCode || orderMetadata.appliedDiscount) ? (
+                                                <Button
+                                                    onClick={() => {
+                                                        setPromoDraft('');
+                                                        setOfferFeedback(null);
+                                                        setOrderMetadata({ ...orderMetadata, promoCode: '', appliedDiscount: null });
+                                                    }}
+                                                    type="button"
+                                                    variant="ghost"
+                                                >
+                                                    {t('clearPromo')}
+                                                </Button>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                    {offerFeedback ? (
+                                        <p className={`text-xs font-bold ${offerFeedback.tone === 'success' ? 'text-emerald-700 dark:text-emerald-300' : 'text-orange-600 dark:text-orange-300'}`}>
+                                            {offerFeedback.message}
+                                        </p>
+                                    ) : null}
+                                </div>
                                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
                                     <span className="text-slate-500 dark:text-slate-400">{t('subtotal')}</span>
-                                    <span>{formatCurrency(pricing.subtotal)}</span>
+                                    <span>{formatCurrency(subtotal)}</span>
                                 </div>
+                                {orderMetadata.appliedDiscount ? (
+                                    <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
+                                        <span>{t('discountLine', { title: orderMetadata.appliedDiscount.title })}</span>
+                                        <span>-{formatCurrency(orderMetadata.appliedDiscount.discountAmount)}</span>
+                                    </div>
+                                ) : null}
                                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
                                     <span className="text-slate-500 dark:text-slate-400">{t('serviceFee', { rate: formatRate(pricing.serviceFeeRate) })}</span>
                                     <span>{formatCurrency(pricing.serviceFeeAmount)}</span>
