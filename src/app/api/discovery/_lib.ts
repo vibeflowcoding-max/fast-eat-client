@@ -118,15 +118,6 @@ function toNumber(value: unknown): number | null {
     return null;
 }
 
-function average(values: Array<number | null | undefined>) {
-    const normalized = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-    if (normalized.length === 0) {
-        return null;
-    }
-
-    return normalized.reduce((sum, value) => sum + value, 0) / normalized.length;
-}
-
 function isDealActiveNow(deal: Pick<DealRow, 'starts_at' | 'ends_at'>) {
     const now = Date.now();
     const startsAt = deal.starts_at ? Date.parse(deal.starts_at) : null;
@@ -558,15 +549,55 @@ export async function getRestaurantRows() {
             };
         });
 
-        const rating = restaurant.rating ?? average(branches.map((branch) => toNumber(branch.rating)));
-        const reviewCount = restaurant.review_count ?? branches
-            .map((branch) => toNumber(branch.review_count))
-            .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
-            .reduce((sum, value) => sum + value, 0);
-        const etaMinAvg = restaurant.eta_min ?? average(branches.map((branch) => toNumber(branch.eta_min)));
-        const avgPriceEstimate = restaurant.avg_price_estimate ?? average(branches.map((branch) => toNumber(branch.avg_price_estimate)));
-        const estimatedDeliveryFee = average(branches.map((branch) => toNumber(branch.estimated_delivery_fee)))
-            ?? toNumber(restaurant.estimated_delivery_fee);
+        // ⚡ Bolt: Single-pass metric extraction and aggregation over branches.
+        // This replaces multiple chained .map().filter().reduce() loops, eliminating O(N) intermediate array
+        // allocations and redundant array iterations for branch arrays, reducing garbage collection pressure.
+        let ratingSum = 0;
+        let ratingCount = 0;
+        let reviewCountSum = 0;
+        let etaSum = 0;
+        let etaCount = 0;
+        let avgPriceSum = 0;
+        let avgPriceCount = 0;
+        let feeSum = 0;
+        let feeCount = 0;
+
+        for (const branch of branches) {
+            const r = toNumber(branch.rating);
+            if (r !== null) {
+                ratingSum += r;
+                ratingCount++;
+            }
+
+            const rc = toNumber(branch.review_count);
+            if (rc !== null) {
+                reviewCountSum += rc;
+            }
+
+            const e = toNumber(branch.eta_min);
+            if (e !== null) {
+                etaSum += e;
+                etaCount++;
+            }
+
+            const p = toNumber(branch.avg_price_estimate);
+            if (p !== null) {
+                avgPriceSum += p;
+                avgPriceCount++;
+            }
+
+            const f = toNumber(branch.estimated_delivery_fee);
+            if (f !== null) {
+                feeSum += f;
+                feeCount++;
+            }
+        }
+
+        const rating = restaurant.rating ?? (ratingCount > 0 ? ratingSum / ratingCount : null);
+        const reviewCount = restaurant.review_count ?? reviewCountSum;
+        const etaMinAvg = restaurant.eta_min ?? (etaCount > 0 ? etaSum / etaCount : null);
+        const avgPriceEstimate = restaurant.avg_price_estimate ?? (avgPriceCount > 0 ? avgPriceSum / avgPriceCount : null);
+        const estimatedDeliveryFee = (feeCount > 0 ? feeSum / feeCount : null) ?? toNumber(restaurant.estimated_delivery_fee);
 
         const firstPromoBranch = branches.find((branch) => Boolean(branch.promo_text));
         const promoDeal = firstPromoBranch ? dealsByBranch.get(firstPromoBranch.id) : undefined;
