@@ -234,17 +234,16 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
             }
 
             try {
-                // If initializing with a real ID, we set the cookie AND set the store to ':branchId'
-                // This means ':branchId' implies "Valid Session Active"
+                // Synchronize session branch ID with the server-side cookie
                 await fetch('/api/session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ branchId: bId })
                 });
 
-                // CRITICAL FIX: We must set the REAL ID here.
-                // The modal logic checks if (branchId === ':branchId') to SHOW the modal.
-                // So setting it to the real ID ensures the modal closes.
+                // Ensure we set the REAL ID in the store.
+                // This triggers data loading and closes the BranchSelectionModal
+                // which otherwise shows if branchId is empty or ':branchId'.
                 setBranchId(bId);
 
                 // Clean URL if it has raw ID to hide it, but keep it if it is a phone param
