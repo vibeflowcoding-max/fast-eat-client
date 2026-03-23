@@ -51,7 +51,7 @@ export default function GroupCartJoinPage() {
             return;
         }
 
-        const nextParticipantId = `guest_${Math.random().toString(36).slice(2, 9)}`;
+        const nextParticipantId = `guest_${crypto.randomUUID().split('-')[0]}`;
         const nextParticipantName = participantName || customerName || t('guestName');
         setGroupSession(sessionId, false, nextParticipantId, nextParticipantName);
     }, [customerName, groupSessionId, participantId, participantName, sessionId, setGroupSession, t]);
