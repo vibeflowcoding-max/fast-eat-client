@@ -178,10 +178,24 @@ export async function GET(request: NextRequest) {
         }
 
         const baseRestaurants = (restaurants || []) as unknown as RestaurantData[];
-        const branchIds = baseRestaurants
-            .flatMap((restaurant) => restaurant.branches || [])
-            .map((branch) => branch.id)
-            .filter(Boolean);
+
+        // ⚡ Bolt: Single pass to extract branch ids, skipping restaurants that don't match the category.
+        // This prevents N+1 queries for deals/fees/reviews on branches that will just be filtered out anyway.
+        const branchIds: string[] = [];
+        for (const restaurant of baseRestaurants) {
+            if (categoryId) {
+                const hasCategory = (restaurant.restaurant_restaurant_categories || []).some(
+                    (rrc) => rrc.restaurant_categories?.id === categoryId
+                );
+                if (!hasCategory) continue;
+            }
+
+            if (restaurant.branches) {
+                for (const branch of restaurant.branches) {
+                    if (branch.id) branchIds.push(branch.id);
+                }
+            }
+        }
 
         let dealsByBranch = new Map<string, DealRow>();
         let feeByBranch = new Map<string, number>();
@@ -217,58 +231,83 @@ export async function GET(request: NextRequest) {
                 console.warn('Could not fetch branch reviews for restaurant listing:', branchReviewsError.message);
             }
 
-            const activeDeals = ((dealsData || []) as DealRow[])
-                .filter((deal) => isDealActiveNow(deal))
-                .sort((left, right) => {
-                    const leftCreatedAt = left.created_at ? Date.parse(left.created_at) : 0;
-                    const rightCreatedAt = right.created_at ? Date.parse(right.created_at) : 0;
-                    return rightCreatedAt - leftCreatedAt;
-                });
+            // ⚡ Bolt: Use a single for...of loop over dealsData to avoid chained .filter().sort().reduce()
+            // and reduce intermediate array allocations.
+            const dealsArr = (dealsData || []) as DealRow[];
+            for (const deal of dealsArr) {
+                if (!isDealActiveNow(deal)) continue;
 
-            dealsByBranch = activeDeals.reduce((acc, deal) => {
-                if (!acc.has(deal.branch_id)) {
-                    acc.set(deal.branch_id, deal);
+                const existing = dealsByBranch.get(deal.branch_id);
+                if (!existing) {
+                    dealsByBranch.set(deal.branch_id, deal);
+                } else {
+                    const existingCreatedAt = existing.created_at ? Date.parse(existing.created_at) : 0;
+                    const newCreatedAt = deal.created_at ? Date.parse(deal.created_at) : 0;
+                    if (newCreatedAt > existingCreatedAt) {
+                        dealsByBranch.set(deal.branch_id, deal);
+                    }
                 }
-                return acc;
-            }, new Map<string, DealRow>());
+            }
 
-            feeByBranch = ((feeRulesData || []) as FeeRuleRow[]).reduce((acc, row) => {
+            // ⚡ Bolt: Single for...of pass over feeRulesData to populate feeByBranch map.
+            const feeRulesArr = (feeRulesData || []) as FeeRuleRow[];
+            for (const row of feeRulesArr) {
                 const deliveryFee = toNumber(row.delivery_fee);
-                if (deliveryFee === null) {
-                    return acc;
-                }
+                if (deliveryFee === null) continue;
 
-                const current = acc.get(row.branch_id);
+                const current = feeByBranch.get(row.branch_id);
                 if (current === undefined || deliveryFee < current) {
-                    acc.set(row.branch_id, deliveryFee);
+                    feeByBranch.set(row.branch_id, deliveryFee);
                 }
+            }
 
-                return acc;
-            }, new Map<string, number>());
-
-            reviewsByBranch = ((branchReviewsData || []) as BranchReviewRow[]).reduce((acc, row) => {
+            // ⚡ Bolt: Single for...of pass over branchReviewsData to accumulate review metrics.
+            const branchReviewsArr = (branchReviewsData || []) as BranchReviewRow[];
+            for (const row of branchReviewsArr) {
                 const rating = toNumber(row.rating);
-                if (rating == null) {
-                    return acc;
+                if (rating == null) continue;
+
+                const previous = reviewsByBranch.get(row.branch_id);
+                if (previous) {
+                    previous.reviewCount += 1;
+                    previous.ratingSum += rating;
+                } else {
+                    reviewsByBranch.set(row.branch_id, {
+                        reviewCount: 1,
+                        ratingSum: rating
+                    });
                 }
-
-                const previous = acc.get(row.branch_id) || { reviewCount: 0, ratingSum: 0 };
-                acc.set(row.branch_id, {
-                    reviewCount: previous.reviewCount + 1,
-                    ratingSum: previous.ratingSum + rating
-                });
-
-                return acc;
-            }, new Map<string, { reviewCount: number; ratingSum: number }>());
+            }
         }
 
-        // Transform the data to flatten categories and enrich from discovery tables
-        let result: TransformedRestaurant[] = baseRestaurants.map((restaurant) => {
-            const categories = (restaurant.restaurant_restaurant_categories || [])
-                .map((rrc) => rrc.restaurant_categories)
-                .filter(Boolean);
+        const userLat = lat ? parseFloat(lat) : null;
+        const userLng = lng ? parseFloat(lng) : null;
 
-            const branchesWithDerivedMetrics = (restaurant.branches || []).map((branch) => {
+        // Transform the data to flatten categories and enrich from discovery tables
+        // ⚡ Bolt: Fused the pipeline (.map -> .filter category -> .map distance) into a single for...of loop
+        let result: TransformedRestaurant[] = [];
+
+        for (const restaurant of baseRestaurants) {
+            let hasMatchingCategory = false;
+            const categories: CategoryData[] = [];
+
+            for (const rrc of (restaurant.restaurant_restaurant_categories || [])) {
+                if (rrc.restaurant_categories) {
+                    categories.push(rrc.restaurant_categories);
+                    if (categoryId && rrc.restaurant_categories.id === categoryId) {
+                        hasMatchingCategory = true;
+                    }
+                }
+            }
+
+            if (categoryId && !hasMatchingCategory) {
+                continue;
+            }
+
+            const branchesWithDerivedMetrics: BranchData[] = [];
+            let minDistance = Infinity;
+
+            for (const branch of (restaurant.branches || [])) {
                 const promoText = branch.promo_text || dealsByBranch.get(branch.id)?.title || null;
                 const branchFee = feeByBranch.get(branch.id) ?? toNumber(branch.estimated_delivery_fee) ?? null;
                 const branchReviewStats = reviewsByBranch.get(branch.id);
@@ -277,14 +316,21 @@ export async function GET(request: NextRequest) {
                     ? Number((branchReviewStats.ratingSum / branchReviewCount).toFixed(2))
                     : null;
 
-                return {
+                branchesWithDerivedMetrics.push({
                     ...branch,
                     rating: branchRating,
                     review_count: branchReviewCount,
                     promo_text: promoText,
                     estimated_delivery_fee: branchFee
-                };
-            });
+                });
+
+                if (userLat !== null && userLng !== null && branch.latitude !== null && branch.longitude !== null) {
+                    const distance = calculateDistance(userLat, userLng, branch.latitude, branch.longitude);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                    }
+                }
+            }
 
             let branchRatingSum = 0;
             let branchRatingCount = 0;
@@ -342,7 +388,7 @@ export async function GET(request: NextRequest) {
             const derivedAvgPrice = branchAvgPriceCount > 0 ? branchAvgPriceSum / branchAvgPriceCount : null;
             const derivedFee = branchFeeCount > 0 ? branchFeeSum / branchFeeCount : null;
 
-            return {
+            result.push({
                 id: restaurant.id,
                 name: restaurant.name,
                 slug: restaurant.slug,
@@ -358,51 +404,13 @@ export async function GET(request: NextRequest) {
                     : (toNumber(restaurant.estimated_delivery_fee) ?? null),
                 promo_text: restaurant.promo_text ?? derivedPromo,
                 branches: branchesWithDerivedMetrics,
-                categories
-            };
-        });
-
-        // Filter by category if specified
-        if (categoryId) {
-            result = result.filter((restaurant) =>
-                restaurant.categories.some((cat: { id: string }) => cat.id === categoryId)
-            );
+                categories,
+                ...(minDistance !== Infinity ? { distance: minDistance } : { distance: null })
+            });
         }
 
-        // Calculate distance and sort if user location is provided
-        if (lat && lng) {
-            const userLat = parseFloat(lat);
-            const userLng = parseFloat(lng);
-
-            result = result.map((restaurant) => {
-                // Get the nearest branch distance
-                const branches = (restaurant.branches as Array<{ latitude: number | null; longitude: number | null }>) || [];
-                let minDistance = Infinity;
-
-                branches.forEach((branch) => {
-                    if (branch.latitude && branch.longitude) {
-                        // ⚡ Bolt: Removed redundant local calculateDistance implementation.
-                        // Relying on the shared `@/utils/geoUtils` version standardizes Haversine computations,
-                        // eliminating duplicate JS functions and math allocations in the app payload.
-                        const distance = calculateDistance(
-                            userLat,
-                            userLng,
-                            branch.latitude,
-                            branch.longitude
-                        );
-                        if (distance < minDistance) {
-                            minDistance = distance;
-                        }
-                    }
-                });
-
-                return {
-                    ...restaurant,
-                    distance: minDistance === Infinity ? null : minDistance
-                };
-            });
-
-            // Sort by distance (nearest first), restaurants without distance go last
+        // Sort by distance (nearest first) if location was provided
+        if (userLat !== null && userLng !== null) {
             result.sort((a, b) => {
                 if (a.distance === null && b.distance === null) return 0;
                 if (a.distance === null) return 1;
