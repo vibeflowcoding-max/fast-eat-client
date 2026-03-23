@@ -36,29 +36,69 @@ function buildPhoneCandidates(phone: string): Set<string> {
 }
 
 // ⚡ Bolt: Phone matches helper now accepts a pre-computed Set of input phone candidates
-// instead of a raw phone string. This prevents redundantly parsing the input string
-// (regex replacements, allocations) up to 8000 times per database lookup over a large result set.
-function phoneMatches(inputCandidates: Set<string>, storedPhone: unknown): boolean {
+// and a normalization cache. This prevents redundant regex parsing and allocations.
+function phoneMatchesOptimized(
+  inputCandidates: Set<string>,
+  storedPhone: unknown,
+  normalizationCache: Map<string, { raw: string; digits: string }>
+): boolean {
   if (typeof storedPhone !== 'string' || !storedPhone.trim()) {
     return false;
   }
 
-  const storedRaw = normalizePhoneRaw(storedPhone);
-  const storedDigits = normalizePhoneDigits(storedRaw);
-
-  if (inputCandidates.has(storedRaw) || inputCandidates.has(storedDigits)) {
+  // First check if the exact string matches any candidate.
+  // This is very fast and covers most matches since database queries already filter for candidates.
+  if (inputCandidates.has(storedPhone)) {
     return true;
   }
 
-  if (storedDigits.length > 8 && inputCandidates.has(storedDigits.slice(-8))) {
+  let normalized = normalizationCache.get(storedPhone);
+  if (!normalized) {
+    const raw = normalizePhoneRaw(storedPhone);
+    const digits = normalizePhoneDigits(raw);
+    normalized = { raw, digits };
+    normalizationCache.set(storedPhone, normalized);
+  }
+
+  const { raw, digits } = normalized;
+
+  if (inputCandidates.has(raw) || inputCandidates.has(digits)) {
     return true;
   }
 
-  if (storedDigits.startsWith('506') && storedDigits.length > 3 && inputCandidates.has(storedDigits.slice(3))) {
+  if (digits.length > 8 && inputCandidates.has(digits.slice(-8))) {
+    return true;
+  }
+
+  if (digits.startsWith('506') && digits.length > 3 && inputCandidates.has(digits.slice(3))) {
     return true;
   }
 
   return false;
+}
+
+function findBestCustomerMatch<T extends Record<string, any>>(
+  data: T[],
+  inputCandidatesSet: Set<string>,
+  predicate?: (row: T) => boolean
+): T | null {
+  const normalizationCache = new Map<string, { raw: string; digits: string }>();
+
+  // To maintain the same priority as the original multi-pass logic, we search column by column.
+  // Original: for (const column of CUSTOMER_PHONE_COLUMNS) { data.find(...) }
+  // This means if ANY row matches on the first column, it's preferred over ANY row matching on the second.
+  for (const column of CUSTOMER_PHONE_COLUMNS) {
+    for (const row of data) {
+      if (predicate && !predicate(row)) {
+        continue;
+      }
+      if (phoneMatchesOptimized(inputCandidatesSet, row[column], normalizationCache)) {
+        return row;
+      }
+    }
+  }
+
+  return null;
 }
 
 function hasId(value: unknown): value is { id: string | number } {
@@ -102,16 +142,13 @@ export async function findCustomerIdByPhone(phone: string): Promise<string | nul
     return null;
   }
 
-  // ⚡ Bolt: Pre-compute input phone candidates outside the inner search loops.
-  // The dataset can have up to 2000 rows, and we check up to 4 columns.
-  // Pre-computing this Set reduces phone matching execution time by over 50%.
+  // ⚡ Bolt: Use optimized single-pass search with normalization caching.
+  // Pre-computing input candidates and caching row normalizations reduces execution time.
   const inputCandidatesSet = buildPhoneCandidates(phone);
+  const found = findBestCustomerMatch(data, inputCandidatesSet, hasId);
 
-  for (const column of CUSTOMER_PHONE_COLUMNS) {
-    const found = data.find((row) => hasId(row) && phoneMatches(inputCandidatesSet, (row as Record<string, unknown>)[column]));
-    if (found && hasId(found)) {
-      return String(found.id);
-    }
+  if (found && hasId(found)) {
+    return String(found.id);
   }
 
   return null;
@@ -142,16 +179,13 @@ export async function findCustomerByPhone(phone: string): Promise<Record<string,
     return null;
   }
 
-  // ⚡ Bolt: Pre-compute input phone candidates outside the inner search loops.
-  // The dataset can have up to 2000 rows, and we check up to 4 columns.
-  // Pre-computing this Set reduces phone matching execution time by over 50%.
+  // ⚡ Bolt: Use optimized single-pass search with normalization caching.
+  // Pre-computing input candidates and caching row normalizations reduces execution time.
   const inputCandidatesSet = buildPhoneCandidates(phone);
+  const found = findBestCustomerMatch(data, inputCandidatesSet);
 
-  for (const column of CUSTOMER_PHONE_COLUMNS) {
-    const found = data.find((row) => phoneMatches(inputCandidatesSet, (row as Record<string, unknown>)[column]));
-    if (found && typeof found === 'object') {
-      return found as Record<string, unknown>;
-    }
+  if (found && typeof found === 'object') {
+    return found as Record<string, unknown>;
   }
 
   return null;
