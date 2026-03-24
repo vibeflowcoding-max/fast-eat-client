@@ -508,18 +508,27 @@ export async function getRestaurantRows() {
             .eq('active', true)
     ]);
 
-    const activeDeals = ((dealsData || []) as DealRow[])
-        .filter((deal) => isDealActiveNow(deal))
-        .sort((left, right) => {
-            const leftCreatedAt = left.created_at ? Date.parse(left.created_at) : 0;
-            const rightCreatedAt = right.created_at ? Date.parse(right.created_at) : 0;
-            return rightCreatedAt - leftCreatedAt;
-        });
+    // ⚡ Bolt: Removed O(N log N) chained .sort().filter().reduce() array allocations.
+    // Using a single-pass reduce retains only the most recent active deal per branch
+    // and substantially reduces JS execution overhead for high-volume deal arrays.
+    const dealsByBranch = ((dealsData || []) as DealRow[]).reduce((acc, deal) => {
+        if (!isDealActiveNow(deal)) {
+            return acc;
+        }
 
-    const dealsByBranch = activeDeals.reduce((acc, deal) => {
-        if (!acc.has(deal.branch_id)) {
+        const existing = acc.get(deal.branch_id);
+        if (!existing) {
+            acc.set(deal.branch_id, deal);
+            return acc;
+        }
+
+        const existingCreatedAt = existing.created_at ? Date.parse(existing.created_at) : 0;
+        const newCreatedAt = deal.created_at ? Date.parse(deal.created_at) : 0;
+
+        if (newCreatedAt > existingCreatedAt) {
             acc.set(deal.branch_id, deal);
         }
+
         return acc;
     }, new Map<string, DealRow>());
 

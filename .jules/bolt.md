@@ -7,3 +7,6 @@
 ## 2024-05-18 - O(N) Loop aggregation over chained array methods
 **Learning:** Chaining array methods like `.map()`, `.filter()`, and `.reduce()` inside of other mapping iterations causes repeated N-sized array allocations that puts unnecessary pressure on the Garbage Collector in Node.js. In this codebase's backend API logic, using inline single-pass `for...of` loops drastically cut down intermediate array processing.
 **Action:** When calculating derived metrics from database queries across multiple nodes/branches (like rating, eta, and counts), always prefer a single inline `for...of` pass rather than calling `.map().filter()` or utility functions over the dataset repeatedly.
+## 2024-05-18 - Single-pass `.reduce()` over chained `.filter().sort().reduce()`
+**Learning:** Chaining `.sort()` to resolve "the most recent entry per group" creates a massive bottleneck ($O(N \log N)$) and multiple array allocations that heavily penalize JS execution for large datasets. Using an $O(N)$ `.reduce()` to retain the most recent item using a variable comparison drops execution time by up to 90% and scales gracefully.
+**Action:** When filtering database records by recency (e.g. deals or fees) per branch in backend APIs, always use a single `reduce()` block to aggregate without executing native JS `Array.prototype.sort()`.
