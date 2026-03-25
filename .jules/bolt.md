@@ -7,3 +7,6 @@
 ## 2024-05-18 - O(N) Loop aggregation over chained array methods
 **Learning:** Chaining array methods like `.map()`, `.filter()`, and `.reduce()` inside of other mapping iterations causes repeated N-sized array allocations that puts unnecessary pressure on the Garbage Collector in Node.js. In this codebase's backend API logic, using inline single-pass `for...of` loops drastically cut down intermediate array processing.
 **Action:** When calculating derived metrics from database queries across multiple nodes/branches (like rating, eta, and counts), always prefer a single inline `for...of` pass rather than calling `.map().filter()` or utility functions over the dataset repeatedly.
+## 2024-05-18 - Early Domain Filtering to Avoid N+1 Subqueries
+**Learning:** When fetching relational API routes (like restaurants with branches, reviews, and deals), computing N+1 sub-queries and executing expensive array transformations for entities that are ultimately filtered out wastes DB bandwidth, memory, and CPU cycles.
+**Action:** Always hoist domain filters (like `categoryId` matching) to run immediately after the initial database fetch and *before* extracting IDs to query sub-collections or running expensive `.map()` formatting loops.
