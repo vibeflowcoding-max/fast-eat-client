@@ -177,7 +177,18 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        const baseRestaurants = (restaurants || []) as unknown as RestaurantData[];
+        let baseRestaurants = (restaurants || []) as unknown as RestaurantData[];
+
+        // ⚡ Bolt: Early domain filtering avoids extracting branch IDs for discarded restaurants,
+        // preventing N+1 sub-queries for deals, fees, and reviews on entities that won't be returned.
+        if (categoryId) {
+            baseRestaurants = baseRestaurants.filter((restaurant) =>
+                (restaurant.restaurant_restaurant_categories || []).some(
+                    (rrc) => rrc.restaurant_categories?.id === categoryId
+                )
+            );
+        }
+
         const branchIds = baseRestaurants
             .flatMap((restaurant) => restaurant.branches || [])
             .map((branch) => branch.id)
@@ -361,13 +372,6 @@ export async function GET(request: NextRequest) {
                 categories
             };
         });
-
-        // Filter by category if specified
-        if (categoryId) {
-            result = result.filter((restaurant) =>
-                restaurant.categories.some((cat: { id: string }) => cat.id === categoryId)
-            );
-        }
 
         // Calculate distance and sort if user location is provided
         if (lat && lng) {
