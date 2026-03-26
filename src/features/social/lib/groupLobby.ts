@@ -12,37 +12,40 @@ export interface GroupLobbySummary {
 export function getGroupLobbyParticipantStateLabel(
   participant: GroupCartParticipant,
 ): GroupLobbyParticipantState {
-  const totalItems = participant.items.reduce((sum, item) => sum + item.quantity, 0);
+  // ⚡ Bolt: Use .some() to return 'ready' early instead of summing all items
+  const hasItems = participant.items.some((item) => item.quantity > 0);
 
-  return totalItems > 0 ? 'ready' : 'browsing';
+  return hasItems ? 'ready' : 'browsing';
 }
 
 export function buildGroupLobbySummary(
   participants: GroupCartParticipant[],
 ): GroupLobbySummary {
-  return participants.reduce<GroupLobbySummary>(
-    (summary, participant) => {
-      const participantItems = participant.items.reduce((sum, item) => sum + item.quantity, 0);
-      const participantAmount = participant.items.reduce(
-        (sum, item) => sum + item.quantity * item.price,
-        0,
-      );
+  const summary: GroupLobbySummary = {
+    participantCount: 0,
+    readyCount: 0,
+    totalItems: 0,
+    totalAmount: 0,
+  };
 
-      summary.participantCount += 1;
-      summary.totalItems += participantItems;
-      summary.totalAmount += participantAmount;
+  // ⚡ Bolt: Replaced multiple .reduce() iterations with a single-pass loop
+  for (const participant of participants) {
+    let participantItems = 0;
+    let participantAmount = 0;
 
-      if (participantItems > 0) {
-        summary.readyCount += 1;
-      }
+    for (const item of participant.items) {
+      participantItems += item.quantity;
+      participantAmount += item.quantity * item.price;
+    }
 
-      return summary;
-    },
-    {
-      participantCount: 0,
-      readyCount: 0,
-      totalItems: 0,
-      totalAmount: 0,
-    },
-  );
+    summary.participantCount += 1;
+    summary.totalItems += participantItems;
+    summary.totalAmount += participantAmount;
+
+    if (participantItems > 0) {
+      summary.readyCount += 1;
+    }
+  }
+
+  return summary;
 }
