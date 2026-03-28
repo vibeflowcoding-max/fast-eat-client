@@ -508,20 +508,21 @@ export async function getRestaurantRows() {
             .eq('active', true)
     ]);
 
-    const activeDeals = ((dealsData || []) as DealRow[])
-        .filter((deal) => isDealActiveNow(deal))
-        .sort((left, right) => {
-            const leftCreatedAt = left.created_at ? Date.parse(left.created_at) : 0;
-            const rightCreatedAt = right.created_at ? Date.parse(right.created_at) : 0;
-            return rightCreatedAt - leftCreatedAt;
-        });
+    const dealsByBranch = new Map<string, DealRow>();
+    for (const deal of ((dealsData || []) as DealRow[])) {
+        if (!isDealActiveNow(deal)) continue;
 
-    const dealsByBranch = activeDeals.reduce((acc, deal) => {
-        if (!acc.has(deal.branch_id)) {
-            acc.set(deal.branch_id, deal);
+        const currentDeal = dealsByBranch.get(deal.branch_id);
+        if (!currentDeal) {
+            dealsByBranch.set(deal.branch_id, deal);
+        } else {
+            const currentCreatedAt = currentDeal.created_at ? Date.parse(currentDeal.created_at) : 0;
+            const dealCreatedAt = deal.created_at ? Date.parse(deal.created_at) : 0;
+            if (dealCreatedAt > currentCreatedAt) {
+                dealsByBranch.set(deal.branch_id, deal);
+            }
         }
-        return acc;
-    }, new Map<string, DealRow>());
+    }
 
     const feeByBranch = ((feeRulesData || []) as FeeRuleRow[]).reduce((acc, row) => {
         const deliveryFee = toNumber(row.delivery_fee);
