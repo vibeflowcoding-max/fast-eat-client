@@ -508,18 +508,25 @@ export async function getRestaurantRows() {
             .eq('active', true)
     ]);
 
-    const activeDeals = ((dealsData || []) as DealRow[])
-        .filter((deal) => isDealActiveNow(deal))
-        .sort((left, right) => {
-            const leftCreatedAt = left.created_at ? Date.parse(left.created_at) : 0;
-            const rightCreatedAt = right.created_at ? Date.parse(right.created_at) : 0;
-            return rightCreatedAt - leftCreatedAt;
-        });
+    // ⚡ Bolt: Replaced O(N log N) .filter().sort().reduce() with a single-pass O(N) .reduce()
+    // This eliminates multiple intermediate array allocations and sorts when finding the latest active deal per branch.
+    const dealsCreatedAtCache = new Map<string, number>();
+    const dealsByBranch = ((dealsData || []) as DealRow[]).reduce((acc, deal) => {
+        if (!isDealActiveNow(deal)) {
+            return acc;
+        }
 
-    const dealsByBranch = activeDeals.reduce((acc, deal) => {
-        if (!acc.has(deal.branch_id)) {
+        const current = acc.get(deal.branch_id);
+        const dealCreatedAt = deal.created_at ? Date.parse(deal.created_at) : 0;
+
+        if (!current) {
+            dealsCreatedAtCache.set(deal.branch_id, dealCreatedAt);
+            acc.set(deal.branch_id, deal);
+        } else if (dealCreatedAt > (dealsCreatedAtCache.get(deal.branch_id) || 0)) {
+            dealsCreatedAtCache.set(deal.branch_id, dealCreatedAt);
             acc.set(deal.branch_id, deal);
         }
+
         return acc;
     }, new Map<string, DealRow>());
 
