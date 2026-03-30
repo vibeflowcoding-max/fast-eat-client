@@ -217,20 +217,22 @@ export async function GET(request: NextRequest) {
                 console.warn('Could not fetch branch reviews for restaurant listing:', branchReviewsError.message);
             }
 
-            const activeDeals = ((dealsData || []) as DealRow[])
-                .filter((deal) => isDealActiveNow(deal))
-                .sort((left, right) => {
-                    const leftCreatedAt = left.created_at ? Date.parse(left.created_at) : 0;
-                    const rightCreatedAt = right.created_at ? Date.parse(right.created_at) : 0;
-                    return rightCreatedAt - leftCreatedAt;
-                });
+            dealsByBranch = new Map<string, DealRow>();
+            const rawDeals = (dealsData || []) as DealRow[];
+            for (const deal of rawDeals) {
+                if (!isDealActiveNow(deal)) continue;
 
-            dealsByBranch = activeDeals.reduce((acc, deal) => {
-                if (!acc.has(deal.branch_id)) {
-                    acc.set(deal.branch_id, deal);
+                const existing = dealsByBranch.get(deal.branch_id);
+                if (!existing) {
+                    dealsByBranch.set(deal.branch_id, deal);
+                } else {
+                    const existingCreatedAt = existing.created_at ? Date.parse(existing.created_at) : 0;
+                    const currentCreatedAt = deal.created_at ? Date.parse(deal.created_at) : 0;
+                    if (currentCreatedAt > existingCreatedAt) {
+                        dealsByBranch.set(deal.branch_id, deal);
+                    }
                 }
-                return acc;
-            }, new Map<string, DealRow>());
+            }
 
             feeByBranch = ((feeRulesData || []) as FeeRuleRow[]).reduce((acc, row) => {
                 const deliveryFee = toNumber(row.delivery_fee);
