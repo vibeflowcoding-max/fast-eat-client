@@ -150,20 +150,22 @@ export async function POST(request: NextRequest) {
             ])
             : [{ data: [] as DealRow[] }, { data: [] as FeeRuleRow[] }];
 
-        const activeDeals = ((dealsResult.data ?? []) as DealRow[])
-            .filter((deal) => isDealActiveNow(deal))
-            .sort((left, right) => {
-                const leftCreatedAt = left.created_at ? Date.parse(left.created_at) : 0;
-                const rightCreatedAt = right.created_at ? Date.parse(right.created_at) : 0;
-                return rightCreatedAt - leftCreatedAt;
-            });
+        const dealByBranch = new Map<string, DealRow>();
+        const rawDeals = (dealsResult.data ?? []) as DealRow[];
+        for (const deal of rawDeals) {
+            if (!isDealActiveNow(deal)) continue;
 
-        const dealByBranch = activeDeals.reduce((acc, deal) => {
-            if (!acc.has(deal.branch_id)) {
-                acc.set(deal.branch_id, deal);
+            const existing = dealByBranch.get(deal.branch_id);
+            if (!existing) {
+                dealByBranch.set(deal.branch_id, deal);
+            } else {
+                const existingCreatedAt = existing.created_at ? Date.parse(existing.created_at) : 0;
+                const currentCreatedAt = deal.created_at ? Date.parse(deal.created_at) : 0;
+                if (currentCreatedAt > existingCreatedAt) {
+                    dealByBranch.set(deal.branch_id, deal);
+                }
             }
-            return acc;
-        }, new Map<string, DealRow>());
+        }
 
         const feeByBranch = ((feeRulesResult.data ?? []) as FeeRuleRow[]).reduce((acc, row) => {
             const deliveryFee = toNumber(row.delivery_fee) ?? 0;
