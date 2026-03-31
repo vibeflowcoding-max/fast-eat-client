@@ -177,7 +177,17 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        const baseRestaurants = (restaurants || []) as unknown as RestaurantData[];
+        let baseRestaurants = (restaurants || []) as unknown as RestaurantData[];
+
+        // Filter by category early to avoid fetching relational data for discarded restaurants
+        if (categoryId) {
+            baseRestaurants = baseRestaurants.filter((restaurant) =>
+                (restaurant.restaurant_restaurant_categories || []).some(
+                    (rrc) => rrc.restaurant_categories?.id === categoryId
+                )
+            );
+        }
+
         const branchIds = baseRestaurants
             .flatMap((restaurant) => restaurant.branches || [])
             .map((branch) => branch.id)
@@ -268,24 +278,6 @@ export async function GET(request: NextRequest) {
                 .map((rrc) => rrc.restaurant_categories)
                 .filter(Boolean);
 
-            const branchesWithDerivedMetrics = (restaurant.branches || []).map((branch) => {
-                const promoText = branch.promo_text || dealsByBranch.get(branch.id)?.title || null;
-                const branchFee = feeByBranch.get(branch.id) ?? toNumber(branch.estimated_delivery_fee) ?? null;
-                const branchReviewStats = reviewsByBranch.get(branch.id);
-                const branchReviewCount = branchReviewStats?.reviewCount ?? 0;
-                const branchRating = branchReviewStats && branchReviewCount > 0
-                    ? Number((branchReviewStats.ratingSum / branchReviewCount).toFixed(2))
-                    : null;
-
-                return {
-                    ...branch,
-                    rating: branchRating,
-                    review_count: branchReviewCount,
-                    promo_text: promoText,
-                    estimated_delivery_fee: branchFee
-                };
-            });
-
             let branchRatingSum = 0;
             let branchRatingCount = 0;
             let branchReviewCountSum = 0;
@@ -297,40 +289,59 @@ export async function GET(request: NextRequest) {
             let branchFeeCount = 0;
             let derivedPromo: string | null = null;
 
-            for (const branch of branchesWithDerivedMetrics) {
-                const bRating = toNumber(branch.rating);
+            const branchesWithDerivedMetrics = (restaurant.branches || []).map((branch) => {
+                const promoText = branch.promo_text || dealsByBranch.get(branch.id)?.title || null;
+                const branchFee = feeByBranch.get(branch.id) ?? toNumber(branch.estimated_delivery_fee) ?? null;
+                const branchReviewStats = reviewsByBranch.get(branch.id);
+                const branchReviewCount = branchReviewStats?.reviewCount ?? 0;
+                const branchRating = branchReviewStats && branchReviewCount > 0
+                    ? Number((branchReviewStats.ratingSum / branchReviewCount).toFixed(2))
+                    : null;
+
+                const branchWithMetrics = {
+                    ...branch,
+                    rating: branchRating,
+                    review_count: branchReviewCount,
+                    promo_text: promoText,
+                    estimated_delivery_fee: branchFee
+                };
+
+                // Accumulate derived metrics in the same loop
+                const bRating = toNumber(branchWithMetrics.rating);
                 if (bRating !== null) {
                     branchRatingSum += bRating;
                     branchRatingCount++;
                 }
 
-                const bReviewCount = toNumber(branch.review_count);
+                const bReviewCount = toNumber(branchWithMetrics.review_count);
                 if (bReviewCount !== null) {
                     branchReviewCountSum += bReviewCount;
                 }
 
-                const bEta = toNumber(branch.eta_min);
+                const bEta = toNumber(branchWithMetrics.eta_min);
                 if (bEta !== null) {
                     branchEtaSum += bEta;
                     branchEtaCount++;
                 }
 
-                const bAvgPrice = toNumber(branch.avg_price_estimate);
+                const bAvgPrice = toNumber(branchWithMetrics.avg_price_estimate);
                 if (bAvgPrice !== null) {
                     branchAvgPriceSum += bAvgPrice;
                     branchAvgPriceCount++;
                 }
 
-                const bFee = toNumber(branch.estimated_delivery_fee);
+                const bFee = toNumber(branchWithMetrics.estimated_delivery_fee);
                 if (bFee !== null) {
                     branchFeeSum += bFee;
                     branchFeeCount++;
                 }
 
-                if (!derivedPromo && branch.promo_text) {
-                    derivedPromo = branch.promo_text;
+                if (!derivedPromo && branchWithMetrics.promo_text) {
+                    derivedPromo = branchWithMetrics.promo_text;
                 }
-            }
+
+                return branchWithMetrics;
+            });
 
             const derivedRating = branchRatingCount > 0 ? Number((branchRatingSum / branchRatingCount).toFixed(2)) : null;
             const derivedReviewCount = branchReviewCountSum;
@@ -361,13 +372,6 @@ export async function GET(request: NextRequest) {
                 categories
             };
         });
-
-        // Filter by category if specified
-        if (categoryId) {
-            result = result.filter((restaurant) =>
-                restaurant.categories.some((cat: { id: string }) => cat.id === categoryId)
-            );
-        }
 
         // Calculate distance and sort if user location is provided
         if (lat && lng) {
