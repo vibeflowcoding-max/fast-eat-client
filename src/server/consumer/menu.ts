@@ -24,18 +24,6 @@ function toNumber(value: unknown, fallback = 0) {
   return fallback;
 }
 
-function pickBestPrice(priceRows: Array<any>, variantId: string) {
-  const matches = priceRows
-    .filter((row) => String(row?.variant_id || '') === variantId)
-    .sort((left, right) => {
-      const leftCreatedAt = Date.parse(String(left?.created_at || 0));
-      const rightCreatedAt = Date.parse(String(right?.created_at || 0));
-      return rightCreatedAt - leftCreatedAt;
-    });
-
-  return matches.length > 0 ? toNumber(matches[0].amount) : 0;
-}
-
 function getDefaultVariantId(variants: Array<any>) {
   return variants.find((variant) => Boolean(variant?.is_default))?.id ?? variants[0]?.id ?? null;
 }
@@ -153,6 +141,23 @@ export async function loadBranchMenuFromSupabase(branchId: string) {
       : Promise.resolve({ data: [], error: null }),
   ]);
 
+  // ⚡ Bolt: Pre-compute best prices per variant in a single O(N) pass to avoid O(N*M log M) filtering/sorting loops
+  const bestPriceByVariant = new Map<string, { amount: number; createdAt: number }>();
+  for (const priceRow of pricesResult.data || []) {
+    const variantId = String(priceRow?.variant_id || '');
+    if (!variantId) continue;
+
+    const createdAt = Date.parse(String(priceRow?.created_at || 0));
+    const currentBest = bestPriceByVariant.get(variantId);
+
+    if (!currentBest || createdAt > currentBest.createdAt) {
+      bestPriceByVariant.set(variantId, {
+        amount: toNumber(priceRow?.amount),
+        createdAt
+      });
+    }
+  }
+
   const variantsByItem = new Map<string, any[]>();
   for (const variant of variantsResult.data || []) {
     const bucket = variantsByItem.get(String(variant.menu_item_id)) || [];
@@ -161,7 +166,7 @@ export async function loadBranchMenuFromSupabase(branchId: string) {
       name: String(variant.name || 'Regular'),
       is_default: Boolean(variant.is_default),
       display_order: toNumber(variant.display_order),
-      price: pickBestPrice(pricesResult.data || [], String(variant.id)),
+      price: bestPriceByVariant.get(String(variant.id))?.amount ?? 0,
     });
     variantsByItem.set(String(variant.menu_item_id), bucket);
   }
