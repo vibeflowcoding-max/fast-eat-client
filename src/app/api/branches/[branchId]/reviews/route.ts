@@ -96,37 +96,44 @@ export async function GET(
       activeBranches.map((branch) => [String(branch.id), typeof branch.name === 'string' ? branch.name : 'Branch'])
     );
 
-    const normalizedReviews = (Array.isArray(allReviews) ? allReviews : []).map((review) => ({
-      id: String(review.id),
-      branchId: String(review.branch_id),
-      branchName: branchNameById.get(String(review.branch_id)) || 'Branch',
-      rating: toNumber(review.rating),
-      comment: typeof review.comment === 'string' ? review.comment.trim() : '',
-      createdAt: review.created_at ? String(review.created_at) : null
-    }));
+    const reviewsArray = Array.isArray(allReviews) ? allReviews : [];
 
-    const ratedReviews = normalizedReviews.filter((review) => typeof review.rating === 'number');
-    const ratingSum = ratedReviews.reduce((sum, review) => sum + (review.rating as number), 0);
-    const avgRating = ratedReviews.length > 0 ? Number((ratingSum / ratedReviews.length).toFixed(2)) : null;
+    // ⚡ Bolt: Single-pass optimization. Combines multiple array operations (map/filter/reduce)
+    // to prevent redundant allocations and compute metrics directly inline.
+    let ratingSum = 0;
+    let ratedCount = 0;
+    const reviews = [];
 
-    const reviews = normalizedReviews
-      .filter((review) => review.comment.length > 0)
-      .slice(0, limit)
-      .map((review) => ({
-        id: review.id,
-        branchId: review.branchId,
-        branchName: review.branchName,
-        rating: review.rating,
-        comment: review.comment,
-        createdAt: review.createdAt
-      }));
+    for (const review of reviewsArray) {
+      const rating = toNumber(review.rating);
+      const comment = typeof review.comment === 'string' ? review.comment.trim() : '';
+
+      if (typeof rating === 'number') {
+        ratingSum += rating;
+        ratedCount++;
+      }
+
+      if (comment.length > 0 && reviews.length < limit) {
+        const branchIdStr = String(review.branch_id);
+        reviews.push({
+          id: String(review.id),
+          branchId: branchIdStr,
+          branchName: branchNameById.get(branchIdStr) || 'Branch',
+          rating,
+          comment,
+          createdAt: review.created_at ? String(review.created_at) : null
+        });
+      }
+    }
+
+    const avgRating = ratedCount > 0 ? Number((ratingSum / ratedCount).toFixed(2)) : null;
 
     return NextResponse.json({
       summary: {
         restaurantId: String(currentBranch.restaurant_id),
         restaurantName: typeof restaurant?.name === 'string' ? restaurant.name : '',
         avgRating,
-        reviewCount: normalizedReviews.length
+        reviewCount: reviewsArray.length
       },
       reviews
     });
