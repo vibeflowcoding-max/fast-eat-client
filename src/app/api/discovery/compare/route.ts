@@ -150,20 +150,23 @@ export async function POST(request: NextRequest) {
             ])
             : [{ data: [] as DealRow[] }, { data: [] as FeeRuleRow[] }];
 
-        const activeDeals = ((dealsResult.data ?? []) as DealRow[])
-            .filter((deal) => isDealActiveNow(deal))
-            .sort((left, right) => {
-                const leftCreatedAt = left.created_at ? Date.parse(left.created_at) : 0;
-                const rightCreatedAt = right.created_at ? Date.parse(right.created_at) : 0;
-                return rightCreatedAt - leftCreatedAt;
-            });
+        const dealByBranch = new Map<string, DealRow>();
+        // ⚡ Bolt: Replaced O(N log N) .filter().sort().reduce() chain with O(N) single-pass loop.
+        // Eliminates intermediate array allocations and redundant Date.parse calls during sorting.
+        for (const deal of (dealsResult.data ?? []) as DealRow[]) {
+            if (!isDealActiveNow(deal)) continue;
 
-        const dealByBranch = activeDeals.reduce((acc, deal) => {
-            if (!acc.has(deal.branch_id)) {
-                acc.set(deal.branch_id, deal);
+            const existing = dealByBranch.get(deal.branch_id);
+            if (!existing) {
+                dealByBranch.set(deal.branch_id, deal);
+            } else {
+                const existingCreatedAt = existing.created_at ? Date.parse(existing.created_at) : 0;
+                const newCreatedAt = deal.created_at ? Date.parse(deal.created_at) : 0;
+                if (newCreatedAt > existingCreatedAt) {
+                    dealByBranch.set(deal.branch_id, deal);
+                }
             }
-            return acc;
-        }, new Map<string, DealRow>());
+        }
 
         const feeByBranch = ((feeRulesResult.data ?? []) as FeeRuleRow[]).reduce((acc, row) => {
             const deliveryFee = toNumber(row.delivery_fee) ?? 0;
