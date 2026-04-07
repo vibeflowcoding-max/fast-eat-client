@@ -132,11 +132,10 @@ export async function findCustomerIdByPhone(phone: string): Promise<string | nul
   const { data, error } = await (supabaseServer as any)
     .from('customers')
     .select(`id,${CUSTOMER_PHONE_COLUMNS.join(',')}`)
-    .or(orCondition)
-    // TODO: Consider removing or justifying the 2000-row limit in the future.
-    // As the dataset grows, this could lead to false negatives.
-    // Potential improvements: better indexing or exact-match query paths.
-    .limit(2000);
+    .or(orCondition);
+    // Removed the limit to ensure all potential matches are fetched for priority-aware matching in JS.
+    // Given the exact-match filters on phone columns, the result set is expected to be small,
+    // and this prevents false negatives as the dataset grows.
 
   if (error || !Array.isArray(data)) {
     return null;
@@ -169,11 +168,10 @@ export async function findCustomerByPhone(phone: string): Promise<Record<string,
   const { data, error } = await (supabaseServer as any)
     .from('customers')
     .select('*')
-    .or(orCondition)
-    // TODO: Consider removing or justifying the 2000-row limit in the future.
-    // As the dataset grows, this could lead to false negatives.
-    // Potential improvements: better indexing or exact-match query paths.
-    .limit(2000);
+    .or(orCondition);
+    // Removed the limit to ensure all potential matches are fetched for priority-aware matching in JS.
+    // Given the exact-match filters on phone columns, the result set is expected to be small,
+    // and this prevents false negatives as the dataset grows.
 
   if (error || !Array.isArray(data)) {
     return null;
