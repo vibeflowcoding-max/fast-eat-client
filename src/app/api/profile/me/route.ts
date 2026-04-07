@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getSupabaseServer } from '@/lib/supabase-server';
 import { normalizePhoneWithSinglePlus } from '@/lib/phone';
 
 export const dynamic = 'force-dynamic';
+
+const profilePutSchema = z.object({
+  fullName: z.string({ required_error: 'fullName is required' }).trim().min(1, 'fullName is required').max(100, 'fullName cannot exceed 100 characters'),
+  phone: z.string({ required_error: 'phone is required' }).trim().min(1, 'phone is required').max(20, 'phone cannot exceed 20 characters'),
+  urlGoogleMaps: z.string().trim().max(500, 'urlGoogleMaps cannot exceed 500 characters').nullable().optional()
+});
+
+const profilePatchSchema = z.object({
+  urlGoogleMaps: z.string().trim().max(500, 'urlGoogleMaps cannot exceed 500 characters').nullable().optional()
+});
 
 function normalizeMapsUrl(value: unknown): string | null {
   if (typeof value !== 'string') {
@@ -74,18 +85,20 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json().catch(() => ({}));
-    const fullName = typeof body?.fullName === 'string' ? body.fullName.trim() : '';
-    const phone = normalizePhoneWithSinglePlus(typeof body?.phone === 'string' ? body.phone : '');
-    const hasUrlGoogleMaps = Object.prototype.hasOwnProperty.call(body || {}, 'urlGoogleMaps');
-    const urlGoogleMaps = normalizeMapsUrl(body?.urlGoogleMaps);
+    const rawBody = await request.json().catch(() => ({}));
+    const parsedBody = profilePutSchema.safeParse(rawBody);
 
-    if (!fullName) {
-      return NextResponse.json({ error: 'fullName is required' }, { status: 400 });
+    if (!parsedBody.success) {
+      return NextResponse.json({ error: parsedBody.error.issues[0]?.message || 'Invalid request payload' }, { status: 400 });
     }
 
+    const fullName = parsedBody.data.fullName;
+    const phone = normalizePhoneWithSinglePlus(parsedBody.data.phone);
+    const hasUrlGoogleMaps = Object.prototype.hasOwnProperty.call(rawBody || {}, 'urlGoogleMaps');
+    const urlGoogleMaps = normalizeMapsUrl(parsedBody.data.urlGoogleMaps);
+
     if (!phone) {
-      return NextResponse.json({ error: 'phone is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Valid phone is required' }, { status: 400 });
     }
 
     const supabaseServer = getSupabaseServer();
@@ -133,8 +146,14 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json().catch(() => ({}));
-    const urlGoogleMaps = normalizeMapsUrl(body?.urlGoogleMaps);
+    const rawBody = await request.json().catch(() => ({}));
+    const parsedBody = profilePatchSchema.safeParse(rawBody);
+
+    if (!parsedBody.success) {
+      return NextResponse.json({ error: parsedBody.error.issues[0]?.message || 'Invalid request payload' }, { status: 400 });
+    }
+
+    const urlGoogleMaps = normalizeMapsUrl(parsedBody.data.urlGoogleMaps);
 
     const supabaseServer = getSupabaseServer();
     const { data, error } = await (supabaseServer as any)
