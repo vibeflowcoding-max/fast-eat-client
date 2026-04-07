@@ -1,3 +1,4 @@
+import * as cryptoUtils from '@/lib/crypto';
 import {
     getHomeExperimentContext,
     resolveHomeFeatureFlags,
@@ -149,7 +150,7 @@ describe('getHomeExperimentContext canary gating', () => {
         process.env.NEXT_PUBLIC_HOME_EXPERIMENT_VARIANTS = 'rails_only,rails_assistant';
         process.env.NEXT_PUBLIC_HOME_EXPERIMENT_CANARY_PERCENT = '100';
 
-        vi.spyOn(Math, 'random').mockReturnValue(0);
+        vi.spyOn(cryptoUtils, 'getSecureRandom').mockReturnValue(0);
 
         const context = getHomeExperimentContext();
         expect(context.variant_id).toBe('rails_only');

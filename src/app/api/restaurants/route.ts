@@ -177,11 +177,32 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        const baseRestaurants = (restaurants || []) as unknown as RestaurantData[];
-        const branchIds = baseRestaurants
-            .flatMap((restaurant) => restaurant.branches || [])
-            .map((branch) => branch.id)
-            .filter(Boolean);
+        let baseRestaurants = (restaurants || []) as unknown as RestaurantData[];
+
+        // ⚡ Bolt: Early domain filtering to prevent N+1 queries and wasteful data fetching
+        // By filtering restaurants by categoryId *before* extracting branch IDs, we avoid
+        // making sub-queries (deals, fee_rules, branch_reviews) for branches that will be discarded.
+        if (categoryId) {
+            const filteredRestaurants: RestaurantData[] = [];
+            for (const restaurant of baseRestaurants) {
+                const hasCategory = (restaurant.restaurant_restaurant_categories || []).some(
+                    (rrc) => rrc.restaurant_categories?.id === categoryId
+                );
+                if (hasCategory) {
+                    filteredRestaurants.push(restaurant);
+                }
+            }
+            baseRestaurants = filteredRestaurants;
+        }
+
+        const branchIds: string[] = [];
+        for (const restaurant of baseRestaurants) {
+            for (const branch of restaurant.branches || []) {
+                if (branch.id) {
+                    branchIds.push(branch.id);
+                }
+            }
+        }
 
         let dealsByBranch = new Map<string, DealRow>();
         let feeByBranch = new Map<string, number>();
@@ -217,20 +238,23 @@ export async function GET(request: NextRequest) {
                 console.warn('Could not fetch branch reviews for restaurant listing:', branchReviewsError.message);
             }
 
-            const activeDeals = ((dealsData || []) as DealRow[])
-                .filter((deal) => isDealActiveNow(deal))
-                .sort((left, right) => {
-                    const leftCreatedAt = left.created_at ? Date.parse(left.created_at) : 0;
-                    const rightCreatedAt = right.created_at ? Date.parse(right.created_at) : 0;
-                    return rightCreatedAt - leftCreatedAt;
-                });
+            dealsByBranch = new Map<string, DealRow>();
+            // ⚡ Bolt: Replaced O(N log N) .filter().sort().reduce() chain with O(N) single-pass loop.
+            // Eliminates intermediate array allocations and redundant Date.parse calls during sorting.
+            for (const deal of (dealsData || []) as DealRow[]) {
+                if (!isDealActiveNow(deal)) continue;
 
-            dealsByBranch = activeDeals.reduce((acc, deal) => {
-                if (!acc.has(deal.branch_id)) {
-                    acc.set(deal.branch_id, deal);
+                const existing = dealsByBranch.get(deal.branch_id);
+                if (!existing) {
+                    dealsByBranch.set(deal.branch_id, deal);
+                } else {
+                    const existingCreatedAt = existing.created_at ? Date.parse(existing.created_at) : 0;
+                    const newCreatedAt = deal.created_at ? Date.parse(deal.created_at) : 0;
+                    if (newCreatedAt > existingCreatedAt) {
+                        dealsByBranch.set(deal.branch_id, deal);
+                    }
                 }
-                return acc;
-            }, new Map<string, DealRow>());
+            }
 
             feeByBranch = ((feeRulesData || []) as FeeRuleRow[]).reduce((acc, row) => {
                 const deliveryFee = toNumber(row.delivery_fee);
@@ -361,13 +385,6 @@ export async function GET(request: NextRequest) {
                 categories
             };
         });
-
-        // Filter by category if specified
-        if (categoryId) {
-            result = result.filter((restaurant) =>
-                restaurant.categories.some((cat: { id: string }) => cat.id === categoryId)
-            );
-        }
 
         // Calculate distance and sort if user location is provided
         if (lat && lng) {

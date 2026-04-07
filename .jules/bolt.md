@@ -11,3 +11,6 @@
 ## 2026-04-02 - PostgreSQL Column Validation in INSERT operations
 **Learning:** PostgreSQL and PostgREST (Supabase) strictly validate column names in `INSERT` operations. Including a non-existent column in the payload results in a `42703` error (Column does not exist), rather than being ignored. This makes "optimistic" multi-column inserts for discovery purposes counter-productive as they add failing round-trips.
 **Action:** When dealing with uncertain database schemas, use a module-level cache to store validated column names after the first successful discovery. This reduces subsequent "discovery" loops to a single efficient database round-trip while maintaining compatibility with multiple schema variations.
+## 2024-05-24 - O(N*M) Price Lookup Optimization
+**Learning:** Chaining `.filter().sort()` inside a loop to find the best matching relational data creates an O(N*M log M) performance bottleneck and redundant array allocations per iteration.
+**Action:** Always pre-compute relational aggregations (like the latest active price per variant) into a localized `Map` beforehand using a single `O(N)` pass, and then use `O(1)` map lookups inside the subsequent loops.
