@@ -7,3 +7,7 @@
 ## 2024-05-18 - O(N) Loop aggregation over chained array methods
 **Learning:** Chaining array methods like `.map()`, `.filter()`, and `.reduce()` inside of other mapping iterations causes repeated N-sized array allocations that puts unnecessary pressure on the Garbage Collector in Node.js. In this codebase's backend API logic, using inline single-pass `for...of` loops drastically cut down intermediate array processing.
 **Action:** When calculating derived metrics from database queries across multiple nodes/branches (like rating, eta, and counts), always prefer a single inline `for...of` pass rather than calling `.map().filter()` or utility functions over the dataset repeatedly.
+
+## 2026-04-02 - PostgreSQL Column Validation in INSERT operations
+**Learning:** PostgreSQL and PostgREST (Supabase) strictly validate column names in `INSERT` operations. Including a non-existent column in the payload results in a `42703` error (Column does not exist), rather than being ignored. This makes "optimistic" multi-column inserts for discovery purposes counter-productive as they add failing round-trips.
+**Action:** When dealing with uncertain database schemas, use a module-level cache to store validated column names after the first successful discovery. This reduces subsequent "discovery" loops to a single efficient database round-trip while maintaining compatibility with multiple schema variations.

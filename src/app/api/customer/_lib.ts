@@ -191,6 +191,12 @@ export async function findCustomerByPhone(phone: string): Promise<Record<string,
   return null;
 }
 
+/**
+ * ⚡ Bolt: Module-level cache to store the valid column names for the customers table.
+ * This avoids redundant "discovery" queries (N+1 inserts) after the first successful creation.
+ */
+let CACHED_VALID_COLUMNS: { phoneColumn: string; nameColumn?: string } | null = null;
+
 export async function ensureCustomerByPhone(params: { phone: string; fullName?: string }): Promise<{ customerId: string }> {
   const supabaseServer = getSupabaseServer();
   const normalizedPhone = params.phone.trim();
@@ -204,14 +210,38 @@ export async function ensureCustomerByPhone(params: { phone: string; fullName?: 
     return { customerId: existingCustomerId };
   }
 
+  // ⚡ Bolt: If we already know the valid columns from a previous successful insert, use them directly.
+  if (CACHED_VALID_COLUMNS) {
+    const payload: Record<string, string> = {
+      [CACHED_VALID_COLUMNS.phoneColumn]: normalizedPhone
+    };
+    if (params.fullName?.trim() && CACHED_VALID_COLUMNS.nameColumn) {
+      payload[CACHED_VALID_COLUMNS.nameColumn] = params.fullName.trim();
+    }
+
+    const { data, error } = await (supabaseServer as any)
+      .from('customers')
+      .insert(payload)
+      .select('id')
+      .single();
+
+    if (!error && hasId(data)) {
+      return { customerId: String(data.id) };
+    }
+    // If the cached insert fails (e.g. schema changed), clear cache and proceed to discovery loop.
+    CACHED_VALID_COLUMNS = null;
+  }
+
+  // Fallback to original discovery loop for robustness.
   for (const phoneColumn of CUSTOMER_PHONE_COLUMNS) {
     for (const nameColumn of CUSTOMER_NAME_COLUMNS) {
       const candidatePayload: Record<string, string> = {
         [phoneColumn]: normalizedPhone
       };
 
-      if (params.fullName?.trim()) {
-        candidatePayload[nameColumn] = params.fullName.trim();
+      const trimmedName = params.fullName?.trim();
+      if (trimmedName) {
+        candidatePayload[nameColumn] = trimmedName;
       }
 
       const { data, error } = await (supabaseServer as any)
@@ -221,6 +251,11 @@ export async function ensureCustomerByPhone(params: { phone: string; fullName?: 
         .single();
 
       if (!error && hasId(data)) {
+        // ⚡ Bolt: Success! Cache the working columns for subsequent calls.
+        CACHED_VALID_COLUMNS = {
+          phoneColumn,
+          nameColumn: trimmedName ? nameColumn : undefined
+        };
         return { customerId: String(data.id) };
       }
     }
@@ -233,6 +268,8 @@ export async function ensureCustomerByPhone(params: { phone: string; fullName?: 
       .single();
 
     if (!error && hasId(data)) {
+      // ⚡ Bolt: Success with just phone! Cache it.
+      CACHED_VALID_COLUMNS = { phoneColumn };
       return { customerId: String(data.id) };
     }
   }
