@@ -21,9 +21,11 @@ describe('Customer discovery performance benchmark and query correctness', () =>
         return {
           or: vi.fn().mockImplementation((condition) => {
             lastOrCondition = condition;
-            return {
-              limit: vi.fn().mockImplementation(() => Promise.resolve({ data: [], error: null })),
-            };
+            // The limit() call was removed from the implementation,
+            // so the mock needs to return the promise directly from or()
+            // to maintain compatibility with existing test expectations
+            // and verify that limit is NOT called.
+            return Promise.resolve({ data: [], error: null });
           }),
         };
       }),
@@ -59,8 +61,7 @@ describe('Customer discovery performance benchmark and query correctness', () =>
       callCount++;
       return {
         select: vi.fn().mockReturnThis(),
-        or: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+        or: vi.fn().mockResolvedValue({ data: [], error: null }),
       };
     });
 
@@ -76,15 +77,13 @@ describe('Customer discovery performance benchmark and query correctness', () =>
     const phone = '12345678';
     mockSupabase.from = vi.fn().mockImplementation(() => ({
       select: vi.fn().mockImplementation(() => ({
-        or: vi.fn().mockImplementation(() => ({
-          limit: vi.fn().mockResolvedValue({
-            data: [
-              { id: 'wrong-match', phone: '00000000', customer_phone: phone }, // Match in lower priority column
-              { id: 'right-match', phone: phone }, // Match in higher priority column
-            ],
-            error: null,
-          }),
-        })),
+        or: vi.fn().mockResolvedValue({
+          data: [
+            { id: 'wrong-match', phone: '00000000', customer_phone: phone }, // Match in lower priority column
+            { id: 'right-match', phone: phone }, // Match in higher priority column
+          ],
+          error: null,
+        }),
       })),
     }));
 
