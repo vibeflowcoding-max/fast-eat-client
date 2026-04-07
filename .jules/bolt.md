@@ -14,3 +14,6 @@
 ## 2024-05-24 - O(N*M) Price Lookup Optimization
 **Learning:** Chaining `.filter().sort()` inside a loop to find the best matching relational data creates an O(N*M log M) performance bottleneck and redundant array allocations per iteration.
 **Action:** Always pre-compute relational aggregations (like the latest active price per variant) into a localized `Map` beforehand using a single `O(N)` pass, and then use `O(1)` map lookups inside the subsequent loops.
+## 2024-05-23 - Avoiding Redundant Map/Filter Chains in Query Payloads
+**Learning:** Chaining `Array.from(new Set(arr.map().filter()))` inside a `Promise.all` block multiple times for the exact same input array creates unnecessary array allocations, duplicated iteration logic, and bloated query payloads. This is an anti-pattern when multiple Supabase queries rely on identical relationship IDs.
+**Action:** Always pre-calculate the unique identifier array using a single `for...of` loop combined with a `Set` before passing it down to dependent query builders to reuse logic and memory effectively.
