@@ -1,3 +1,4 @@
+import { getSecureRandom } from '@/lib/crypto';
 import { HomeFeatureFlags } from './types';
 
 const EXPERIMENT_ID_FALLBACK = 'home_discovery_variant_v1';
@@ -72,7 +73,7 @@ function isCanaryEnrolled(percent: number): boolean {
         return false;
     }
 
-    const enrolled = Math.random() * 100 < percent;
+    const enrolled = getSecureRandom() * 100 < percent;
     window.localStorage.setItem(CANARY_ENROLLMENT_STORAGE_KEY, enrolled ? '1' : '0');
 
     return enrolled;
@@ -102,7 +103,7 @@ function getOrCreateVariant(variants: HomeExperimentVariant[]): HomeExperimentVa
         return storedVariant;
     }
 
-    const selectedVariant = variants[Math.floor(Math.random() * variants.length)] ?? 'rails_assistant';
+    const selectedVariant = variants[Math.floor(getSecureRandom() * variants.length)] ?? 'rails_assistant';
     window.localStorage.setItem(VARIANT_STORAGE_KEY, selectedVariant);
     return selectedVariant;
 }
