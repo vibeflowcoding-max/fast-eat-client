@@ -302,8 +302,8 @@ const Navbar: React.FC<NavbarProps> = ({
                 <div className="relative group">
                     {canScrollLeft && (
                         <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent z-10 flex items-center">
-                            <button onClick={() => scrollTabs('left')} className="p-1 text-[var(--color-brand)]">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button onClick={() => scrollTabs('left')} aria-label={t('scrollLeft')} className="p-1 text-[var(--color-brand)]">
+                                <svg aria-hidden="true" className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
                                 </svg>
                             </button>
@@ -345,8 +345,8 @@ const Navbar: React.FC<NavbarProps> = ({
                     </div>
                     {canScrollRight && (
                         <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-l from-white to-transparent z-10 flex items-center justify-end">
-                            <button onClick={() => scrollTabs('right')} className="p-1 text-[var(--color-brand)]">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button onClick={() => scrollTabs('right')} aria-label={t('scrollRight')} className="p-1 text-[var(--color-brand)]">
+                                <svg aria-hidden="true" className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
                                 </svg>
                             </button>
