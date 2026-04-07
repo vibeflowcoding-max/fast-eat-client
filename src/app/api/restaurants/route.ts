@@ -177,11 +177,32 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        const baseRestaurants = (restaurants || []) as unknown as RestaurantData[];
-        const branchIds = baseRestaurants
-            .flatMap((restaurant) => restaurant.branches || [])
-            .map((branch) => branch.id)
-            .filter(Boolean);
+        let baseRestaurants = (restaurants || []) as unknown as RestaurantData[];
+
+        // ⚡ Bolt: Early domain filtering to prevent N+1 queries and wasteful data fetching
+        // By filtering restaurants by categoryId *before* extracting branch IDs, we avoid
+        // making sub-queries (deals, fee_rules, branch_reviews) for branches that will be discarded.
+        if (categoryId) {
+            const filteredRestaurants: RestaurantData[] = [];
+            for (const restaurant of baseRestaurants) {
+                const hasCategory = (restaurant.restaurant_restaurant_categories || []).some(
+                    (rrc) => rrc.restaurant_categories?.id === categoryId
+                );
+                if (hasCategory) {
+                    filteredRestaurants.push(restaurant);
+                }
+            }
+            baseRestaurants = filteredRestaurants;
+        }
+
+        const branchIds: string[] = [];
+        for (const restaurant of baseRestaurants) {
+            for (const branch of restaurant.branches || []) {
+                if (branch.id) {
+                    branchIds.push(branch.id);
+                }
+            }
+        }
 
         let dealsByBranch = new Map<string, DealRow>();
         let feeByBranch = new Map<string, number>();
@@ -364,13 +385,6 @@ export async function GET(request: NextRequest) {
                 categories
             };
         });
-
-        // Filter by category if specified
-        if (categoryId) {
-            result = result.filter((restaurant) =>
-                restaurant.categories.some((cat: { id: string }) => cat.id === categoryId)
-            );
-        }
 
         // Calculate distance and sort if user location is provided
         if (lat && lng) {
