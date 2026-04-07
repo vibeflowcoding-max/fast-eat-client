@@ -78,7 +78,9 @@
     "unfavoriteError": "Could not remove this restaurant from favorites.",
     "dismissOrderStatusNotification": "Dismiss order status notification",
     "dismissBidNotification": "Dismiss bid notification",
-    "newOfferReceived": "New offer received"
+    "newOfferReceived": "New offer received",
+    "scrollLeft": "Scroll left",
+    "scrollRight": "Scroll right"
   },
   "notifications": {
     "trayTitle": "Recent notifications",

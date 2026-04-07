@@ -78,7 +78,9 @@
     "unfavoriteError": "No se pudo quitar el restaurante de favoritos.",
     "dismissOrderStatusNotification": "Cerrar notificación de estado del pedido",
     "dismissBidNotification": "Cerrar notificación de oferta",
-    "newOfferReceived": "Nueva oferta recibida"
+    "newOfferReceived": "Nueva oferta recibida",
+    "scrollLeft": "Desplazar a la izquierda",
+    "scrollRight": "Desplazar a la derecha"
   },
   "notifications": {
     "trayTitle": "Notificaciones recientes",
