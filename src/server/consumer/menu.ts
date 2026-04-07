@@ -120,6 +120,18 @@ export async function loadBranchMenuFromSupabase(branchId: string) {
   }
 
   const variantIds = Array.isArray(variantsResult.data) ? variantsResult.data.map((variant: any) => variant.id) : [];
+  // ⚡ Bolt: Single pass extraction of unique modifier group IDs to avoid redundant .map().filter() chains
+  const uniqueModifierGroupIds: string[] = [];
+  if (Array.isArray(modifierLinksResult.data)) {
+    const groupIdsSet = new Set<string>();
+    for (const link of modifierLinksResult.data) {
+      if (link.modifier_group_id) {
+        groupIdsSet.add(String(link.modifier_group_id));
+      }
+    }
+    uniqueModifierGroupIds.push(...Array.from(groupIdsSet));
+  }
+
   const [pricesResult, modifierGroupsResult, modifierItemsResult] = await Promise.all([
     variantIds.length > 0
       ? client
@@ -127,17 +139,17 @@ export async function loadBranchMenuFromSupabase(branchId: string) {
           .select('variant_id, channel, service_mode, amount, period, created_at')
           .in('variant_id', variantIds)
       : Promise.resolve({ data: [], error: null }),
-    Array.isArray(modifierLinksResult.data) && modifierLinksResult.data.length > 0
+    uniqueModifierGroupIds.length > 0
       ? client
           .from('modifier_groups')
           .select('id, name, min_selection, max_selection, is_required')
-          .in('id', Array.from(new Set(modifierLinksResult.data.map((link: any) => link.modifier_group_id).filter(Boolean))))
+          .in('id', uniqueModifierGroupIds)
       : Promise.resolve({ data: [], error: null }),
-    Array.isArray(modifierLinksResult.data) && modifierLinksResult.data.length > 0
+    uniqueModifierGroupIds.length > 0
       ? client
           .from('modifier_items')
           .select('id, group_id, name, price_adjustment, is_available, stock_count, snooze_until')
-          .in('group_id', Array.from(new Set(modifierLinksResult.data.map((link: any) => link.modifier_group_id).filter(Boolean))))
+          .in('group_id', uniqueModifierGroupIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
