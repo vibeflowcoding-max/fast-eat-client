@@ -124,7 +124,15 @@ async function loadModifierCatalogForItems(menuItemIds: string[]) {
     .select('menu_item_id, modifier_group_id, display_order')
     .in('menu_item_id', menuItemIds);
 
-  const groupIds = Array.from(new Set((modifierLinks || []).map((link: any) => link.modifier_group_id).filter(Boolean)));
+  // ⚡ Bolt: Using a single-pass loop instead of chained Array.from(new Set(items.map().filter()))
+  // avoids redundant intermediate O(N) array allocations in high-traffic order initialization endpoints.
+  const uniqueGroupIds = new Set<string>();
+  for (const link of modifierLinks || []) {
+    if (link?.modifier_group_id) {
+      uniqueGroupIds.add(link.modifier_group_id);
+    }
+  }
+  const groupIds = Array.from(uniqueGroupIds);
   const [{ data: modifierGroups }, { data: modifierItems }] = await Promise.all([
     groupIds.length > 0
       ? admin.from('modifier_groups').select('id, name, min_selection, max_selection, is_required').in('id', groupIds)
@@ -342,7 +350,16 @@ export async function createConsumerOrderLocal(orderData: {
 
   const { expandedItems: comboExpandedItems, comboDiscounts, comboSelections } = expandComboSelections(comboRequests, comboDefinitions);
   const requestedItems = [...standardItems, ...comboExpandedItems];
-  const menuItemIds = Array.from(new Set(requestedItems.map((item) => item.item_id).filter(Boolean)));
+
+  // ⚡ Bolt: Using a single-pass loop instead of chained Array.from(new Set(items.map().filter()))
+  // avoids redundant intermediate O(N) array allocations in high-traffic order initialization endpoints.
+  const uniqueMenuItemIds = new Set<string>();
+  for (const item of requestedItems) {
+    if (item?.item_id) {
+      uniqueMenuItemIds.add(item.item_id);
+    }
+  }
+  const menuItemIds = Array.from(uniqueMenuItemIds);
 
   const { data: variants, error: variantsError } = menuItemIds.length > 0
     ? await admin.from('menu_item_variants').select('id, menu_item_id, name, is_default, is_active, display_order').in('menu_item_id', menuItemIds).eq('is_active', true)
