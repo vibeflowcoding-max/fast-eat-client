@@ -852,7 +852,8 @@
     "reviewTitle": "Did you enjoy your meal?",
     "reviewSubtitle": "Upload a photo and earn +150 loyalty points.",
     "uploadPhoto": "Upload photo",
-    "realtimeFooter": "Real-time updates via SSE"
+    "realtimeFooter": "Real-time updates via SSE",
+    "closeAria": "Close tracking modal"
   },
   "home": {
     "intents": {
