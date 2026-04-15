@@ -226,7 +226,7 @@ const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({ isOpen, branchI
                             </span>
                         </div>
                     </div>
-                    <button onClick={onClose} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-black font-black hover:bg-black hover:text-white transition-all">✕</button>
+                    <button aria-label={t('closeAria')} onClick={onClose} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-black font-black hover:bg-black hover:text-white transition-all">✕</button>
                 </div>
 
                 {/* Content */}

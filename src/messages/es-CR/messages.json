@@ -852,7 +852,8 @@
     "reviewTitle": "¿Te gustó tu comida?",
     "reviewSubtitle": "Sube una foto y gana +150 pts de lealtad.",
     "uploadPhoto": "Subir foto",
-    "realtimeFooter": "Actualizaciones en tiempo real vía SSE"
+    "realtimeFooter": "Actualizaciones en tiempo real vía SSE",
+    "closeAria": "Cerrar modal de rastreo"
   },
   "home": {
     "intents": {
