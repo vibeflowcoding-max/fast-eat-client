@@ -66,7 +66,16 @@ Genera el caption y un emoji principal que represente la orden.
             throw new Error('No text returned from Gemini');
         }
 
-        const resultObject = JSON.parse(response.text);
+        let resultObject;
+        try {
+            resultObject = JSON.parse(response.text);
+        } catch (parseError) {
+            console.warn('[social.activity-caption.parse-error]', {
+                error: parseError,
+                responseText: response.text.slice(0, 300)
+            });
+            return NextResponse.json({ error: 'Invalid provider payload' }, { status: 502 });
+        }
 
         return NextResponse.json({
             caption: resultObject.caption,

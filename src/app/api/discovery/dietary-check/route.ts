@@ -79,7 +79,7 @@ Analyze the item and return strictly the structured output required. All explana
             throw new Error('No text returned from Gemini');
         }
 
-        const resultObject = JSON.parse(response.text) as {
+        let resultObject: {
             is_safe?: boolean;
             confidence?: number;
             reason?: string;
@@ -89,6 +89,22 @@ Analyze the item and return strictly the structured output required. All explana
                 fat?: number;
             };
         };
+
+        try {
+            resultObject = JSON.parse(response.text);
+        } catch (parseError) {
+            console.warn('[discovery.dietary-check.parse-error]', {
+                traceId,
+                error: parseError,
+                responseText: response.text.slice(0, 300)
+            });
+            return NextResponse.json({
+                status: 'analysis_unavailable',
+                reason: 'invalid_provider_payload',
+                source: 'ai',
+                traceId
+            }, { status: 502 });
+        }
 
         if (typeof resultObject.is_safe !== 'boolean' || typeof resultObject.confidence !== 'number' || typeof resultObject.reason !== 'string') {
             return NextResponse.json({

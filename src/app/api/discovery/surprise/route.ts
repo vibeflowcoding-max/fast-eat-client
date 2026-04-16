@@ -109,12 +109,28 @@ Respond with strictly the selected restaurantId, selected itemId, and a short, e
             throw new Error('No text returned from Gemini');
         }
 
-        const resultObject = JSON.parse(response.text) as {
+        let resultObject: {
             restaurantId?: string;
             itemId?: string;
             justification?: string;
             reason?: string;
         };
+
+        try {
+            resultObject = JSON.parse(response.text);
+        } catch (parseError) {
+            console.warn('[discovery.surprise.parse-error]', {
+                traceId,
+                error: parseError,
+                responseText: response.text.slice(0, 300)
+            });
+            return NextResponse.json({
+                status: 'analysis_unavailable',
+                reason: 'invalid_provider_payload',
+                source: 'ai',
+                traceId
+            }, { status: 502 });
+        }
 
         const isActionable =
             typeof resultObject.restaurantId === 'string' &&
