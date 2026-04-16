@@ -78,13 +78,24 @@ export async function GET(request: NextRequest) {
     }
 
     const orders = (data ?? []) as OrderRow[];
-    const restaurantIds = [...new Set(orders.map((order) => order.restaurant_id).filter(Boolean))] as string[];
+
+    // ⚡ Bolt: Using a single-pass loop instead of chained Array.from(new Set(orders.map().filter()))
+    // Pre-calculating orderIds and unique restaurantIds avoids duplicate dynamic .map() calls in queries
+    const orderIds: string[] = [];
+    const restaurantIdsSet = new Set<string>();
+    for (const order of orders) {
+      orderIds.push(order.id);
+      if (order.restaurant_id) {
+        restaurantIdsSet.add(order.restaurant_id);
+      }
+    }
+    const restaurantIds = Array.from(restaurantIdsSet);
 
     const [{ data: bidsData }, { data: restaurantsData }, { data: orderNumbersData }] = await Promise.all([
       (supabaseServer as any)
         .from('delivery_bids')
         .select('order_id,id,status,driver_offer,base_price,final_price,estimated_time_minutes,driver_notes,driver_rating_snapshot,created_at,expires_at')
-        .in('order_id', orders.map((order) => order.id)),
+        .in('order_id', orderIds),
       restaurantIds.length
         ? (supabaseServer as any)
             .from('restaurants')
@@ -95,7 +106,7 @@ export async function GET(request: NextRequest) {
         ? (supabaseServer as any)
             .from('orders')
           .select('id,order_number,branch_id,total,customer_total,delivery_fee,delivery_final_price,updated_at,security_code')
-            .in('id', orders.map((order) => order.id))
+            .in('id', orderIds)
         : Promise.resolve({ data: [] })
     ]);
 

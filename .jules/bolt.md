@@ -17,3 +17,6 @@
 ## 2024-05-23 - Avoiding Redundant Map/Filter Chains in Query Payloads
 **Learning:** Chaining `Array.from(new Set(arr.map().filter()))` inside a `Promise.all` block multiple times for the exact same input array creates unnecessary array allocations, duplicated iteration logic, and bloated query payloads. This is an anti-pattern when multiple Supabase queries rely on identical relationship IDs.
 **Action:** Always pre-calculate the unique identifier array using a single `for...of` loop combined with a `Set` before passing it down to dependent query builders to reuse logic and memory effectively.
+## 2024-05-24 - Avoiding Redundant Dynamic Map Lookups in Promise Arrays
+**Learning:** Running `.map()` dynamically inside of multiple chained `.in()` clauses that live within a `Promise.all` block results in redundant array allocations and unnecessary O(N) operations when constructing backend database queries.
+**Action:** Always extract invariant array ids mapping into localized constants using a single `for...of` pass, and then reuse those cached unique IDs arrays locally within down-stream async queries mapping inputs.
