@@ -39,7 +39,14 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   const [showInvitation, setShowInvitation] = useState(true);
   const [messages, setMessages] = useState<ExtendedChatMessage[]>(() => {
     const saved = localStorage.getItem('izakaya_chat_history');
-    return saved ? JSON.parse(saved) : [
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        console.warn('Failed to parse izakaya_chat_history from localStorage');
+      }
+    }
+    return [
       { role: 'assistant', content: t('welcomeMessage'), action: 'none', confirmation: true }
     ];
   });

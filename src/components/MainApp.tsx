@@ -287,7 +287,13 @@ export default function MainApp({ initialBranchId }: MainAppProps) {
         setIsResolving(true);
 
         const savedMetadata = localStorage.getItem('izakaya_metadata');
-        if (savedMetadata) setOrderMetadata(JSON.parse(savedMetadata) as OrderMetadata);
+        if (savedMetadata) {
+            try {
+                setOrderMetadata(JSON.parse(savedMetadata) as OrderMetadata);
+            } catch {
+                console.warn('Failed to parse izakaya_metadata from localStorage');
+            }
+        }
 
         const urlBranch = searchParams.get('branch_id');
         const urlPhone = searchParams.get('fromNumber');
