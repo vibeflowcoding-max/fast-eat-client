@@ -119,7 +119,11 @@ export default function CheckoutPageContent() {
     if (!orderMetadata.customerPhone && typeof window !== 'undefined') {
       const savedMetadata = window.localStorage.getItem('izakaya_metadata');
       if (savedMetadata) {
-        setCheckoutDraft(JSON.parse(savedMetadata));
+        try {
+          setCheckoutDraft(JSON.parse(savedMetadata));
+        } catch {
+          console.warn('Failed to parse izakaya_metadata from localStorage');
+        }
       }
     }
   }, [orderMetadata.customerPhone, setCheckoutDraft]);
