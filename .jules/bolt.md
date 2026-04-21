@@ -20,3 +20,6 @@
 ## 2024-05-24 - Avoiding Redundant Dynamic Map Lookups in Promise Arrays
 **Learning:** Running `.map()` dynamically inside of multiple chained `.in()` clauses that live within a `Promise.all` block results in redundant array allocations and unnecessary O(N) operations when constructing backend database queries.
 **Action:** Always extract invariant array ids mapping into localized constants using a single `for...of` pass, and then reuse those cached unique IDs arrays locally within down-stream async queries mapping inputs.
+## 2024-05-24 - Avoiding Array method chains with slice
+**Learning:** Chaining array methods like `.map().filter().slice()` causes N-sized array allocations at each step before discarding most elements via `.slice()`. This places unnecessary pressure on the Garbage Collector in Node.js when processing potentially large result sets from database queries.
+**Action:** When extracting a bounded number of filtered items (like Top 6 favorites), always prefer a single `for...of` loop with an explicit limit check and early `break`. This converts O(N) allocations and 3 iterations into a single partial pass with minimal memory overhead.

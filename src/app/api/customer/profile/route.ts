@@ -41,10 +41,17 @@ export async function GET(request: NextRequest) {
         .limit(50)
     ]);
 
-    let topRestaurantIds = ((persistedFavorites ?? []) as Array<{ restaurant_id: string | null }>)
-      .map((row) => row.restaurant_id)
-      .filter((restaurantId): restaurantId is string => typeof restaurantId === 'string' && restaurantId.length > 0)
-      .slice(0, 6);
+    // ⚡ Bolt: Replaced chained .map().filter().slice() with a single-pass loop
+    // This avoids multiple intermediate array allocations and redundant O(N) iterations.
+    let topRestaurantIds: string[] = [];
+    for (const row of (persistedFavorites ?? []) as Array<{ restaurant_id: string | null }>) {
+      if (typeof row.restaurant_id === 'string' && row.restaurant_id.length > 0) {
+        topRestaurantIds.push(row.restaurant_id);
+        if (topRestaurantIds.length === 6) {
+          break;
+        }
+      }
+    }
 
     if (topRestaurantIds.length === 0) {
       const restaurantFrequency = new Map<string, number>();
