@@ -192,33 +192,40 @@ export async function POST(request: NextRequest) {
                 return [];
             }
 
-            const branchFees = (row?.branches || [])
-                .map((branch) => toNumber(branch.estimated_delivery_fee) ?? feeByBranch.get(branch.id) ?? null)
-                .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+            // ⚡ Bolt: Consolidated multiple .map().filter()/.find() loops into a single-pass loop.
+            // Avoids redundant iterations and intermediate array allocations per compared option.
+            let minBranchFee = Infinity;
+            let minBranchEta = Infinity;
+            let promoDeal: DealRow | undefined;
 
-            const deliveryFee = branchFees.length > 0
-                ? Math.min(...branchFees)
-                : toNumber(row.estimated_delivery_fee);
+            for (const branch of (row?.branches || [])) {
+                const fee = toNumber(branch.estimated_delivery_fee) ?? feeByBranch.get(branch.id);
+                if (typeof fee === 'number' && Number.isFinite(fee) && fee < minBranchFee) {
+                    minBranchFee = fee;
+                }
 
+                const eta = toNumber(branch.eta_min);
+                if (typeof eta === 'number' && Number.isFinite(eta) && eta < minBranchEta) {
+                    minBranchEta = eta;
+                }
+
+                if (!promoDeal) {
+                    const deal = dealByBranch.get(branch.id);
+                    if (deal) {
+                        promoDeal = deal;
+                    }
+                }
+            }
+
+            const deliveryFee = minBranchFee !== Infinity ? minBranchFee : toNumber(row.estimated_delivery_fee);
             if (deliveryFee === null || deliveryFee === undefined) {
                 return [];
             }
 
-            const etaCandidates = (row.branches || [])
-                .map((branch) => toNumber(branch.eta_min))
-                .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-
-            const etaMin = etaCandidates.length > 0
-                ? Math.min(...etaCandidates)
-                : toNumber(row.eta_min);
-
+            const etaMin = minBranchEta !== Infinity ? minBranchEta : toNumber(row.eta_min);
             if (etaMin === null || etaMin === undefined) {
                 return [];
             }
-
-            const promoDeal = (row?.branches || [])
-                .map((branch) => dealByBranch.get(branch.id))
-                .find(Boolean);
 
             let discount = 0;
             if (promoDeal?.discount_type === 'percentage') {
