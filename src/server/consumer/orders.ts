@@ -478,8 +478,16 @@ export async function loadTrackedOrdersLocal(params: {
     return [];
   }
 
-  const orderIds = orderRows.map((order: any) => order.id);
-  const statusIds = Array.from(new Set(orderRows.map((order: any) => order.status_id).filter(Boolean)));
+  // ⚡ Bolt: Single pass extraction of order and unique status IDs to avoid redundant .map().filter() chains
+  const orderIds: string[] = [];
+  const statusIdsSet = new Set<string>();
+  for (const order of orderRows) {
+    orderIds.push(order.id);
+    if (order.status_id) {
+      statusIdsSet.add(order.status_id);
+    }
+  }
+  const statusIds = Array.from(statusIdsSet);
   const [{ data: statuses }, { data: bids }] = await Promise.all([
     statusIds.length > 0
       ? admin.from('order_statuses').select('id, code, label').in('id', statusIds)

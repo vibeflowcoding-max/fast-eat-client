@@ -107,7 +107,15 @@ export async function loadConsumerCombos(branchId: string): Promise<ComboRecord[
 }
 
 export async function getActiveCombosByIds(comboIds: string[]): Promise<ComboRecord[]> {
-  const normalizedComboIds = Array.from(new Set((comboIds || []).map((comboId) => String(comboId || '').trim()))).filter(Boolean);
+  // ⚡ Bolt: Single pass extraction of unique combo IDs to avoid redundant .map().filter() chains
+  const normalizedComboIdsSet = new Set<string>();
+  for (const comboId of comboIds || []) {
+    const trimmed = String(comboId || '').trim();
+    if (trimmed) {
+      normalizedComboIdsSet.add(trimmed);
+    }
+  }
+  const normalizedComboIds = Array.from(normalizedComboIdsSet);
   if (normalizedComboIds.length === 0) {
     return [];
   }
