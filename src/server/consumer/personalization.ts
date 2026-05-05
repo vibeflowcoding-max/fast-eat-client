@@ -197,8 +197,16 @@ async function loadCatalogCandidates(args: { limit: number; serviceMode: string;
     throw new Error(error.message || 'No se pudo cargar el catálogo de menú');
   }
 
-  const itemIds = (menuItems || []).map((item: any) => item.id);
-  const restaurantIds = Array.from(new Set((menuItems || []).map((item: any) => item.restaurant_id).filter(Boolean)));
+  // ⚡ Bolt: Consolidated mapping and filtering into a single loop to avoid multiple iterations over menuItems
+  const itemIds: string[] = [];
+  const restaurantIdsSet = new Set<string>();
+  for (const item of menuItems || []) {
+    itemIds.push(item.id);
+    if (item.restaurant_id) {
+      restaurantIdsSet.add(item.restaurant_id);
+    }
+  }
+  const restaurantIds = Array.from(restaurantIdsSet);
   const { data: variants } = itemIds.length > 0
     ? await admin
         .from('menu_item_variants')
